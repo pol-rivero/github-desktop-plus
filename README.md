@@ -1,3 +1,63 @@
+# GitHub Desktop Plus
+
+This is a work in progress fork of [GitHub Desktop](https://desktop.github.com) for Linux with additional features and improvements.
+
+## Features and Roadmap
+
+## General:
+
+- [ ] Customizable **keyboard shortcuts**.
+- [ ] Bitbucket integration:
+  - [ ] Correctly set repository owner (instead of "Other").
+  - [ ] Create pull requests.
+  - [ ] View pull requests status, including checks.
+- [ ] Jira integration:
+  - [ ] Create and view Jira issues.
+  - [ ] Create branches from Jira issues.
+
+### Repositories list:
+
+- [ ] **Pull all** button to fetch and pull from all remotes at once.
+- [ ] Allow **collapsing groups** of repositories.
+
+### Branches list:
+
+- [ ] Add warning icon to **local-only branches** (branches that are not on the remote).
+- [ ] Allow manually setting which is the **default branch** for a repository (base branch for creating new branches).
+
+### History tab:
+
+- [ ] **Search commits** by title or message.
+- [ ] If a commit modifies only 1 file, allow double-clicking the commit to open the file.
+
+### Changes tab:
+
+- [ ] Context menu option to **permanently discard changes** without sending to trash (useful when the there are many changed files and the regular "Discard" is extremely slow).
+
+## Running the app locally
+
+```bash
+corepack enable         # Install yarn if needed
+yarn                    # Install dependencies
+yarn compile:dev:watch  # Compile and watch for changes
+yarn start              # Start the app for development
+```
+
+- It's normal for the app to take a while to start up, especially the first time.
+
+- While starting up, this error is normal: `UnhandledPromiseRejectionWarning: Error: Invalid header: Does not start with Cr24`
+
+
+## Why this fork?
+
+While the "official" Linux fork of GitHub Desktop is great, I think it's slow in terms of updates and lacks some advanced features that I'd like. This fork has low code quality requirements compared to the official fork, so I (and hopefully you as well) can add features and improvements quickly.
+
+This fork also focuses on integrating nicely with Atlasian products (Bitbucket, Jira, etc.), since I have to use them for work and haven't found a good desktop client for it.
+
+---
+
+*Original readme below.*
+
 # [GitHub Desktop](https://desktop.github.com) - The Linux Fork
 
 [![CI](https://github.com/shiftkey/desktop/actions/workflows/ci.yml/badge.svg)](https://github.com/shiftkey/desktop/actions/workflows/ci.yml)
