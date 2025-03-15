@@ -197,12 +197,14 @@ jobs:
         run: |
           # GitHubDesktopSetup-<arch>.<ext> -> GitHubDesktopPlus-<release_tag>-windows-<arch>.<ext>
           for file in $(find ./artifacts -type f -name "GitHubDesktopSetup-*"); do
-            mv --verbose "$file" $(echo "$file" | sed -E "s/GitHubDesktopSetup-(.*)\\.(.*)/GitHubDesktopPlus-${{ env.RELEASE_TAG }}-windows-\\1.\\2/")
+            new_name=$(echo "$file" | sed -E "s/GitHubDesktopSetup-(.*)\\.(.*)/GitHubDesktopPlus-${{ env.RELEASE_TAG }}-windows-\\1.\\2/")
+            mv --verbose "$file" "$new_name"
           done
 
           # GitHub Desktop-<arch>.zip -> GitHubDesktopPlus-<release_tag>-macOS-<arch>.zip
           for file in $(find ./artifacts -type f -name "GitHub Desktop-*.zip"); do
-            mv --verbose "$file" $(echo "$file" | sed -E "s/GitHub Desktop-(.*)\\.zip/GitHubDesktopPlus-${{ env.RELEASE_TAG }}-macOS-\\1.zip/")
+            new_name=$(echo "$file" | sed -E "s/GitHub Desktop-(.*)\\.zip/GitHubDesktopPlus-${{ env.RELEASE_TAG }}-macOS-\\1.zip/")
+            mv --verbose "$file" "$new_name"
           done
 
       - name: Upload assets to release
