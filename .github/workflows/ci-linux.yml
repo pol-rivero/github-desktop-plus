@@ -145,6 +145,7 @@ jobs:
           for file in $(find ./artifacts -type f -name "GitHubDesktop-linux-*"); do
             new_name=$(echo "$file" | sed -E "s/GitHubDesktop-linux-(.*)-[0-9]+\\.[0-9]+\\.[0-9]+\\.(.*)/GitHubDesktopPlus-${{ env.RELEASE_TAG }}-linux-\\1.\\2/")
             new_name=$(echo $new_name | sed -E "s/linux-amd64/linux-x86_64/")
+            new_name=$(echo $new_name | sed -E "s/linux-aarch64/linux-arm64/")
             mv --verbose "$file" "$new_name"
           done
 
@@ -160,3 +161,45 @@ jobs:
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare PKGBUILD
+        run: |
+          AUR_DIR=./aur
+          PKGBUILD_FILE=$AUR_DIR/PKGBUILD
+          echo "AUR_DIR=$AUR_DIR" >> $GITHUB_ENV
+          echo "PKGBUILD_FILE=$PKGBUILD_FILE" >> $GITHUB_ENV
+          if [[ ! -f "$PKGBUILD_FILE" ]]; then
+              echo "$PKGBUILD_FILE does not exist. Contents of current directory:"
+              ls -la
+              exit 1
+          fi
+          version_without_v=$(echo "${{ env.RELEASE_TAG_WITHOUT_PREFIX }}" | sed -E "s/v(.*)/\\1/")
+          sed -i "s/\[\[VERSION_WITHOUT_V\]\]/$version_without_v/" $PKGBUILD_FILE
+          desktop_file_sha256=$(sha256sum $AUR_DIR/github-desktop-plus.desktop | awk '{ print $1 }')
+          sed -i "s/\[\[DESKTOP_FILE_SHA256\]\]/$desktop_file_sha256/" $PKGBUILD_FILE
+          x86_64_sha256=$(sha256sum artifacts/**/linux-x86_64.deb | awk '{ print $1 }')
+          sed -i "s/\[\[X86_64_SHA256\]\]/$x86_64_sha256/" $PKGBUILD_FILE
+          aarch64_sha256=$(sha256sum artifacts/**/linux-arm64.deb | awk '{ print $1 }')
+          sed -i "s/\[\[AARCH64_SHA256\]\]/$aarch64_sha256/" $PKGBUILD_FILE
+          armv7h_sha256=$(sha256sum artifacts/**/linux-armhf.deb | awk '{ print $1 }')
+          sed -i "s/\[\[ARMV7H_SHA256\]\]/$armv7h_sha256/" $PKGBUILD_FILE
+
+      - name: Upload PKGBUILD
+        uses: actions/upload-artifact@v4
+        with:
+          name: PKGBUILD
+          path: ${{ env.PKGBUILD_FILE }}
+          retention-days: 5
+          if-no-files-found: error
+
+      - name: Publish AUR package
+        uses: KSXGitHub/github-actions-deploy-aur@v4.1.0
+        with:
+          pkgname: github-desktop-plus-bin
+          pkgbuild: ${{ env.PKGBUILD_FILE }}
+          commit_username: ${{ secrets.AUR_USERNAME }}
+          commit_email: ${{ secrets.AUR_EMAIL }}
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          commit_message:
+            'Update AUR package to version ${{ env.RELEASE_TAG_WITHOUT_PREFIX }}'
+          ssh_keyscan_types: rsa,ecdsa,ed25519
