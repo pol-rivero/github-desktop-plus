@@ -16,6 +16,44 @@
       .text-box-component {
         min-width: 0;
       }
+
+      .filter-box-container {
+        display: flex;
+        align-items: center;
+
+        .filter-button {
+          border-radius: var(--border-radius) 0 0 var(--border-radius);
+          border-right: none;
+          font-weight: var(--font-weight-semibold);
+          color: var(--text-color);
+          justify-content: space-between;
+          display: inline-flex;
+          align-items: center;
+          padding-right: var(--spacing-half);
+          position: relative;
+
+          &:hover {
+            color: var(--text-secondary-color);
+            background-color: inherit;
+          }
+        }
+
+        .fancy-text-box-component {
+          border: var(--contrast-border);
+          border-radius: 0 var(--border-radius) var(--border-radius) 0;
+          width: 100%;
+          height: var(--text-field-height);
+
+          &.focused {
+            border-color: var(--focus-color);
+          }
+
+          & .fancy-octicon,
+          & .text-box-component input {
+            height: 100%;
+          }
+        }
+      }
     }
 
     .commitGraph-view-mode-switch {

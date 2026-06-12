@@ -37,6 +37,7 @@ import {
   ICommitGraphRow,
 } from './commit-graph-model'
 import { CommitGraphCommitListItem } from './commit-graph-commit-list-item'
+import { CommitGraphFilterButton } from './commit-graph-filter-button'
 
 type CommitGraphBranchGroup =
   | 'local'
@@ -546,15 +547,18 @@ export class CommitGraphSidebar extends React.Component<
       <div id="compare-view" role="tabpanel" aria-labelledby="history-tab">
         <div className="commitGraph-view-toolbar">
           <div className="commit-search-form">
-            <FancyTextBox
-              ariaLabel="Commit filter"
-              type="search"
-              symbol={this.state.isSearching ? syncClockwise : octicons.search}
-              symbolClassName={this.state.isSearching ? 'spin' : undefined}
-              placeholder={__DARWIN__ ? 'Search Commits' : 'Search commits'}
-              value={commitSearchQuery}
-              onValueChanged={this.onCommitSearchQueryChanged}
-            />
+            <div className="filter-box-container">
+              <CommitGraphFilterButton />
+              <FancyTextBox
+                ariaLabel="Commit filter"
+                type="search"
+                symbol={this.state.isSearching ? syncClockwise : octicons.search}
+                symbolClassName={this.state.isSearching ? 'spin' : undefined}
+                placeholder={__DARWIN__ ? 'Search Commits' : 'Search commits'}
+                value={commitSearchQuery}
+                onValueChanged={this.onCommitSearchQueryChanged}
+              />
+            </div>
           </div>
           {this.commitGraph_renderViewModeSwitch()}
         </div>
