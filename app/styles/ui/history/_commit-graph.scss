@@ -20,6 +20,42 @@
       .filter-box-container {
         display: flex;
         align-items: center;
+        margin-bottom: var(--spacing-half);
+        transition: all 0.3s ease-out;
+
+        .filter-popover {
+          text-align: right;
+          min-width: 200px;
+
+          .filter-popover-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            h3 {
+              margin: 0;
+            }
+          }
+
+          .filter-options {
+            margin: var(--spacing) 0;
+          }
+
+          .filter-options-footer {
+            padding: var(--spacing-half) 0 var(--spacing) 0;
+            margin-top: var(--spacing-quarter);
+            text-align: left;
+          }
+          .popover-content {
+            padding: var(--spacing) var(--spacing) 0 var(--spacing);
+          }
+
+          @include close-button;
+
+          .close {
+            margin: 0;
+          }
+        }
 
         .filter-button {
           border-radius: var(--border-radius) 0 0 var(--border-radius);

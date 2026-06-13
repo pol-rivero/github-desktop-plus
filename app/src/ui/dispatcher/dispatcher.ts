@@ -150,6 +150,7 @@ import {
   ICopilotResolutionSummary,
 } from '../../lib/copilot-conflict-resolution'
 import { WorktreeEntry } from '../../models/worktree'
+import { TFilters } from '../history/commit-graph-filter-button'
 
 /**
  * An error handler function.
@@ -300,9 +301,10 @@ export class Dispatcher {
   /** Update the commit search filter text. */
   public setCommitSearchQuery(
     repository: Repository,
-    text: string
+    text: string,
+    filters?: TFilters
   ): Promise<void> {
-    return this.appStore._updateCommitSearchQuery(repository, text)
+    return this.appStore._updateCommitSearchQuery(repository, text, filters)
   }
 
   /** Load the changed files for the current history selection. */

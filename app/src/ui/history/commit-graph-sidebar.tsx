@@ -1,43 +1,43 @@
 import * as React from 'react'
 
-import { Commit, CommitOneLine, ICommitContext } from '../../models/commit'
+import classNames from 'classnames'
+import memoizeOne from 'memoize-one'
 import { ICompareState, IConstrainedValue } from '../../lib/app-state'
+import { Emoji } from '../../lib/emoji'
+import { doMergeCommitsExistAfterCommit } from '../../lib/git'
+import { getSquashedCommitDescription } from '../../lib/squash/squashed-commit-description'
 import {
   commitGraph_getStoredViewMode,
   commitGraph_setStoredViewMode,
   CommitHistoryViewMode,
 } from '../../lib/stores/commit-graph-state'
-import { Repository } from '../../models/repository'
-import { Branch, BranchType } from '../../models/branch'
-import { Dispatcher, defaultErrorHandler } from '../dispatcher'
-import { CommitList } from './commit-list'
-import type { ICommitListItemRenderProps } from './commit-list'
-import { FancyTextBox } from '../lib/fancy-text-box'
-import { Button } from '../lib/button'
-import { Checkbox, CheckboxValue } from '../lib/checkbox'
-import { Resizable } from '../resizable'
+import { getUniqueCoauthorsAsAuthors } from '../../lib/unique-coauthors-as-authors'
 import { Account } from '../../models/account'
-import { Emoji } from '../../lib/emoji'
-import { KeyboardInsertionData } from '../lib/list'
+import { Branch, BranchType } from '../../models/branch'
+import { Commit, CommitOneLine, ICommitContext } from '../../models/commit'
 import { DragType } from '../../models/drag-drop'
 import { PopupType } from '../../models/popup'
-import { getUniqueCoauthorsAsAuthors } from '../../lib/unique-coauthors-as-authors'
-import { getSquashedCommitDescription } from '../../lib/squash/squashed-commit-description'
-import { doMergeCommitsExistAfterCommit } from '../../lib/git'
-import { Octicon, syncClockwise } from '../octicons'
-import * as octicons from '../octicons/octicons.generated'
-import classNames from 'classnames'
-import memoizeOne from 'memoize-one'
+import { Repository } from '../../models/repository'
+import { defaultErrorHandler, Dispatcher } from '../dispatcher'
+import { Button } from '../lib/button'
+import { Checkbox, CheckboxValue } from '../lib/checkbox'
+import { FancyTextBox } from '../lib/fancy-text-box'
+import { KeyboardInsertionData } from '../lib/list'
 import { ThrottledScheduler } from '../lib/throttled-scheduler'
 import { startTimer } from '../lib/timing'
+import { Octicon, syncClockwise } from '../octicons'
+import * as octicons from '../octicons/octicons.generated'
+import { Resizable } from '../resizable'
+import { CommitGraphCommitListItem } from './commit-graph-commit-list-item'
+import { CommitGraphFilterButton, TFilters } from './commit-graph-filter-button'
 import {
   commitGraph_buildRows,
   commitGraph_getColor,
   commitGraph_RowHeight,
   ICommitGraphRow,
 } from './commit-graph-model'
-import { CommitGraphCommitListItem } from './commit-graph-commit-list-item'
-import { CommitGraphFilterButton } from './commit-graph-filter-button'
+import type { ICommitListItemRenderProps } from './commit-list'
+import { CommitList } from './commit-list'
 
 type CommitGraphBranchGroup =
   | 'local'
@@ -84,6 +84,7 @@ interface ICommitGraphSidebarState {
   readonly isSearching: boolean
   readonly commitGraphViewMode: CommitHistoryViewMode
   readonly commitGraphSelectedBranchRef: string | null
+  readonly filters: TFilters
 }
 
 interface ICommitGraphBranches {
@@ -521,6 +522,7 @@ export class CommitGraphSidebar extends React.Component<
       isSearching: false,
       commitGraphViewMode: commitGraph_getStoredViewMode(),
       commitGraphSelectedBranchRef: null,
+      filters: new Map(),
     }
   }
 
@@ -540,6 +542,12 @@ export class CommitGraphSidebar extends React.Component<
     this.commitListRef.current?.focus()
   }
 
+  private onFilterUpdate = (filters: TFilters) => {
+    console.log(filters, ' filters ')
+    this.setState({ filters })
+    this.onCommitSearchFiltersChanged(filters)
+  }
+
   public render() {
     const { commitSearchQuery } = this.props.compareState
 
@@ -548,11 +556,17 @@ export class CommitGraphSidebar extends React.Component<
         <div className="commitGraph-view-toolbar">
           <div className="commit-search-form">
             <div className="filter-box-container">
-              <CommitGraphFilterButton />
+              <CommitGraphFilterButton
+                filters={this.state.filters}
+                onFilterUpdate={this.onFilterUpdate}
+              />
+
               <FancyTextBox
                 ariaLabel="Commit filter"
                 type="search"
-                symbol={this.state.isSearching ? syncClockwise : octicons.search}
+                symbol={
+                  this.state.isSearching ? syncClockwise : octicons.search
+                }
                 symbolClassName={this.state.isSearching ? 'spin' : undefined}
                 placeholder={__DARWIN__ ? 'Search Commits' : 'Search commits'}
                 value={commitSearchQuery}
@@ -1320,7 +1334,7 @@ export class CommitGraphSidebar extends React.Component<
     })
   }
 
-  private onCommitSearchQueryChanged = async (text: string) => {
+  private onCommitQuery = async (text: string, filters: TFilters) => {
     if (this.state.commitGraphViewMode === CommitHistoryViewMode.Graph) {
       this.props.dispatcher.updateCompareForm(this.props.repository, {
         commitSearchQuery: text,
@@ -1338,9 +1352,16 @@ export class CommitGraphSidebar extends React.Component<
     this.setState({ isSearching: true })
     await this.props.dispatcher.setCommitSearchQuery(
       this.props.repository,
-      text
+      text,
+      filters
     )
     this.setState({ isSearching: false })
+  }
+  private onCommitSearchQueryChanged = async (text: string) => {
+    await this.onCommitQuery(text, this.state.filters)
+  }
+  private onCommitSearchFiltersChanged = async (filters: TFilters) => {
+    await this.onCommitQuery(this.props.compareState.commitSearchQuery, filters)
   }
 
   private onCreateTag = (targetCommitSha: string) => {
