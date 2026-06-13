@@ -2215,24 +2215,28 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return
     }
 
-    let newFilteredCommits =
+    const baseFilteredCommits = newCommits.filter(sha =>
+      this.commitIsIncluded(gitStore.commitLookup.get(sha), queryTextLowercase)
+    )
+
+    const newFilteredCommits =
       authorFiltersLowercase && authorFiltersLowercase.length > 0
-        ? newCommits.filter(sha => {
+        ? baseFilteredCommits.filter(sha => {
             const commit = gitStore.commitLookup.get(sha)
             return authorFiltersLowercase.some(filter =>
               this.commitIsIncludedByAuthorFilter(commit, filter)
             )
           })
-        : newCommits
-
-    newFilteredCommits = newFilteredCommits.filter(sha =>
-      this.commitIsIncluded(gitStore.commitLookup.get(sha), queryTextLowercase)
-    )
+        : baseFilteredCommits
 
     this.repositoryStateCache.updateCompareState(repository, () => ({
       allHistoryCommitSHAs: commits.concat(newCommits),
       filteredHistoryCommitSHAs:
         state.compareState.filteredHistoryCommitSHAs.concat(newFilteredCommits),
+      prevFilteredHistoryCommitSHAs:
+        state.compareState.filteredHistoryCommitSHAs.concat(
+          baseFilteredCommits
+        ),
     }))
 
     const numFilteredCommits = alreadyFiltered + newFilteredCommits.length
@@ -2492,7 +2496,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
   ): Promise<void> {
     const state = this.repositoryStateCache.get(repository)
     const compareState = state.compareState
-    const authorFilters = filters && filters.get('author')
+    const authorFiltersSet = filters && filters.get('author')
+    const authorFiltersLowercase = authorFiltersSet
+      ? Array.from(authorFiltersSet).map(item => item.toLowerCase())
+      : []
     const isIncrementalSearch = query
       ? query.startsWith(compareState.commitSearchQuery)
       : false
@@ -2505,39 +2512,41 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     const candidateCommitSHAs = isIncrementalSearch
-      ? compareState.filteredHistoryCommitSHAs
+      ? compareState.prevFilteredHistoryCommitSHAs
       : compareState.allHistoryCommitSHAs
 
     const queryTextLowercase = query.toLowerCase()
-    const filteredCommitSHAs = queryTextLowercase
+    const baseFilteredCommitSHAs = queryTextLowercase
       ? candidateCommitSHAs.filter(sha =>
           this.commitIsIncluded(state.commitLookup.get(sha), queryTextLowercase)
         )
       : candidateCommitSHAs
 
-    console.log(filteredCommitSHAs, ' query ')
+    console.log(baseFilteredCommitSHAs, ' query ')
 
-    const filteredCommitSHAsByAuthor =
-      authorFilters && authorFilters.size > 0
-        ? filteredCommitSHAs.filter(sha => {
+    const newfilteredCommitSHAs =
+      authorFiltersLowercase.length > 0
+        ? baseFilteredCommitSHAs.filter(sha => {
             const commit = state.commitLookup.get(sha)
-            return Array.from(authorFilters).some(filter =>
-              this.commitIsIncludedByAuthorFilter(commit, filter.toLowerCase())
+            return authorFiltersLowercase.some(filter =>
+              this.commitIsIncludedByAuthorFilter(commit, filter)
             )
           })
-        : filteredCommitSHAs
+        : baseFilteredCommitSHAs
 
-    console.log(filteredCommitSHAsByAuthor, ' author ')
+    console.log(newfilteredCommitSHAs, ' author ')
 
     this.repositoryStateCache.updateCompareState(repository, () => ({
-      filteredHistoryCommitSHAs: filteredCommitSHAs,
+      filteredHistoryCommitSHAs: newfilteredCommitSHAs,
+      prevFilteredHistoryCommitSHAs: baseFilteredCommitSHAs,
     }))
     this.emitUpdate()
-    if (filteredCommitSHAs.length < MinimumFilteredCommitsToLoad) {
+    if (newfilteredCommitSHAs.length < MinimumFilteredCommitsToLoad) {
       this.currentCommitFilterPromise = this._loadNextCommitBatch(
         repository,
-        filteredCommitSHAs.length,
-        queryTextLowercase
+        newfilteredCommitSHAs.length,
+        queryTextLowercase,
+        authorFiltersLowercase
       )
       await this.currentCommitFilterPromise
       this.currentCommitFilterPromise = null
