@@ -581,14 +581,15 @@ export class CommitGraphSidebar extends React.Component<
         <div className="commitGraph-view-toolbar">
           <div className="commit-search-form">
             <div className="filter-box-container">
-              <CommitGraphFilterButton
-                filters={this.state.filters}
-                filtersFillData={{
-                  [AUTHOR_FILTER_KEY]: this.getAuthorFilterData(),
-                }}
-                onFilterUpdate={this.onFilterUpdate}
-              />
-
+              <span>
+                <CommitGraphFilterButton
+                  filters={this.state.filters}
+                  filtersFillData={{
+                    [AUTHOR_FILTER_KEY]: this.getAuthorFilterData(),
+                  }}
+                  onFilterUpdate={this.onFilterUpdate}
+                />
+              </span>
               <FancyTextBox
                 ariaLabel="Commit filter"
                 type="search"
