@@ -29,7 +29,12 @@ import { Octicon, syncClockwise } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { Resizable } from '../resizable'
 import { CommitGraphCommitListItem } from './commit-graph-commit-list-item'
-import { CommitGraphFilterButton, TFilters } from './commit-graph-filter-button'
+import {
+  AUTHOR_FILTER_KEY,
+  CommitGraphFilterButton,
+  TFilterFillData,
+  TFilters,
+} from './commit-graph-filter-button'
 import {
   commitGraph_buildRows,
   commitGraph_getColor,
@@ -548,6 +553,26 @@ export class CommitGraphSidebar extends React.Component<
     this.onCommitSearchFiltersChanged(filters)
   }
 
+  private getAuthorFilterData = () => {
+    const seenEmails = new Set<string>()
+    const uniqueAuthors: TFilterFillData[] = []
+
+    for (const sha of this.props.compareState.allHistoryCommitSHAs) {
+      const commit = this.props.commitLookup.get(sha)
+
+      if (commit?.author?.email && !seenEmails.has(commit.author.email)) {
+        seenEmails.add(commit.author.email)
+
+        uniqueAuthors.push({
+          name: commit.author.name,
+          email: commit.author.email,
+        })
+      }
+    }
+
+    return uniqueAuthors
+  }
+
   public render() {
     const { commitSearchQuery } = this.props.compareState
 
@@ -558,6 +583,9 @@ export class CommitGraphSidebar extends React.Component<
             <div className="filter-box-container">
               <CommitGraphFilterButton
                 filters={this.state.filters}
+                filtersFillData={{
+                  [AUTHOR_FILTER_KEY]: this.getAuthorFilterData(),
+                }}
                 onFilterUpdate={this.onFilterUpdate}
               />
 

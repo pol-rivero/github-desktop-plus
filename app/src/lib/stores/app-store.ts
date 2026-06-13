@@ -2524,7 +2524,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     console.log(baseFilteredCommitSHAs, ' query ')
 
-    const newfilteredCommitSHAs =
+    const newFilteredCommitSHAs =
       authorFiltersLowercase.length > 0
         ? baseFilteredCommitSHAs.filter(sha => {
             const commit = state.commitLookup.get(sha)
@@ -2534,17 +2534,17 @@ export class AppStore extends TypedBaseStore<IAppState> {
           })
         : baseFilteredCommitSHAs
 
-    console.log(newfilteredCommitSHAs, ' author ')
+    console.log(newFilteredCommitSHAs, ' author ')
 
     this.repositoryStateCache.updateCompareState(repository, () => ({
-      filteredHistoryCommitSHAs: newfilteredCommitSHAs,
+      filteredHistoryCommitSHAs: newFilteredCommitSHAs,
       prevFilteredHistoryCommitSHAs: baseFilteredCommitSHAs,
     }))
     this.emitUpdate()
-    if (newfilteredCommitSHAs.length < MinimumFilteredCommitsToLoad) {
+    if (newFilteredCommitSHAs.length < MinimumFilteredCommitsToLoad) {
       this.currentCommitFilterPromise = this._loadNextCommitBatch(
         repository,
-        newfilteredCommitSHAs.length,
+        newFilteredCommitSHAs.length,
         queryTextLowercase,
         authorFiltersLowercase
       )

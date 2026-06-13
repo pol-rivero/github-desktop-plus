@@ -8,22 +8,26 @@ import {
 } from '../lib/popover'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
+import classNames from 'classnames'
 
+export const AUTHOR_FILTER_KEY = 'author'
 export type TFilters = Map<string, Set<String>>
+export type TFilterFillData = { name: string; email: string }
 interface ICommitGraphFilterButtonProps {
   readonly filters: TFilters
+  readonly filtersFillData: Record<string, Array<TFilterFillData>>
   readonly onFilterUpdate: (filters: TFilters) => void
 }
 interface ICommitGraphFilterButtonState {
   readonly isFilterOptionsOpen: boolean
   readonly isAuthorFilterChecked: boolean
   readonly hasFilterOptionsMounted: boolean
+  readonly activeFilterData: TFilterFillData[]
 }
 export class CommitGraphFilterButton extends React.Component<
   ICommitGraphFilterButtonProps,
   ICommitGraphFilterButtonState
 > {
-  private AUTHOR_FILTER_KEY = 'author'
   private filterOptionsButtonRef: HTMLButtonElement | null = null
   private filterContainerRef: HTMLDivElement | null = null
 
@@ -34,6 +38,7 @@ export class CommitGraphFilterButton extends React.Component<
       isFilterOptionsOpen: false,
       isAuthorFilterChecked: false,
       hasFilterOptionsMounted: false,
+      activeFilterData: [],
     }
   }
 
@@ -54,12 +59,13 @@ export class CommitGraphFilterButton extends React.Component<
   ) => {
     const newFilters = new Map(this.props.filters)
     if (evt.currentTarget.checked) {
-      newFilters.set(this.AUTHOR_FILTER_KEY, new Set())
+      newFilters.set(AUTHOR_FILTER_KEY, new Set())
       this.setState({
         isAuthorFilterChecked: true,
+        activeFilterData: this.props.filtersFillData[AUTHOR_FILTER_KEY],
       })
     } else {
-      newFilters.delete(this.AUTHOR_FILTER_KEY)
+      newFilters.delete(AUTHOR_FILTER_KEY)
       this.setState({
         isAuthorFilterChecked: false,
       })
@@ -76,8 +82,8 @@ export class CommitGraphFilterButton extends React.Component<
     const checked = event.currentTarget.checked
 
     const newFilters = new Map(this.props.filters)
-    const newSet = new Set(newFilters.get(this.AUTHOR_FILTER_KEY))
-    newFilters.set(this.AUTHOR_FILTER_KEY, newSet)
+    const newSet = new Set(newFilters.get(AUTHOR_FILTER_KEY))
+    newFilters.set(AUTHOR_FILTER_KEY, newSet)
     if (checked) {
       newSet.add(key)
     } else {
@@ -151,14 +157,18 @@ export class CommitGraphFilterButton extends React.Component<
     )
   }
 
+  public componentDidMount(): void {
+    console.log(this.props.filtersFillData)
+  }
+
   private renderSubFilterOptions() {
     return (
       <Popover
-        className="filter-popover"
+        className="popover-component filter-popover"
         ariaLabelledby="filter-options-header"
         anchor={this.filterContainerRef}
-        anchorPosition={PopoverAnchorPosition.Right}
-        decoration={PopoverDecoration.Balloon}
+        anchorPosition={PopoverAnchorPosition.RightTop}
+        decoration={PopoverDecoration.None}
         // onMousedownOutside={this.closeSubFilterOptions}
         // onClickOutside={this.closeSubFilterOptions}
       >
@@ -173,19 +183,20 @@ export class CommitGraphFilterButton extends React.Component<
           </button> */}
         </div>
         <div className="filter-options">
-          <Checkbox
-            value={
-              this.props.filters
-                .get(this.AUTHOR_FILTER_KEY)
-                ?.has('ashfaqnaseem1@gmail.com')
-                ? CheckboxValue.On
-                : CheckboxValue.Off
-            }
-            onChange={event =>
-              this.onAuthorSubFilterSelect(event, 'ashfaqnaseem1@gmail.com')
-            }
-            label="Ashfaq Naseem"
-          />
+          {this.state.activeFilterData.map(({ name, email }) => {
+            return (
+              <Checkbox
+                key={email}
+                value={
+                  this.props.filters.get(AUTHOR_FILTER_KEY)?.has(email)
+                    ? CheckboxValue.On
+                    : CheckboxValue.Off
+                }
+                onChange={event => this.onAuthorSubFilterSelect(event, email)}
+                label={name}
+              />
+            )
+          })}
         </div>
         {/* {filtersActive && (
             <div className="filter-options-footer">
@@ -197,12 +208,19 @@ export class CommitGraphFilterButton extends React.Component<
   }
 
   public render() {
-    const buttonTextLabel = 'Filter Options'
-
+    const authorFilterSet = this.props.filters.get(AUTHOR_FILTER_KEY)
+    const activeFiltersCount = authorFilterSet ? authorFilterSet.size : 0
+    const hasActiveFilters = authorFilterSet ? activeFiltersCount > 0 : false
+    console.log({ hasActiveFilters })
+    const buttonTextLabel = `Filter Options ${
+      hasActiveFilters ? `(${activeFiltersCount} applied)` : ''
+    }`
     return (
       <>
         <Button
-          className="filter-button"
+          className={classNames('filter-button', {
+            active: hasActiveFilters,
+          })}
           onClick={this.toggleFilterOptionsOpen}
           ariaExpanded={this.state.isFilterOptionsOpen}
           onButtonRef={this.onFilterOptionsButtonRef}
@@ -212,6 +230,13 @@ export class CommitGraphFilterButton extends React.Component<
           <span>
             <Octicon symbol={octicons.filter} />
           </span>
+          {hasActiveFilters ? (
+            <span className="active-badge">
+              <div className="badge-bg">
+                <div className="badge"></div>
+              </div>
+            </span>
+          ) : null}
           <Octicon symbol={octicons.triangleDown} />
         </Button>
         {this.state.isFilterOptionsOpen && this.renderFilterOptions()}
