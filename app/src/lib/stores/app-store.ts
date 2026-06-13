@@ -2522,8 +2522,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
         )
       : candidateCommitSHAs
 
-    console.log(baseFilteredCommitSHAs, ' query ')
-
     const newFilteredCommitSHAs =
       authorFiltersLowercase.length > 0
         ? baseFilteredCommitSHAs.filter(sha => {
@@ -2533,8 +2531,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
             )
           })
         : baseFilteredCommitSHAs
-
-    console.log(newFilteredCommitSHAs, ' author ')
 
     this.repositoryStateCache.updateCompareState(repository, () => ({
       filteredHistoryCommitSHAs: newFilteredCommitSHAs,

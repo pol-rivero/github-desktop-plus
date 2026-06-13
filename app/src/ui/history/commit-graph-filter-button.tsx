@@ -157,10 +157,6 @@ export class CommitGraphFilterButton extends React.Component<
     )
   }
 
-  public componentDidMount(): void {
-    console.log(this.props.filtersFillData)
-  }
-
   private renderSubFilterOptions() {
     return (
       <Popover
@@ -211,7 +207,6 @@ export class CommitGraphFilterButton extends React.Component<
     const authorFilterSet = this.props.filters.get(AUTHOR_FILTER_KEY)
     const activeFiltersCount = authorFilterSet ? authorFilterSet.size : 0
     const hasActiveFilters = authorFilterSet ? activeFiltersCount > 0 : false
-    console.log({ hasActiveFilters })
     const buttonTextLabel = `Filter Options ${
       hasActiveFilters ? `(${activeFiltersCount} applied)` : ''
     }`

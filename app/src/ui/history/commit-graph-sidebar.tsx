@@ -548,7 +548,6 @@ export class CommitGraphSidebar extends React.Component<
   }
 
   private onFilterUpdate = (filters: TFilters) => {
-    console.log(filters, ' filters ')
     this.setState({ filters })
     this.onCommitSearchFiltersChanged(filters)
   }
