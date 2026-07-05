@@ -1,5 +1,6 @@
 import { BrowserWindow } from 'electron'
 import { Emitter, Disposable } from 'event-kit'
+import * as path from 'path'
 import { ICrashDetails, ErrorType } from '../crash/shared'
 import { registerWindowStateChangedEvents } from '../lib/window-state'
 import * as ipcMain from './ipc-main'
@@ -49,6 +50,8 @@ export class CrashWindow {
       windowOptions.titleBarStyle = 'hidden'
     } else if (__WIN32__) {
       windowOptions.frame = false
+      // See the matching option in app-window.ts for why this is needed.
+      windowOptions.icon = path.join(__dirname, 'static', 'icon-logo.ico')
     }
 
     this.window = new BrowserWindow(windowOptions)

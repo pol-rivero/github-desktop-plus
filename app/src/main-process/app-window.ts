@@ -86,6 +86,11 @@ export class AppWindow {
       windowOptions.titleBarStyle = 'hidden'
     } else if (__WIN32__) {
       windowOptions.frame = false
+      // Windows resolves the app switcher (Alt+Tab/Win+Tab) icon from the
+      // window when it can't be resolved from the executable or the app user
+      // model id, such as in dev builds or when running a packaged build that
+      // hasn't been installed (i.e. hasn't had a shortcut created for it).
+      windowOptions.icon = path.join(__dirname, 'static', 'icon-logo.ico')
     } else if (__LINUX__) {
       const config = readMainProcessConfig()
       if (config.titleBarStyle === 'custom') {

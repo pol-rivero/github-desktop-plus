@@ -284,6 +284,17 @@ function copyStaticResources() {
     force: false,
     verbatimSymlinks: true,
   })
+
+  if (process.platform === 'win32') {
+    // The main window sets this as its icon so that the app switcher
+    // (Alt+Tab/Win+Tab) shows the right icon even when the icon can't be
+    // resolved from the executable or the app user model id, such as in dev
+    // builds or when running a packaged build that hasn't been installed.
+    cpSync(
+      join(getIconDirectory(), 'icon-logo.ico'),
+      join(destination, 'icon-logo.ico')
+    )
+  }
 }
 
 function moveAnalysisFiles() {
