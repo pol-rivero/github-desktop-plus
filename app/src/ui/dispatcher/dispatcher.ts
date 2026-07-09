@@ -3222,7 +3222,13 @@ export class Dispatcher {
     const url = getGitHubHtmlUrl(repository)
     if (url !== null) {
       this.statsStore.increment('issueCreationWebpageOpenedCount')
-      return this.appStore._openInBrowser(`${url}/issues/new/choose`)
+      // Gitea's new-issue page is `/issues/new`; the `/choose` template picker
+      // is GitHub-specific and only exists on Gitea when templates are present.
+      const path =
+        repository.gitHubRepository?.type === 'gitea'
+          ? 'issues/new'
+          : 'issues/new/choose'
+      return this.appStore._openInBrowser(`${url}/${path}`)
     } else {
       return false
     }

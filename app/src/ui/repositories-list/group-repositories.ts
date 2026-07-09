@@ -14,6 +14,7 @@ import { IAheadBehind } from '../../models/branch'
 import { WorktreeEntry } from '../../models/worktree'
 import { assertNever } from '../../lib/fatal-error'
 import { isGHE, isGHES } from '../../lib/endpoint-capabilities'
+import { isGitea } from '../../lib/gitea-endpoints'
 import { Owner } from '../../models/owner'
 
 export type RepositoryListGroup = (
@@ -28,6 +29,13 @@ export type RepositoryListGroup = (
   | {
       kind: 'enterprise'
       host: string
+    }
+  | {
+      // Self-hosted Gitea instances are grouped per-owner (like dotcom) but
+      // labelled with the host too, since the host is user-specific.
+      kind: 'gitea'
+      host: string
+      owner: Owner
     }
 ) & { displayName: string | null }
 
@@ -50,6 +58,10 @@ export const getGroupKey = (group: RepositoryListGroup) => {
     case 'enterprise':
       // Allow mixing together dotcom and enterprise repos when setting a group name manually
       return displayName ? `1:${displayName}` : `2:${group.host}`
+    case 'gitea':
+      return displayName
+        ? `1:${displayName}`
+        : `2:${group.host}/${group.owner.login}`
     case 'other':
       return displayName ? `1:${displayName}` : `3:other`
     default:
@@ -85,8 +97,16 @@ const getHostForRepository = (repo: RepositoryWithGitHubRepository) =>
 
 const getGroupForRepository = (repo: Repositoryish): RepositoryListGroup => {
   if (repo instanceof Repository && isRepositoryWithGitHubRepository(repo)) {
-    return isGHE(repo.gitHubRepository.endpoint) ||
-      isGHES(repo.gitHubRepository.endpoint)
+    const { endpoint } = repo.gitHubRepository
+    if (isGitea(endpoint)) {
+      return {
+        kind: 'gitea',
+        host: getHostForRepository(repo),
+        owner: repo.gitHubRepository.owner,
+        displayName: repo.groupName,
+      }
+    }
+    return isGHE(endpoint) || isGHES(endpoint)
       ? {
           kind: 'enterprise',
           host: getHostForRepository(repo),

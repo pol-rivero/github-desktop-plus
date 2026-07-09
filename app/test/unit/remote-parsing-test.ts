@@ -139,6 +139,16 @@ describe('URL remote parsing', () => {
     assert.equal(remote.name, 'repo')
   })
 
+  it('parses SSH URLs with a non-default port (self-hosted, e.g. Gitea)', () => {
+    const remote = parseRemote('ssh://git@git.example.com:2222/hubot/repo.git')
+    assert(remote !== null)
+    // The port must not leak into the hostname, otherwise repository matching
+    // against the signed-in account fails.
+    assert.equal(remote.hostname, 'git.example.com')
+    assert.equal(remote.owner, 'hubot')
+    assert.equal(remote.name, 'repo')
+  })
+
   it('does not parse invalid HTTP URLs when missing repo name', () => {
     const remote = parseRemote('https://github.com/someuser//')
     assert(remote === null)

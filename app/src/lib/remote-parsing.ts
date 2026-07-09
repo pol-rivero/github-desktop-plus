@@ -46,8 +46,13 @@ const remoteRegexes: ReadonlyArray<{ protocol: GitProtocol; regex: RegExp }> = [
     regex: new RegExp('^git:(.+)/([^/]+)/([^/]+?)(?:/|\\.git)?$'),
   },
   {
+    // Note the `(?::\d+)?` to allow (and discard) a non-default SSH port, e.g.
+    // `ssh://git@git.example.com:2222/owner/name.git`. Self-hosted instances
+    // (such as Gitea) commonly serve SSH on a non-standard port; without this
+    // the port would be captured into the hostname and repository matching
+    // against the signed-in account would fail.
     protocol: 'ssh',
-    regex: new RegExp('^ssh://git@(.+)/(.+)/(.+?)(?:/|\\.git)?$'),
+    regex: new RegExp('^ssh://git@([^/:]+)(?::\\d+)?/(.+)/(.+?)(?:/|\\.git)?$'),
   },
 ]
 

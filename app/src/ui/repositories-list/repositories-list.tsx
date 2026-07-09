@@ -320,6 +320,8 @@ export class RepositoriesList extends React.Component<
       return 'Pinned'
     } else if (kind === 'enterprise') {
       return displayName ?? group.host
+    } else if (kind === 'gitea') {
+      return displayName ?? `${group.host}/${group.owner.login}`
     } else if (kind === 'other') {
       return displayName ?? 'Other'
     } else if (kind === 'dotcom') {
