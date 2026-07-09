@@ -106,6 +106,9 @@ class TrampolineUIHelper {
         case 'codeberg':
           this.dispatcher.beginCodebergSignIn(cb)
           break
+        case 'gitea':
+          this.dispatcher.beginGiteaSignIn(cb)
+          break
         default:
           assertNever(repositoryType, `Unexpected repo type: ${repositoryType}`)
       }

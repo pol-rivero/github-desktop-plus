@@ -17,6 +17,7 @@ export function createCommitURL(
   if (filePath === undefined) {
     switch (gitHubRepository.type) {
       case 'github':
+      case 'gitea':
         return `${baseURL}/commit/${SHA}`
       case 'bitbucket':
         return `${baseURL}/commits/${SHA}`
@@ -35,6 +36,7 @@ export function createCommitURL(
   const fileHash = crypto.createHash('sha256').update(filePath).digest('hex')
   switch (gitHubRepository.type) {
     case 'github':
+    case 'gitea':
       return `${baseURL}/commit/${SHA}#diff-${fileHash}`
     case 'bitbucket':
       return `${baseURL}/commits/${SHA}#chg-${filePath}`

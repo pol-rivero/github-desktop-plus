@@ -23,6 +23,7 @@ const hosts: Record<RepoType, string> = {
   bitbucket: 'https://bitbucket.org',
   gitlab: 'https://gitlab.com',
   codeberg: 'https://codeberg.org',
+  gitea: 'https://gitea.example.com',
 }
 
 let nextId = 1
@@ -486,6 +487,112 @@ describe('AppStore._getPullRequestCreationURL', () => {
       assert.equal(
         url,
         'https://codeberg.org/me/fork-repo/compare/main...feature'
+      )
+    })
+  })
+
+  describe('gitea', () => {
+    it('builds a compare URL without a base branch', () => {
+      const repository = createRepository(
+        createGitHubRepository('gitea', 'me', 'repo')
+      )
+
+      const url = appStore._getPullRequestCreationURL(
+        repository,
+        createBranch('feature')
+      )
+
+      assert.equal(url, 'https://gitea.example.com/me/repo/compare/feature')
+    })
+
+    it('builds a compare URL with a base branch', () => {
+      const repository = createRepository(
+        createGitHubRepository('gitea', 'me', 'repo')
+      )
+
+      const url = appStore._getPullRequestCreationURL(
+        repository,
+        createBranch('feature'),
+        createBranch('main')
+      )
+
+      assert.equal(
+        url,
+        'https://gitea.example.com/me/repo/compare/main...feature'
+      )
+    })
+
+    it('targets the parent repository with an owner/name: head for a fork contributing to its parent', () => {
+      const parent = createGitHubRepository('gitea', 'upstream-owner', 'repo')
+      const repository = createRepository(
+        createGitHubRepository('gitea', 'me', 'fork-repo', { parent })
+      )
+
+      const url = appStore._getPullRequestCreationURL(
+        repository,
+        createBranch('feature'),
+        createBranch('main')
+      )
+
+      assert.equal(
+        url,
+        'https://gitea.example.com/upstream-owner/repo/compare/main...me/fork-repo:feature'
+      )
+    })
+
+    it('targets the parent repository with only the head when a fork contributing to its parent has no base branch', () => {
+      const parent = createGitHubRepository('gitea', 'upstream-owner', 'repo')
+      const repository = createRepository(
+        createGitHubRepository('gitea', 'me', 'fork-repo', { parent })
+      )
+
+      const url = appStore._getPullRequestCreationURL(
+        repository,
+        createBranch('feature')
+      )
+
+      assert.equal(
+        url,
+        'https://gitea.example.com/upstream-owner/repo/compare/me/fork-repo:feature'
+      )
+    })
+
+    it('falls back to the fork URL when the parent has no html URL', () => {
+      const parent = createGitHubRepository('gitea', 'upstream-owner', 'repo', {
+        htmlURL: null,
+      })
+      const repository = createRepository(
+        createGitHubRepository('gitea', 'me', 'fork-repo', { parent })
+      )
+
+      const url = appStore._getPullRequestCreationURL(
+        repository,
+        createBranch('feature'),
+        createBranch('main')
+      )
+
+      assert.equal(
+        url,
+        'https://gitea.example.com/me/fork-repo/compare/main...me/fork-repo:feature'
+      )
+    })
+
+    it('targets the fork itself when it contributes to itself', () => {
+      const parent = createGitHubRepository('gitea', 'upstream-owner', 'repo')
+      const repository = createRepository(
+        createGitHubRepository('gitea', 'me', 'fork-repo', { parent }),
+        { forkContributionTarget: ForkContributionTarget.Self }
+      )
+
+      const url = appStore._getPullRequestCreationURL(
+        repository,
+        createBranch('feature'),
+        createBranch('main')
+      )
+
+      assert.equal(
+        url,
+        'https://gitea.example.com/me/fork-repo/compare/main...feature'
       )
     })
   })

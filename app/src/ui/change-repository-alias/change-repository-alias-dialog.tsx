@@ -85,6 +85,8 @@ export class ChangeRepositoryAlias extends React.Component<
         return ' on GitLab'
       case 'codeberg':
         return ' on Codeberg'
+      case 'gitea':
+        return ' on Gitea'
       default:
         assertNever(type, `Unknown repository type: ${type}`)
     }

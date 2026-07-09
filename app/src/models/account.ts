@@ -6,6 +6,7 @@ import {
   getHTMLURL,
   IAPIEmail,
 } from '../lib/api'
+import { isGitea } from '../lib/gitea-endpoints'
 /**
  * Returns a value indicating whether two account instances
  * can be considered equal. Equality is determined by comparing
@@ -24,6 +25,7 @@ export type AccountAPIType =
   | 'bitbucket'
   | 'gitlab'
   | 'codeberg'
+  | 'gitea'
 
 export enum UnknownLogin {
   InitialAuthFetch,
@@ -167,6 +169,8 @@ export class Account {
       return 'gitlab'
     } else if (this.endpoint === getCodebergAPIEndpoint()) {
       return 'codeberg'
+    } else if (isGitea(this.endpoint)) {
+      return 'gitea'
     } else {
       return 'enterprise'
     }

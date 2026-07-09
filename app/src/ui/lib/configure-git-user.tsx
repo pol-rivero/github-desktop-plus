@@ -242,6 +242,8 @@ export class ConfigureGitUser extends React.Component<
         return 'GitLab'
       case 'codeberg':
         return 'Codeberg'
+      case 'gitea':
+        return 'Gitea'
       default:
         assertNever(account.apiType, 'Unknown account type')
     }

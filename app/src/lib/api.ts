@@ -25,6 +25,12 @@ import {
   updateEndpointVersion,
 } from './endpoint-capabilities'
 import {
+  getGiteaEndpointForHost,
+  getGiteaHTMLURL,
+  isGitea,
+  isGiteaHost,
+} from './gitea-endpoints'
+import {
   clearCertificateErrorSuppressionFor,
   suppressCertificateErrorFor,
 } from './suppress-certificate-error'
@@ -1721,6 +1727,9 @@ export class API {
           account.refreshToken,
           account.tokenExpiresAt
         )
+      case 'gitea':
+        // eslint-disable-next-line @typescript-eslint/no-use-before-define -- a necessary evil if we want to minimize the diff in other files
+        return new GiteaAPI(account.endpoint, account.token, account.login)
       case 'dotcom':
       case 'enterprise':
         return new API(
@@ -3249,6 +3258,9 @@ export async function fetchUser(
   } else if (endpoint === getCodebergAPIEndpoint()) {
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
     api = CodebergAPI.get(token, login, refreshToken, expiresAt)
+  } else if (isGitea(endpoint)) {
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+    api = new GiteaAPI(endpoint, token, login)
   } else {
     api = new API(endpoint, token, login)
   }
@@ -3306,6 +3318,8 @@ export function getEndpointForRepository(url: string): string | null {
     return getGitLabAPIEndpoint()
   } else if (parsed.hostname === 'codeberg.org') {
     return getCodebergAPIEndpoint()
+  } else if (isGiteaHost(parsed.hostname)) {
+    return getGiteaEndpointForHost(parsed.hostname)
   } else {
     return `${parsed.protocol}//${parsed.hostname}/api`
   }
@@ -3338,6 +3352,8 @@ export function getHTMLURL(endpoint: string): string {
     return 'https://gitlab.com'
   } else if (endpoint === getCodebergAPIEndpoint()) {
     return 'https://codeberg.org'
+  } else if (isGitea(endpoint)) {
+    return getGiteaHTMLURL(endpoint)
   } else {
     if (isGHE(endpoint)) {
       const url = new window.URL(endpoint)
@@ -3379,6 +3395,16 @@ export const getAPIEndpoint = (endpoint: string) => {
   }
   if (isCodeberg(endpoint)) {
     return getCodebergAPIEndpoint()
+  }
+  try {
+    const giteaEndpoint = getGiteaEndpointForHost(
+      new window.URL(endpoint).hostname
+    )
+    if (giteaEndpoint !== null) {
+      return giteaEndpoint
+    }
+  } catch {
+    // Fall through to the enterprise handling below for unparseable endpoints.
   }
   return getEnterpriseAPIURL(endpoint)
 }
@@ -4913,6 +4939,105 @@ export class CodebergAPI extends API {
     }
     const pr = await parsedResponse<ICodebergAPIPullRequest>(response)
     return pr.head.sha || null
+  }
+
+  public override async fetchUserCopilotInfo(): Promise<undefined> {
+    return undefined
+  }
+
+  public override async fetchFeatureFlags(): Promise<undefined> {
+    return undefined
+  }
+}
+
+interface IGiteaAPIUser {
+  readonly id: number
+  readonly login: string
+  readonly full_name: string
+  readonly email: string
+  readonly avatar_url: string
+  readonly html_url?: string
+}
+
+interface IGiteaAPIEmail {
+  readonly email: string
+  readonly verified: boolean
+  readonly primary: boolean
+}
+
+/**
+ * API client for a self-hosted Gitea instance.
+ *
+ * Gitea's REST API is intentionally GitHub-compatible for the endpoints Desktop
+ * relies on (`user`, `user/emails`, `user/repos`, `repos/{owner}/{name}/pulls`,
+ * `repos/{owner}/{name}/commits/{ref}/status`), so `GiteaAPI` inherits nearly all
+ * of the base `API` behaviour. The differences: Gitea authenticates with an
+ * `Authorization: token <token>` header, paginates with a `limit` parameter, and
+ * has no Copilot/feature-flag endpoints. Unlike the other providers, Gitea lives
+ * on an arbitrary, user-supplied endpoint (see `gitea-endpoints.ts`).
+ */
+export class GiteaAPI extends API {
+  public constructor(
+    endpoint: string,
+    token: string,
+    login: string | UnknownLogin
+  ) {
+    super(endpoint, token, login)
+  }
+
+  // https://docs.gitea.com/development/api-usage#pagination
+  protected override get perPageParamName() {
+    return 'limit'
+  }
+
+  protected override getExtraHeaders(): Object {
+    return { Authorization: `token ${this.token}` }
+  }
+
+  protected override checkTokenInvalidated(response: Response) {
+    if (response.status === HttpStatusCode.Unauthorized) {
+      API.emitTokenInvalidated(this.endpoint, this.token, this.login)
+    }
+  }
+
+  public override async fetchAccount(): Promise<IAPIFullIdentity> {
+    try {
+      const response = await this.request(this.endpoint, 'GET', 'user')
+      const user = await parsedResponse<IGiteaAPIUser>(response)
+      return {
+        id: user.id,
+        html_url:
+          user.html_url ?? `${getGiteaHTMLURL(this.endpoint)}/${user.login}`,
+        login: user.login,
+        avatar_url: user.avatar_url,
+        name: user.full_name || user.login,
+        email: user.email ?? null,
+        type: 'User',
+      }
+    } catch (e) {
+      log.warn(`fetchAccount: failed with endpoint ${this.endpoint}`, e)
+      throw e
+    }
+  }
+
+  public override async fetchEmails(): Promise<ReadonlyArray<IAPIEmail>> {
+    try {
+      const response = await this.request(this.endpoint, 'GET', 'user/emails')
+      const emails = await parsedResponse<ReadonlyArray<IGiteaAPIEmail>>(
+        response
+      )
+      return Array.isArray(emails)
+        ? emails.map(e => ({
+            email: e.email,
+            verified: e.verified,
+            primary: e.primary,
+            visibility: 'public' as const,
+          }))
+        : []
+    } catch (e) {
+      log.warn(`fetchEmails: failed with endpoint ${this.endpoint}`, e)
+      return []
+    }
   }
 
   public override async fetchUserCopilotInfo(): Promise<undefined> {

@@ -1,9 +1,10 @@
 import { createEqualityHash } from './equality-hash'
 import { Owner } from './owner'
+import { isGiteaHost } from '../lib/gitea-endpoints'
 
 export type GitHubRepositoryPermission = 'read' | 'write' | 'admin' | null
 
-export type RepoType = 'github' | 'bitbucket' | 'gitlab' | 'codeberg'
+export type RepoType = 'github' | 'bitbucket' | 'gitlab' | 'codeberg' | 'gitea'
 
 /** A GitHub repository. */
 export class GitHubRepository {
@@ -102,6 +103,8 @@ export function deduceRepositoryType(url: string): RepoType {
       return 'gitlab'
     } else if (host === 'codeberg.org') {
       return 'codeberg'
+    } else if (isGiteaHost(host)) {
+      return 'gitea'
     }
     return 'github'
   } catch (e) {

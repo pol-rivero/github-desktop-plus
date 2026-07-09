@@ -6,6 +6,7 @@ import {
   getGitLabAPIEndpoint,
 } from './api'
 import { assertNonNullable } from './fatal-error'
+import { isGitea } from './gitea-endpoints'
 
 export type VersionConstraint = {
   /**
@@ -87,7 +88,8 @@ export const isGHES = (ep: string) =>
   !isGHE(ep) &&
   !isBitbucket(ep) &&
   !isGitLab(ep) &&
-  !isCodeberg(ep)
+  !isCodeberg(ep) &&
+  !isGitea(ep)
 
 export function getEndpointVersion(endpoint: string) {
   const key = endpointVersionKey(endpoint)

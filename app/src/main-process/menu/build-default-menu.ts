@@ -724,6 +724,8 @@ function onGithubLabel(gitHubRepositoryType: RepoType | null) {
       return 'on GitLab'
     case 'codeberg':
       return 'on Codeberg'
+    case 'gitea':
+      return 'on Gitea'
     case null:
       return 'in your browser'
     default:

@@ -542,6 +542,11 @@ export class Preferences extends React.Component<
     this.props.dispatcher.showCodebergSignInDialog()
   }
 
+  private onGiteaSignIn = () => {
+    this.props.onDismissed()
+    this.props.dispatcher.showGiteaSignInDialog()
+  }
+
   private onCopilotSignIn = () => {
     this.setState({ selectedIndex: PreferencesTab.Accounts })
   }
@@ -603,6 +608,7 @@ export class Preferences extends React.Component<
             onBitbucketSignIn={this.onBitbucketSignIn}
             onGitLabSignIn={this.onGitLabSignIn}
             onCodebergSignIn={this.onCodebergSignIn}
+            onGiteaSignIn={this.onGiteaSignIn}
             onLogout={this.onLogout}
           />
         )

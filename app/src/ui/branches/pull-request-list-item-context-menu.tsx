@@ -43,6 +43,8 @@ function getViewPullRequestLabel(repoType: RepoType): string {
       return 'View Merge Request on GitLab'
     case 'codeberg':
       return 'View Pull Request on Codeberg'
+    case 'gitea':
+      return 'View Pull Request on Gitea'
     default:
       assertNever(repoType, `Unknown repo type: ${repoType}`)
   }

@@ -488,6 +488,8 @@ export class CommitMessageAvatar extends React.Component<
         return 'GitLab account'
       case 'codeberg':
         return 'Codeberg account'
+      case 'gitea':
+        return 'Gitea account'
       default:
         assertNever(account.apiType, 'Unknown account type')
     }

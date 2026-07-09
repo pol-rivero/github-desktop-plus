@@ -18,6 +18,7 @@ interface IAccountsProps {
   readonly onBitbucketSignIn: () => void
   readonly onGitLabSignIn: () => void
   readonly onCodebergSignIn: () => void
+  readonly onGiteaSignIn: () => void
   readonly onLogout: (account: Account) => void
 }
 
@@ -27,6 +28,7 @@ enum SignInType {
   Bitbucket,
   GitLab,
   Codeberg,
+  Gitea,
 }
 
 export class Accounts extends React.Component<IAccountsProps, {}> {
@@ -47,6 +49,9 @@ export class Accounts extends React.Component<IAccountsProps, {}> {
 
         <h2>Codeberg</h2>
         {this.renderMultipleCodebergAccounts()}
+
+        <h2>Gitea</h2>
+        {this.renderMultipleGiteaAccounts()}
       </DialogContent>
     )
   }
@@ -109,6 +114,16 @@ export class Accounts extends React.Component<IAccountsProps, {}> {
     )
   }
 
+  private renderMultipleGiteaAccounts() {
+    const giteaAccounts = this.props.accounts.filter(a => a.apiType === 'gitea')
+    return this.renderMultipleAccounts(
+      giteaAccounts,
+      SignInType.Gitea,
+      'Add Gitea account',
+      this.props.onGiteaSignIn
+    )
+  }
+
   private renderMultipleAccounts(
     accounts: ReadonlyArray<Account>,
     type: SignInType,
@@ -150,7 +165,7 @@ export class Accounts extends React.Component<IAccountsProps, {}> {
         <div className="user-info-container">
           <Avatar accounts={this.props.accounts} user={avatarUser} />
           <div className="user-info">
-            {account.apiType === 'enterprise' ? (
+            {account.apiType === 'enterprise' || account.apiType === 'gitea' ? (
               <>
                 <div className="account-title">
                   {account.name === account.login
@@ -192,6 +207,10 @@ export class Accounts extends React.Component<IAccountsProps, {}> {
 
   private onCodebergSignIn = () => {
     this.props.onCodebergSignIn()
+  }
+
+  private onGiteaSignIn = () => {
+    this.props.onGiteaSignIn()
   }
 
   private renderSignIn(type: SignInType) {
@@ -254,6 +273,18 @@ export class Accounts extends React.Component<IAccountsProps, {}> {
           >
             <div>
               Sign in to your Codeberg account to access your repositories.
+            </div>
+          </CallToAction>
+        )
+      case SignInType.Gitea:
+        return (
+          <CallToAction
+            actionTitle={signInTitle + ' Gitea'}
+            onAction={this.onGiteaSignIn}
+          >
+            <div>
+              Sign in to your self-hosted Gitea instance to access your
+              repositories.
             </div>
           </CallToAction>
         )

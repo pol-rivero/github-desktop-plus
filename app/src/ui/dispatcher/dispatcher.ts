@@ -1923,6 +1923,21 @@ export class Dispatcher {
     this.appStore._beginCodebergSignIn(resultCallback)
   }
 
+  /** Begin a sign in flow for a self-hosted Gitea instance (step 1: URL entry). */
+  public beginGiteaSignIn(resultCallback?: (result: SignInResult) => void) {
+    this.appStore._beginGiteaSignIn(resultCallback)
+  }
+
+  /** Advance the Gitea sign in flow from URL entry to token entry. */
+  public setGiteaSignInEndpoint(url: string): Promise<void> {
+    return this.appStore._setGiteaSignInEndpoint(url)
+  }
+
+  /** Complete the Gitea sign in flow with a personal access token. */
+  public authenticateWithGiteaToken(token: string): Promise<void> {
+    return this.appStore._authenticateWithGiteaToken(token)
+  }
+
   public beginBrowserBasedSignIn(
     endpoint: string,
     resultCallback?: (result: SignInResult) => void
@@ -2024,6 +2039,17 @@ export class Dispatcher {
     resultCallback?: (result: SignInResult) => void
   ): Promise<void> {
     this.appStore._beginCodebergSignIn(resultCallback)
+    this.appStore._showPopup({ type: PopupType.SignIn })
+  }
+
+  /**
+   * Launch a sign in dialog for authenticating a user with a self-hosted Gitea
+   * instance.
+   */
+  public async showGiteaSignInDialog(
+    resultCallback?: (result: SignInResult) => void
+  ): Promise<void> {
+    this.appStore._beginGiteaSignIn(resultCallback)
     this.appStore._showPopup({ type: PopupType.SignIn })
   }
 

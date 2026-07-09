@@ -6,6 +6,8 @@ import {
   IEndpointEntryState,
   IAuthenticationState,
   IExistingAccountWarning,
+  IGiteaEndpointEntryState,
+  IGiteaTokenEntryState,
 } from '../../lib/stores'
 import { assertNever } from '../../lib/fatal-error'
 import { Row } from '../lib/row'
@@ -14,7 +16,9 @@ import { Dialog, DialogError, DialogContent, DialogFooter } from '../dialog'
 
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { Ref } from '../lib/ref'
+import { LinkButton } from '../lib/link-button'
 import { getHTMLURL } from '../../lib/api'
+import { getGiteaHTMLURL } from '../../lib/gitea-endpoints'
 
 interface ISignInProps {
   readonly dispatcher: Dispatcher
@@ -26,6 +30,7 @@ interface ISignInProps {
 
 interface ISignInState {
   readonly endpoint: string
+  readonly token: string
 }
 
 const SignInWithBrowserTitle = __DARWIN__
@@ -50,6 +55,7 @@ export class SignIn extends React.Component<ISignInProps, ISignInState> {
 
     this.state = {
       endpoint: '',
+      token: '',
     }
   }
 
@@ -97,6 +103,12 @@ export class SignIn extends React.Component<ISignInProps, ISignInState> {
       case SignInStep.Authentication:
         this.props.dispatcher.requestBrowserAuthentication()
         break
+      case SignInStep.GiteaEndpointEntry:
+        this.props.dispatcher.setGiteaSignInEndpoint(this.state.endpoint)
+        break
+      case SignInStep.GiteaTokenEntry:
+        this.props.dispatcher.authenticateWithGiteaToken(this.state.token)
+        break
       case SignInStep.Success:
         this.onDismissed()
         break
@@ -107,6 +119,10 @@ export class SignIn extends React.Component<ISignInProps, ISignInState> {
 
   private onEndpointChanged = (endpoint: string) => {
     this.setState({ endpoint })
+  }
+
+  private onTokenChanged = (token: string) => {
+    this.setState({ token })
   }
 
   private renderFooter(): JSX.Element | null {
@@ -134,6 +150,14 @@ export class SignIn extends React.Component<ISignInProps, ISignInState> {
         break
       case SignInStep.Authentication:
         primaryButtonText = continueWithBrowserLabel
+        break
+      case SignInStep.GiteaEndpointEntry:
+        disableSubmit = this.state.endpoint.length === 0
+        primaryButtonText = 'Continue'
+        break
+      case SignInStep.GiteaTokenEntry:
+        disableSubmit = this.state.token.length === 0
+        primaryButtonText = __DARWIN__ ? 'Sign In' : 'Sign in'
         break
       default:
         return assertNever(state, `Unknown sign in step ${stepKind}`)
@@ -197,6 +221,46 @@ export class SignIn extends React.Component<ISignInProps, ISignInState> {
     )
   }
 
+  private renderGiteaEndpointEntryStep(_state: IGiteaEndpointEntryState) {
+    return (
+      <DialogContent>
+        <Row>
+          <TextBox
+            label="Gitea server address"
+            value={this.state.endpoint}
+            onValueChanged={this.onEndpointChanged}
+            placeholder="https://git.example.com"
+          />
+        </Row>
+      </DialogContent>
+    )
+  }
+
+  private renderGiteaTokenEntryStep(state: IGiteaTokenEntryState) {
+    const htmlURL = getGiteaHTMLURL(state.endpoint)
+    const tokenURL = `${htmlURL}/user/settings/applications`
+
+    return (
+      <DialogContent>
+        <p>
+          Signing in to <Ref>{new URL(htmlURL).host}</Ref>. Create a personal
+          access token with the <Ref>read:user</Ref> and <Ref>repo</Ref> scopes
+          on your{' '}
+          <LinkButton uri={tokenURL}>Gitea applications settings</LinkButton>{' '}
+          page and paste it below.
+        </p>
+        <Row>
+          <TextBox
+            label="Personal access token"
+            value={this.state.token}
+            type="password"
+            onValueChanged={this.onTokenChanged}
+          />
+        </Row>
+      </DialogContent>
+    )
+  }
+
   private renderStep(): JSX.Element | null {
     const state = this.props.signInState
 
@@ -213,6 +277,10 @@ export class SignIn extends React.Component<ISignInProps, ISignInState> {
         return this.renderExistingAccountWarningStep(state)
       case SignInStep.Authentication:
         return this.renderAuthenticationStep(state)
+      case SignInStep.GiteaEndpointEntry:
+        return this.renderGiteaEndpointEntryStep(state)
+      case SignInStep.GiteaTokenEntry:
+        return this.renderGiteaTokenEntryStep(state)
       case SignInStep.Success:
         return null
       default:

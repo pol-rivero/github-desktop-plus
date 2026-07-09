@@ -84,6 +84,11 @@ export class SignIn extends React.Component<ISignInProps, {}> {
         return this.renderExistingAccountWarningStep(state)
       case SignInStep.Authentication:
         return this.renderAuthenticationStep(state)
+      case SignInStep.GiteaEndpointEntry:
+      case SignInStep.GiteaTokenEntry:
+        // The Gitea (personal access token) flow is only offered from the
+        // Preferences and Clone dialogs, not the first-run welcome wizard.
+        return null
       case SignInStep.Success:
         return null
       default:

@@ -117,6 +117,8 @@ function getViewBranchLabel(repoType: RepoType): string {
       return `View ${branch} on GitLab`
     case 'codeberg':
       return `View ${branch} on Codeberg`
+    case 'gitea':
+      return `View ${branch} on Gitea`
     default:
       return assertNever(repoType, `Unknown repo type: ${repoType}`)
   }
@@ -132,6 +134,8 @@ function getViewPullRequestLabel(repoType: RepoType): string {
       return 'View Merge Request on GitLab'
     case 'codeberg':
       return 'View Pull Request on Codeberg'
+    case 'gitea':
+      return 'View Pull Request on Gitea'
     default:
       return assertNever(repoType, `Unknown repo type: ${repoType}`)
   }

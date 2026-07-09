@@ -105,6 +105,8 @@ export class GitEmailNotFoundWarning extends React.Component<IGitEmailNotFoundWa
         return 'GitLab'
       case 'codeberg':
         return 'Codeberg'
+      case 'gitea':
+        return 'Gitea'
       default:
         assertNever(account.apiType, 'Unknown account apiType')
     }

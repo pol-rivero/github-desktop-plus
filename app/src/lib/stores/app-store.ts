@@ -82,6 +82,7 @@ import { FetchType } from '../../models/fetch'
 import {
   GitHubRepository,
   hasWritePermission,
+  RepoType,
 } from '../../models/github-repository'
 import {
   defaultPullRequestSuggestedNextAction,
@@ -8924,6 +8925,18 @@ export class AppStore extends TypedBaseStore<IAppState> {
     return this.signInStore.beginCodebergSignIn(resultCallback)
   }
 
+  public _beginGiteaSignIn(resultCallback?: (result: SignInResult) => void) {
+    return this.signInStore.beginGiteaSignIn(resultCallback)
+  }
+
+  public _setGiteaSignInEndpoint(url: string): Promise<void> {
+    return this.signInStore.setGiteaEndpoint(url)
+  }
+
+  public _authenticateWithGiteaToken(token: string): Promise<void> {
+    return this.signInStore.authenticateWithGiteaToken(token)
+  }
+
   public _setSignInEndpoint(url: string): Promise<void> {
     return this.signInStore.setEndpoint(url)
   }
@@ -9464,11 +9477,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return
     }
 
-    const SHOW_PR_URL = {
+    const SHOW_PR_URL: Record<RepoType, string> = {
       github: `${baseRepoUrl}/pull/${pr.pullRequestNumber}`,
       bitbucket: `${baseRepoUrl}/pull-requests/${pr.pullRequestNumber}`,
       gitlab: `${baseRepoUrl}/merge_requests/${pr.pullRequestNumber}`,
       codeberg: `${baseRepoUrl}/pulls/${pr.pullRequestNumber}`,
+      gitea: `${baseRepoUrl}/pulls/${pr.pullRequestNumber}`,
     }
 
     const type = pr.base.gitHubRepository.type
@@ -9596,6 +9610,13 @@ export class AppStore extends TypedBaseStore<IAppState> {
           encodedCompareBranch,
           encodedBaseBranch
         )
+      case 'gitea':
+        return this.getGiteaPullRequestCreationURL(
+          gitHubRepository,
+          isFork,
+          encodedCompareBranch,
+          encodedBaseBranch
+        )
       default:
         return assertNever(
           gitHubRepository.type,
@@ -9653,6 +9674,20 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   private getCodebergPullRequestCreationURL(
+    { parent, owner, name, htmlURL }: GitHubRepository,
+    isFork: boolean,
+    encodedCompareBranch: string,
+    encodedBaseBranch: string
+  ): string {
+    const baseRepoUrl = (isFork ? parent?.htmlURL : null) ?? htmlURL
+    const head =
+      (isFork ? `${owner.login}/${name}:` : '') + encodedCompareBranch
+    const base = encodedBaseBranch ? `${encodedBaseBranch}...` : ''
+
+    return `${baseRepoUrl}/compare/${base}${head}`
+  }
+
+  private getGiteaPullRequestCreationURL(
     { parent, owner, name, htmlURL }: GitHubRepository,
     isFork: boolean,
     encodedCompareBranch: string,

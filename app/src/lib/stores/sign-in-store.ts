@@ -30,6 +30,11 @@ import { shell } from '../app-shell'
 import noop from 'lodash/noop'
 import { AccountsStore } from './accounts-store'
 import { RepoType } from '../../models/github-repository'
+import {
+  addGiteaEndpoint,
+  getGiteaAPIEndpoint,
+  removeGiteaEndpoint,
+} from '../gitea-endpoints'
 
 /**
  * An enumeration of the possible steps that the sign in
@@ -40,6 +45,10 @@ export enum SignInStep {
   ExistingAccountWarning = 'ExistingAccountWarning',
   Authentication = 'Authentication',
   TwoFactorAuthentication = 'TwoFactorAuthentication',
+  /** Gitea step 1: enter the self-hosted instance URL. */
+  GiteaEndpointEntry = 'GiteaEndpointEntry',
+  /** Gitea step 2: enter a personal access token for the resolved instance. */
+  GiteaTokenEntry = 'GiteaTokenEntry',
   Success = 'Success',
 }
 
@@ -51,6 +60,8 @@ export type SignInState =
   | IEndpointEntryState
   | IExistingAccountWarning
   | IAuthenticationState
+  | IGiteaEndpointEntryState
+  | IGiteaTokenEntryState
   | ISuccessState
 
 /**
@@ -139,6 +150,28 @@ export interface IAuthenticationState extends ISignInState {
     onAuthCompleted: (account: Account) => void
     onAuthError: (error: Error) => void
   }
+}
+
+/**
+ * State interface representing the first step of the Gitea sign in flow, where
+ * the user provides the URL of their self-hosted Gitea instance.
+ */
+export interface IGiteaEndpointEntryState extends ISignInState {
+  readonly kind: SignInStep.GiteaEndpointEntry
+  readonly resultCallback: (result: SignInResult) => void
+}
+
+/**
+ * State interface representing the second step of the Gitea sign in flow, where
+ * the user provides a personal access token for the (already resolved) instance.
+ */
+export interface IGiteaTokenEntryState extends ISignInState {
+  readonly kind: SignInStep.GiteaTokenEntry
+
+  /** The resolved Gitea API endpoint, e.g. `https://git.example.com/api/v1`. */
+  readonly endpoint: string
+
+  readonly resultCallback: (result: SignInResult) => void
 }
 
 /**
@@ -347,6 +380,10 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
         return getGitLabOAuthAuthorizationURL(csrfToken)
       case 'codeberg':
         return getCodebergOAuthAuthorizationURL(csrfToken)
+      case 'gitea':
+        // Gitea authenticates with a personal access token, not a browser OAuth
+        // flow, so this code path is never reached for Gitea.
+        return fatalError('Gitea does not use OAuth authorization')
       default:
         assertNever(oauthProvider, 'Unexpected oauth provider')
     }
@@ -418,6 +455,10 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
         return await requestOAuthTokenGitLab(code)
       case 'codeberg':
         return await requestOAuthTokenCodeberg(code)
+      case 'gitea':
+        // Gitea authenticates with a personal access token, not a browser OAuth
+        // flow, so this code path is never reached for Gitea.
+        return fatalError('Gitea does not use OAuth token exchange')
       default:
         assertNever(oauthProvider, 'Unexpected oauth provider')
     }
@@ -486,6 +527,130 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
       loading: false,
       resultCallback: resultCallback ?? noop,
     })
+  }
+
+  /**
+   * Initiate a sign in flow for a self-hosted Gitea instance. This puts the
+   * store in the GiteaEndpointEntry step, ready to receive the instance URL.
+   * Unlike the other providers Gitea authenticates with a personal access token
+   * rather than a browser OAuth flow (each self-hosted instance has its own URL,
+   * so no OAuth client id can be baked into the build).
+   */
+  public beginGiteaSignIn(resultCallback?: (result: SignInResult) => void) {
+    if (this.state !== null) {
+      this.reset()
+    }
+
+    this.setState({
+      kind: SignInStep.GiteaEndpointEntry,
+      error: null,
+      loading: false,
+      resultCallback: resultCallback ?? noop,
+    })
+  }
+
+  /**
+   * Advance from the GiteaEndpointEntry step with the given instance URL. The
+   * URL is validated for syntactic correctness and, if valid, the store advances
+   * to the GiteaTokenEntry step carrying the resolved `<url>/api/v1` endpoint.
+   */
+  public async setGiteaEndpoint(url: string): Promise<void> {
+    const currentState = this.state
+
+    if (currentState?.kind !== SignInStep.GiteaEndpointEntry) {
+      const stepText = currentState ? currentState.kind : 'null'
+      return fatalError(
+        `Sign in step '${stepText}' not compatible with Gitea endpoint entry`
+      )
+    }
+
+    this.setState({ ...currentState, loading: true })
+
+    let validUrl: string
+    try {
+      validUrl = validateURL(url)
+    } catch (e) {
+      let error = e
+      if (e.name === InvalidURLErrorName) {
+        error = new Error(
+          `The Gitea instance address doesn't appear to be a valid URL. We're expecting something like https://git.example.com.`
+        )
+      } else if (e.name === InvalidProtocolErrorName) {
+        error = new Error(
+          'Unsupported protocol. Only https is supported when authenticating with Gitea instances.'
+        )
+      }
+
+      this.setState({ ...currentState, loading: false, error })
+      return
+    }
+
+    const endpoint = getGiteaAPIEndpoint(validUrl)
+
+    this.setState({
+      kind: SignInStep.GiteaTokenEntry,
+      endpoint,
+      error: null,
+      loading: false,
+      resultCallback: currentState.resultCallback,
+    })
+  }
+
+  /**
+   * Complete the Gitea sign in flow by validating the given personal access
+   * token against the resolved instance endpoint. On success the account is
+   * added; on failure the (optimistically-registered) endpoint is removed and
+   * an error is surfaced.
+   */
+  public async authenticateWithGiteaToken(token: string): Promise<void> {
+    const currentState = this.state
+
+    if (currentState?.kind !== SignInStep.GiteaTokenEntry) {
+      const stepText = currentState ? currentState.kind : 'null'
+      return fatalError(
+        `Sign in step '${stepText}' not compatible with Gitea token entry`
+      )
+    }
+
+    const { endpoint, resultCallback } = currentState
+    this.setState({ ...currentState, loading: true, error: null })
+
+    // Register the endpoint before fetching so that `fetchUser` recognises it as
+    // a Gitea endpoint and constructs a GiteaAPI client.
+    addGiteaEndpoint(endpoint)
+
+    try {
+      const account = await fetchUser(
+        endpoint,
+        token,
+        '',
+        0,
+        UnknownLogin.InitialAuthFetch
+      )
+
+      if (this.state?.kind !== SignInStep.GiteaTokenEntry) {
+        // The sign in flow has been aborted or replaced.
+        log.warn('[SignInStore] Gitea account resolved but session has changed')
+        return
+      }
+
+      log.info('[SignInStore] Gitea account resolved')
+      this.emitAuthenticate(account)
+      this.setState({ kind: SignInStep.Success, resultCallback })
+    } catch (e) {
+      removeGiteaEndpoint(endpoint)
+      log.info('[SignInStore] error signing in to Gitea', e)
+
+      if (this.state?.kind === SignInStep.GiteaTokenEntry) {
+        this.setState({
+          ...currentState,
+          loading: false,
+          error: new Error(
+            'Failed to sign in to Gitea. Check that the server URL is correct and that your personal access token is valid.'
+          ),
+        })
+      }
+    }
   }
 
   /**

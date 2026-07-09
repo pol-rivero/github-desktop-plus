@@ -66,6 +66,9 @@ export class InvalidatedToken extends React.Component<IInvalidatedTokenProps> {
       case 'codeberg':
         dispatcher.showCodebergSignInDialog()
         break
+      case 'gitea':
+        dispatcher.showGiteaSignInDialog()
+        break
       default:
         console.error('Unknown sign-in dialog for account:', account)
         assertNever(account.apiType, 'Unknown sign-in dialog for account')
