@@ -244,8 +244,8 @@ export class SignIn extends React.Component<ISignInProps, ISignInState> {
       <DialogContent>
         <p>
           Signing in to <Ref>{new URL(htmlURL).host}</Ref>. Create a personal
-          access token with the <Ref>read:user</Ref> and <Ref>repo</Ref> scopes
-          on your{' '}
+          access token with the <Ref>read:user</Ref> and{' '}
+          <Ref>read:repository</Ref> scopes on your{' '}
           <LinkButton uri={tokenURL}>Gitea applications settings</LinkButton>{' '}
           page and paste it below.
         </p>

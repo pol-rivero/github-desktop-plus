@@ -26,6 +26,7 @@ import {
   GitHubAccountType,
 } from '../api'
 import { TypedBaseStore } from './base-store'
+import { isGitea } from '../gitea-endpoints'
 import { WorkflowPreferences } from '../../models/workflow-preferences'
 import { clearTagsToPush } from './helpers/tags-to-push-storage'
 import { IMatchedGitHubRepository } from '../repository-matching'
@@ -129,7 +130,15 @@ export class RepositoriesStore extends TypedBaseStore<
       )
     }
 
-    const repoType = deduceRepositoryType(repo.htmlURL || '')
+    // The provider's endpoint (owner.endpoint) is the authoritative identity —
+    // it's what account classification and the repository-list grouping both key
+    // off. A self-hosted Gitea instance lives on an arbitrary host, so the
+    // URL-based heuristic can't recognise it (and htmlURL may be null), whereas
+    // its endpoint is in the linked-Gitea registry. Prefer the endpoint, falling
+    // back to the URL heuristic for the fixed-host providers.
+    const repoType = isGitea(owner.endpoint)
+      ? 'gitea'
+      : deduceRepositoryType(repo.htmlURL || '')
     const ghRepo = new GitHubRepository(
       repo.name,
       repoType,
