@@ -32,6 +32,7 @@ import { TooltippedContent } from '../lib/tooltipped-content'
 import memoizeOne from 'memoize-one'
 import { KeyboardShortcut } from '../keyboard-shortcut/keyboard-shortcut'
 import {
+  buildAssignToGroupMenuItems,
   generateRepositoryListContextMenu,
   generateWorktreeListItemContextMenu,
 } from '../repositories-list/repository-list-item-context-menu'
@@ -42,6 +43,8 @@ import { assertNever } from '../../lib/fatal-error'
 import { IAheadBehind } from '../../models/branch'
 import { ShowBranchNameInRepoListSetting } from '../../models/show-branch-name-in-repo-list'
 import { getEditorOverrideLabel } from '../../models/editor-override'
+import { Account } from '../../models/account'
+import { getAccountForRepository } from '../../lib/get-account-for-repository'
 
 const BlankSlateImage = encodePathAsUrl(__dirname, 'static/empty-no-repo.svg')
 
@@ -106,6 +109,16 @@ interface IRepositoriesListProps {
 
   /** Whether or not linked worktrees should be shown in the repository list */
   readonly showWorktreesInRepoList: boolean
+
+  /** The currently signed-in accounts, used to filter the repository list */
+  readonly accounts: ReadonlyArray<Account>
+
+  /**
+   * The id of the account the repository list is currently filtered to, or
+   * null if repositories from all accounts should be shown. Local
+   * (non-GitHub) repositories are always shown regardless of this filter.
+   */
+  readonly selectedFilterAccountId: number | null
 }
 
 interface IRepositoriesListState {
@@ -153,11 +166,97 @@ function findMatchingListItem(
   return null
 }
 
+interface IRepositoryGroupHeaderProps {
+  readonly groupName: string
+  readonly onPullAll: (groupName: string) => void
+  readonly onDelete: (groupName: string) => void
+  readonly onContextMenu: (
+    groupName: string,
+    event: React.MouseEvent<HTMLDivElement>
+  ) => void
+}
+
+/**
+ * Wraps a custom repository group header adding buttons to pull all
+ * repositories in the group and to delete the group, with the same actions
+ * available on right-click.
+ */
+class RepositoryGroupHeader extends React.Component<IRepositoryGroupHeaderProps> {
+  private onContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
+    this.props.onContextMenu(this.props.groupName, event)
+  }
+
+  private onPullAllClick = () => {
+    this.props.onPullAll(this.props.groupName)
+  }
+
+  private onDeleteClick = (event: React.MouseEvent) => {
+    event.stopPropagation()
+    this.props.onDelete(this.props.groupName)
+  }
+
+  public render() {
+    const pullLabel = `Pull all repositories in "${this.props.groupName}"`
+    const deleteLabel = `Delete group "${this.props.groupName}"`
+
+    return (
+      <div
+        className="repository-group-header"
+        onContextMenu={this.onContextMenu}
+      >
+        {this.props.children}
+        <Button
+          className="pull-group-button"
+          onClick={this.onPullAllClick}
+          tooltip={pullLabel}
+          ariaLabel={pullLabel}
+        >
+          <Octicon symbol={octicons.arrowDown} />
+        </Button>
+        <Button
+          className="delete-group-button"
+          onClick={this.onDeleteClick}
+          tooltip={deleteLabel}
+          ariaLabel={deleteLabel}
+        >
+          <Octicon symbol={octicons.trash} />
+        </Button>
+      </div>
+    )
+  }
+}
+
 /** The list of user-added repositories. */
 export class RepositoriesList extends React.Component<
   IRepositoriesListProps,
   IRepositoriesListState
 > {
+  /**
+   * A memoized function for filtering repositories down to those belonging
+   * to the currently selected account filter. Local (non-GitHub)
+   * repositories are always kept, regardless of the filter.
+   */
+  private getVisibleRepositories = memoizeOne(
+    (
+      repositories: ReadonlyArray<Repositoryish>,
+      accounts: ReadonlyArray<Account>,
+      selectedFilterAccountId: number | null
+    ) => {
+      if (selectedFilterAccountId === null) {
+        return repositories
+      }
+
+      return repositories.filter(repository => {
+        if (!(repository instanceof Repository)) {
+          return true
+        }
+
+        const account = getAccountForRepository(accounts, repository)
+        return account === null || account.id === selectedFilterAccountId
+      })
+    }
+  )
+
   /**
    * A memoized function for grouping repositories for display
    * in the FilterList. The group will not be recomputed as long
@@ -230,8 +329,26 @@ export class RepositoriesList extends React.Component<
         changedFilesCount={item.changedFilesCount}
         branchName={this.shouldShowBranchName(item) ? item.branchName : null}
         worktree={item.worktree}
+        onAssignToGroupClick={this.onAssignToGroupClick}
       />
     )
+  }
+
+  private onAssignToGroupClick = (
+    repository: Repository,
+    event: React.MouseEvent
+  ) => {
+    event.preventDefault()
+    event.stopPropagation()
+
+    const items = buildAssignToGroupMenuItems(
+      repository,
+      getKnownGroupNames(this.getVisibleRepos()),
+      this.onAssignRepositoryGroupName,
+      this.onChangeRepositoryGroupName
+    )
+
+    showContextualMenu(items)
   }
 
   private getAheadBehindTooltip = (aheadBehind: IAheadBehind | null) => {
@@ -339,7 +456,7 @@ export class RepositoriesList extends React.Component<
   private renderGroupHeader = (group: RepositoryListGroup) => {
     const label = this.getGroupLabel(group)
 
-    return (
+    const header = (
       <TooltippedContent
         key={getGroupKey(group)}
         className="filter-list-group-header"
@@ -350,6 +467,89 @@ export class RepositoriesList extends React.Component<
         {label}
       </TooltippedContent>
     )
+
+    // Custom (user-named) groups get a button to pull all of their
+    // repositories. Pins and recents can contain repositories of other
+    // groups so they don't get one.
+    const isCustomGroup =
+      group.kind !== 'pins' &&
+      group.kind !== 'recent' &&
+      group.displayName !== null
+
+    return !isCustomGroup ? (
+      header
+    ) : (
+      <RepositoryGroupHeader
+        key={getGroupKey(group)}
+        groupName={label}
+        onPullAll={this.onPullAllInGroup}
+        onDelete={this.onDeleteGroup}
+        onContextMenu={this.onGroupHeaderContextMenu}
+      >
+        {header}
+      </RepositoryGroupHeader>
+    )
+  }
+
+  private onGroupHeaderContextMenu = (
+    groupName: string,
+    event: React.MouseEvent<HTMLDivElement>
+  ) => {
+    event.preventDefault()
+
+    showContextualMenu([
+      {
+        label: __DARWIN__
+          ? `Pull All Repositories in "${groupName}"`
+          : `Pull all repositories in "${groupName}"`,
+        action: () => this.onPullAllInGroup(groupName),
+      },
+      { type: 'separator' },
+      {
+        label: __DARWIN__
+          ? `Delete Group "${groupName}"`
+          : `Delete group "${groupName}"`,
+        action: () => this.onDeleteGroup(groupName),
+      },
+    ])
+  }
+
+  private onDeleteGroup = (groupName: string) => {
+    const repositories = this.getVisibleRepos().filter(
+      (r): r is Repository =>
+        r instanceof Repository && r.groupName === groupName
+    )
+
+    this.props.dispatcher.showPopup({
+      type: PopupType.DeleteRepositoryGroup,
+      groupName,
+      repositories,
+    })
+  }
+
+  /** The repositories visible in the list, honoring the active account filter. */
+  private getVisibleRepos(): ReadonlyArray<Repositoryish> {
+    return this.getVisibleRepositories(
+      this.props.repositories,
+      this.props.accounts,
+      this.props.selectedFilterAccountId
+    )
+  }
+
+  private onPullAllInGroup = (groupName: string) => {
+    const repositories = this.getVisibleRepos().filter(
+      (r): r is Repository =>
+        r instanceof Repository && r.groupName === groupName
+    )
+
+    this.props.dispatcher.pullRepositories(repositories)
+  }
+
+  private onAssignRepositoryGroupName = (
+    repository: Repository,
+    groupName: string
+  ) => {
+    this.props.dispatcher.changeRepositoryGroupName(repository, groupName)
   }
 
   private onItemClick = (item: IRepositoryListItem) => {
@@ -426,6 +626,10 @@ export class RepositoriesList extends React.Component<
       onRemoveRepositoryAlias: this.onRemoveRepositoryAlias,
       onChangeRepositoryGroupName: this.onChangeRepositoryGroupName,
       onRemoveRepositoryGroupName: this.onRemoveRepositoryGroupName,
+      groupNames: getKnownGroupNames(this.getVisibleRepos()),
+      onAssignRepositoryGroupName: this.onAssignRepositoryGroupName,
+      onPullAllInGroup: this.onPullAllInGroup,
+      onDeleteGroup: this.onDeleteGroup,
       onViewOnGitHub: this.props.onViewOnGitHub,
       onCreateWorktree: enableWorktreeSupport()
         ? this.onCreateWorktree
@@ -462,8 +666,10 @@ export class RepositoriesList extends React.Component<
       this.getGroupLabel(groups[group].identifier)
 
   public render() {
+    const visibleRepositories = this.getVisibleRepos()
+
     let groups = this.getRepositoryGroups(
-      this.props.repositories,
+      visibleRepositories,
       this.props.localRepositoryStateLookup,
       this.props.recentRepositories
     )
@@ -507,7 +713,7 @@ export class RepositoriesList extends React.Component<
           renderNoItems={this.renderNoItems}
           groups={groups}
           invalidationProps={{
-            repositories: this.props.repositories,
+            repositories: visibleRepositories,
             filterText: this.props.filterText,
             localRepositoryStateLookup: this.props.localRepositoryStateLookup,
             showWorktreesInRepoList: this.props.showWorktreesInRepoList,
@@ -613,6 +819,19 @@ export class RepositoriesList extends React.Component<
   private renderPostFilter = () => {
     return (
       <>
+        {this.props.accounts.length > 0 && (
+          <Button
+            className="repo-list-button account-filter button-with-icon"
+            onClick={this.onAccountFilterButtonClick}
+            tooltip="Filter repositories by account"
+            ariaLabel="Filter repositories by account"
+          >
+            <Octicon symbol={octicons.person} />
+            {this.getAccountFilterLabel()}
+            <Octicon symbol={octicons.triangleDown} />
+          </Button>
+        )}
+
         <Button
           className="repo-list-button new-repository button-with-icon"
           onClick={this.onNewRepositoryButtonClick}
@@ -642,6 +861,54 @@ export class RepositoriesList extends React.Component<
         )}
       </>
     )
+  }
+
+  /**
+   * A label that unambiguously identifies an account, even when two
+   * accounts share the same display name: the login is always unique per
+   * endpoint, and the endpoint disambiguates same-login accounts signed in
+   * on different GitHub Enterprise instances.
+   */
+  private getAccountLabel(account: Account): string {
+    return `${account.friendlyName} (@${account.login} · ${account.friendlyEndpoint})`
+  }
+
+  private getAccountFilterLabel(): string {
+    const { selectedFilterAccountId, accounts } = this.props
+    if (selectedFilterAccountId === null) {
+      return 'All accounts'
+    }
+
+    // Keep the toolbar button compact; the full name/endpoint disambiguation
+    // is shown in the dropdown menu items instead.
+    const account = accounts.find(a => a.id === selectedFilterAccountId)
+    return account ? `@${account.login}` : 'All accounts'
+  }
+
+  private onAccountFilterButtonClick = () => {
+    const { accounts, selectedFilterAccountId } = this.props
+
+    const items: IMenuItem[] = [
+      {
+        label: 'All accounts',
+        type: 'checkbox',
+        checked: selectedFilterAccountId === null,
+        action: () => this.onAccountFilterSelected(null),
+      },
+      { type: 'separator' },
+      ...accounts.map(account => ({
+        label: this.getAccountLabel(account),
+        type: 'checkbox' as const,
+        checked: selectedFilterAccountId === account.id,
+        action: () => this.onAccountFilterSelected(account.id),
+      })),
+    ]
+
+    showContextualMenu(items)
+  }
+
+  private onAccountFilterSelected = (accountId: number | null) => {
+    this.props.dispatcher.setSelectedFilterAccountId(accountId)
   }
 
   private onNewRepositoryButtonKeyDown = (
@@ -692,6 +959,11 @@ export class RepositoriesList extends React.Component<
           : 'Add existing repository…',
         action: this.onAddExistingRepository,
       },
+      { type: 'separator' },
+      {
+        label: __DARWIN__ ? 'New Group…' : 'New group…',
+        action: this.onNewGroup,
+      },
     ]
 
     this.setState({ newRepositoryMenuExpanded: true })
@@ -715,6 +987,17 @@ export class RepositoriesList extends React.Component<
 
   private onAddExistingRepository = () => {
     this.props.dispatcher.showPopup({ type: PopupType.AddRepository })
+  }
+
+  private onNewGroup = () => {
+    const repositories = this.getVisibleRepos().filter(
+      (r): r is Repository => r instanceof Repository
+    )
+
+    this.props.dispatcher.showPopup({
+      type: PopupType.CreateRepositoryGroup,
+      repositories,
+    })
   }
 
   private onCreateNewRepository = () => {
@@ -780,4 +1063,21 @@ export class RepositoriesList extends React.Component<
     removePinnedRepository(repository)
     this.setState({ pinnedRepositoriesIds: getPinnedRepositories() })
   }
+}
+
+/** Collects the sorted, de-duplicated custom group names currently in use */
+export function getKnownGroupNames(
+  repositories: ReadonlyArray<Repositoryish>
+): ReadonlyArray<string> {
+  const groupNames = new Set<string>()
+
+  for (const repository of repositories) {
+    if (repository instanceof Repository && repository.groupName !== null) {
+      groupNames.add(repository.groupName)
+    }
+  }
+
+  return [...groupNames.values()].sort((x, y) =>
+    x.toLowerCase().localeCompare(y.toLowerCase())
+  )
 }

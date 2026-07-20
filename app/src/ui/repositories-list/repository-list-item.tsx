@@ -14,6 +14,7 @@ import { createObservableRef } from '../lib/observable-ref'
 import { Tooltip } from '../lib/tooltip'
 import { enableAccessibleListToolTips } from '../../lib/feature-flag'
 import { TooltippedContent } from '../lib/tooltipped-content'
+import { Button } from '../lib/button'
 
 interface IRepositoryListItemProps {
   readonly repository: Repositoryish
@@ -38,6 +39,15 @@ interface IRepositoryListItemProps {
    * its repository instead of as the repository itself.
    */
   readonly worktree: WorktreeEntry | null
+
+  /**
+   * Called when the user clicks the "assign to group" button shown next to
+   * repositories that aren't part of a group yet. Not shown when omitted.
+   */
+  readonly onAssignToGroupClick?: (
+    repository: Repository,
+    event: React.MouseEvent
+  ) => void
 }
 
 /** Renders the branch name badge shown next to a repository or worktree. */
@@ -111,12 +121,32 @@ export class RepositoryListItem extends React.Component<
         {renderBranchNameBadge(this.props.branchName)}
 
         {repository instanceof Repository &&
+          repository.groupName === null &&
+          this.props.onAssignToGroupClick && (
+            <Button
+              className="assign-to-group-button"
+              onClick={this.onAssignToGroupClick}
+              tooltip="Assign to group"
+              ariaLabel="Assign to group"
+            >
+              <Octicon symbol={octicons.tag} />
+            </Button>
+          )}
+
+        {repository instanceof Repository &&
           renderRepoIndicators({
             aheadBehind: this.props.aheadBehind,
             hasChanges: hasChanges,
           })}
       </div>
     )
+  }
+
+  private onAssignToGroupClick = (event: React.MouseEvent) => {
+    const repository = this.props.repository
+    if (repository instanceof Repository) {
+      this.props.onAssignToGroupClick?.(repository, event)
+    }
   }
 
   private renderWorktree(worktree: WorktreeEntry) {
@@ -187,7 +217,7 @@ export class RepositoryListItem extends React.Component<
       this.props.repository instanceof Repository
     ) {
       return (
-        nextProps.repository.id !== this.props.repository.id ||
+        nextProps.repository !== this.props.repository ||
         nextProps.matches !== this.props.matches ||
         nextProps.branchName !== this.props.branchName ||
         nextProps.needsDisambiguation !== this.props.needsDisambiguation ||

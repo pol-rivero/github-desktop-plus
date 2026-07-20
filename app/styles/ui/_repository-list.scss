@@ -92,6 +92,36 @@
         vertical-align: text-bottom;
       }
     }
+
+    .assign-to-group-button {
+      flex-shrink: 0;
+      height: 16px;
+      min-width: 0;
+      margin-left: var(--spacing-half);
+      padding: 0 var(--spacing-half);
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      color: var(--text-secondary-color);
+      opacity: 0;
+      transition: opacity 0.1s ease-in-out;
+
+      &:hover,
+      &:focus {
+        background: transparent;
+        color: var(--text-color);
+      }
+
+      .octicon {
+        width: 12px;
+        height: 12px;
+      }
+    }
+
+    &:hover .assign-to-group-button,
+    &:focus-within .assign-to-group-button {
+      opacity: 1;
+    }
   }
 
   .filter-list-group-header {
@@ -99,6 +129,75 @@
     text-overflow: ellipsis;
     overflow-x: hidden;
     white-space: nowrap;
+  }
+
+  .repository-group-header {
+    display: flex;
+    align-items: center;
+
+    .filter-list-group-header {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .pull-group-button {
+      flex-shrink: 0;
+      height: 16px;
+      min-width: 0;
+      margin-top: var(--spacing);
+      margin-right: var(--spacing-half);
+      padding: 0 var(--spacing-half);
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      color: var(--text-secondary-color);
+      opacity: 0;
+      transition: opacity 0.1s ease-in-out;
+
+      &:hover,
+      &:focus {
+        background: transparent;
+        color: var(--text-color);
+      }
+
+      .octicon {
+        width: 12px;
+        height: 12px;
+      }
+    }
+
+    .delete-group-button {
+      flex-shrink: 0;
+      height: 16px;
+      min-width: 0;
+      margin-top: var(--spacing);
+      margin-right: var(--spacing-half);
+      padding: 0 var(--spacing-half);
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      color: var(--text-secondary-color);
+      opacity: 0;
+      transition: opacity 0.1s ease-in-out;
+
+      &:hover,
+      &:focus {
+        background: transparent;
+        color: var(--error-color);
+      }
+
+      .octicon {
+        width: 12px;
+        height: 12px;
+      }
+    }
+
+    &:hover .pull-group-button,
+    &:focus-within .pull-group-button,
+    &:hover .delete-group-button,
+    &:focus-within .delete-group-button {
+      opacity: 1;
+    }
   }
 
   .repo-list-button {

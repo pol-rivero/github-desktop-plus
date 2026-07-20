@@ -82,6 +82,8 @@ export enum PopupType {
   MoveToApplicationsFolder = 'MoveToApplicationsFolder',
   ChangeRepositoryAlias = 'ChangeRepositoryAlias',
   ChangeRepositoryGroupName = 'ChangeRepositoryGroupName',
+  CreateRepositoryGroup = 'CreateRepositoryGroup',
+  DeleteRepositoryGroup = 'DeleteRepositoryGroup',
   ThankYou = 'ThankYou',
   CommitMessage = 'CommitMessage',
   MultiCommitOperation = 'MultiCommitOperation',
@@ -373,6 +375,15 @@ export type PopupDetail =
   | { type: PopupType.MoveToApplicationsFolder }
   | { type: PopupType.ChangeRepositoryAlias; repository: Repository }
   | { type: PopupType.ChangeRepositoryGroupName; repository: Repository }
+  | {
+      type: PopupType.CreateRepositoryGroup
+      repositories: ReadonlyArray<Repository>
+    }
+  | {
+      type: PopupType.DeleteRepositoryGroup
+      groupName: string
+      repositories: ReadonlyArray<Repository>
+    }
   | {
       type: PopupType.ThankYou
       userContributions: ReadonlyArray<ReleaseNote>

@@ -44,7 +44,7 @@ import { CloningRepository } from '../models/cloning-repository'
 
 import { TitleBar, ZoomInfo, FullScreenInfo } from './window'
 
-import { RepositoriesList } from './repositories-list'
+import { RepositoriesList, getKnownGroupNames } from './repositories-list'
 import { RepositoryView } from './repository'
 import { RenameBranch } from './rename-branch'
 import {
@@ -156,6 +156,8 @@ import classNames from 'classnames'
 import { MoveToApplicationsFolder } from './move-to-applications-folder'
 import { ChangeRepositoryAlias } from './change-repository-alias/change-repository-alias-dialog'
 import { ChangeRepositoryGroupName } from './change-repository-group-name/change-repository-group-name-dialog'
+import { CreateRepositoryGroup } from './create-repository-group/create-repository-group-dialog'
+import { DeleteRepositoryGroup } from './delete-repository-group/delete-repository-group-dialog'
 import { ThankYou } from './thank-you'
 import {
   getUserContributions,
@@ -2433,6 +2435,25 @@ export class App extends React.Component<IAppProps, IAppState> {
           />
         )
       }
+      case PopupType.CreateRepositoryGroup: {
+        return (
+          <CreateRepositoryGroup
+            dispatcher={this.props.dispatcher}
+            repositories={popup.repositories}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      }
+      case PopupType.DeleteRepositoryGroup: {
+        return (
+          <DeleteRepositoryGroup
+            dispatcher={this.props.dispatcher}
+            groupName={popup.groupName}
+            repositories={popup.repositories}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      }
       case PopupType.ThankYou:
         return (
           <ThankYou
@@ -3477,6 +3498,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         showBranchNameInRepoList={this.state.showBranchNameInRepoList}
         showWorktrees={this.state.showWorktrees}
         showWorktreesInRepoList={this.state.showWorktreesInRepoList}
+        accounts={this.state.accounts}
+        selectedFilterAccountId={this.state.selectedFilterAccountId}
       />
     )
   }
@@ -3725,6 +3748,35 @@ export class App extends React.Component<IAppProps, IAppState> {
       this.props.dispatcher.changeRepositoryGroupName(repository, null)
     }
 
+    const onAssignRepositoryGroupName = (
+      repository: Repository,
+      groupName: string
+    ) => {
+      this.props.dispatcher.changeRepositoryGroupName(repository, groupName)
+    }
+
+    const onPullAllInGroup = (groupName: string) => {
+      const repositories = this.state.repositories.filter(
+        (r): r is Repository =>
+          r instanceof Repository && r.groupName === groupName
+      )
+
+      this.props.dispatcher.pullRepositories(repositories)
+    }
+
+    const onDeleteGroup = (groupName: string) => {
+      const repositories = this.state.repositories.filter(
+        (r): r is Repository =>
+          r instanceof Repository && r.groupName === groupName
+      )
+
+      this.props.dispatcher.showPopup({
+        type: PopupType.DeleteRepositoryGroup,
+        groupName,
+        repositories,
+      })
+    }
+
     const onCreateWorktree = (repository: Repository) => {
       this.props.dispatcher.showPopup({
         type: PopupType.AddWorktree,
@@ -3748,6 +3800,10 @@ export class App extends React.Component<IAppProps, IAppState> {
       onRemoveRepositoryAlias: onRemoveRepositoryAlias,
       onChangeRepositoryGroupName: onChangeRepositoryGroupName,
       onRemoveRepositoryGroupName: onRemoveRepositoryGroupName,
+      groupNames: getKnownGroupNames(this.state.repositories),
+      onAssignRepositoryGroupName: onAssignRepositoryGroupName,
+      onPullAllInGroup: onPullAllInGroup,
+      onDeleteGroup: onDeleteGroup,
       onViewOnGitHub: this.viewOnGitHub,
       onCreateWorktree: enableWorktreeSupport() ? onCreateWorktree : undefined,
       onShowWorktrees: enableWorktreeSupport() ? onShowWorktrees : undefined,

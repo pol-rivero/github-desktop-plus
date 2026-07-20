@@ -31,6 +31,14 @@ interface IRepositoryListItemContextMenuConfig {
   onRemoveRepositoryAlias: (repository: Repository) => void
   onChangeRepositoryGroupName: (repository: Repository) => void
   onRemoveRepositoryGroupName: (repository: Repository) => void
+  /** The custom group names currently in use, sorted */
+  groupNames: ReadonlyArray<string>
+  onAssignRepositoryGroupName: (
+    repository: Repository,
+    groupName: string
+  ) => void
+  onPullAllInGroup: (groupName: string) => void
+  onDeleteGroup: (groupName: string) => void
   onCopyRepoPath: (path: string) => void
   isPinned?: boolean
   onPinRepository?: (repository: Repository) => void
@@ -246,16 +254,59 @@ const buildAliasMenuItems = (
   return items
 }
 
+/**
+ * Builds the list of menu items offered when assigning a repository to a
+ * group: one entry per existing custom group, plus an entry to create a
+ * new one.
+ */
+export const buildAssignToGroupMenuItems = (
+  repository: Repository,
+  groupNames: ReadonlyArray<string>,
+  onAssignRepositoryGroupName: (
+    repository: Repository,
+    groupName: string
+  ) => void,
+  onChangeRepositoryGroupName: (repository: Repository) => void
+): ReadonlyArray<IMenuItem> => {
+  const items: Array<IMenuItem> = groupNames.map(groupName => ({
+    label: groupName,
+    enabled: repository.groupName !== groupName,
+    action: () => onAssignRepositoryGroupName(repository, groupName),
+  }))
+
+  if (items.length > 0) {
+    items.push({ type: 'separator' })
+  }
+
+  items.push({
+    label: __DARWIN__ ? 'New Group…' : 'New group…',
+    action: () => onChangeRepositoryGroupName(repository),
+  })
+
+  return items
+}
+
 const buildGroupNameMenuItems = (
   config: IRepositoryListItemContextMenuConfig
 ): ReadonlyArray<IMenuItem> => {
-  const { repository } = config
+  const { repository, groupNames } = config
 
   if (!(repository instanceof Repository)) {
     return []
   }
 
+  const submenu = buildAssignToGroupMenuItems(
+    repository,
+    groupNames,
+    config.onAssignRepositoryGroupName,
+    config.onChangeRepositoryGroupName
+  )
+
   const items: Array<IMenuItem> = [
+    {
+      label: __DARWIN__ ? 'Assign to Group' : 'Assign to group',
+      submenu,
+    },
     {
       label: __DARWIN__ ? `Change Group Name` : `Change group name`,
       action: () => config.onChangeRepositoryGroupName(repository),
@@ -263,9 +314,25 @@ const buildGroupNameMenuItems = (
   ]
 
   if (repository.groupName !== null) {
+    const groupName = repository.groupName
+
+    items.push({
+      label: __DARWIN__
+        ? `Pull All in Group "${groupName}"`
+        : `Pull all in group "${groupName}"`,
+      action: () => config.onPullAllInGroup(groupName),
+    })
+
     items.push({
       label: __DARWIN__ ? 'Restore Group Name' : 'Restore group name',
       action: () => config.onRemoveRepositoryGroupName(repository),
+    })
+
+    items.push({
+      label: __DARWIN__
+        ? `Delete Group "${groupName}"`
+        : `Delete group "${groupName}"`,
+      action: () => config.onDeleteGroup(groupName),
     })
   }
 

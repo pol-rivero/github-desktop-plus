@@ -839,6 +839,17 @@ export class Dispatcher {
     }
   }
 
+  /** Pull each of the given repositories (e.g. all repositories in a group). */
+  public async pullRepositories(
+    repositories: ReadonlyArray<Repository>
+  ): Promise<void> {
+    try {
+      await this.appStore._pullRepositories(repositories)
+    } catch (error) {
+      this.postError(error)
+    }
+  }
+
   /** Fetch a specific refspec for the repository. */
   public fetchRefspec(
     repository: Repository,
@@ -3217,6 +3228,11 @@ export class Dispatcher {
 
   public setShowRecentRepositories(showRecentRepositories: boolean) {
     this.appStore._setShowRecentRepositories(showRecentRepositories)
+  }
+
+  /** Filter the repository list to only show repositories belonging to the given account, or null to show all. */
+  public setSelectedFilterAccountId(accountId: number | null) {
+    this.appStore._setSelectedFilterAccountId(accountId)
   }
 
   public setShowWorktrees(showWorktrees: boolean) {
