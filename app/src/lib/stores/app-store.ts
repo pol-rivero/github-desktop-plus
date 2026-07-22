@@ -6278,6 +6278,31 @@ export class AppStore extends TypedBaseStore<IAppState> {
     })
   }
 
+  /**
+   * Switch the repository to its default branch and pull it.
+   *
+   * Used to recover from a pull that failed because the current branch's
+   * remote branch no longer exists (e.g. it was deleted on the remote).
+   */
+  public async _switchToDefaultBranchAndPull(
+    repository: Repository
+  ): Promise<void> {
+    const { branchesState } = this.repositoryStateCache.get(repository)
+    const { defaultBranch } = branchesState
+
+    if (defaultBranch === null) {
+      this.emitError(
+        new Error(
+          `Unable to switch '${repository.name}' to its default branch because it could not be determined.`
+        )
+      )
+      return
+    }
+
+    await this._checkoutBranch(repository, defaultBranch)
+    await this._pull(repository)
+  }
+
   public async _resetHardToUpstream(repository: Repository): Promise<void> {
     const { branchesState } = this.repositoryStateCache.get(repository)
     const { tip } = branchesState

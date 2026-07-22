@@ -22,6 +22,7 @@ import {
   insufficientGitHubRepoPermissions,
   discardChangesHandler,
   secretScanningPushProtectionErrorHandler,
+  pullBranchDeletedHandler,
 } from './dispatcher'
 import {
   AppStore,
@@ -350,6 +351,7 @@ dispatcher.registerErrorHandler(backgroundTaskHandler)
 dispatcher.registerErrorHandler(missingRepositoryHandler)
 dispatcher.registerErrorHandler(localChangesOverwrittenHandler)
 dispatcher.registerErrorHandler(rebaseConflictsHandler)
+dispatcher.registerErrorHandler(pullBranchDeletedHandler)
 dispatcher.registerErrorHandler(refusedWorkflowUpdate)
 dispatcher.registerErrorHandler(discardChangesHandler)
 dispatcher.registerErrorHandler(secretScanningPushProtectionErrorHandler)

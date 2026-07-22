@@ -233,6 +233,7 @@ import { AddWorktreeDialog } from './worktrees/add-worktree-dialog'
 import { RenameWorktreeDialog } from './worktrees/rename-worktree-dialog'
 import { DeleteWorktreeDialog } from './worktrees/delete-worktree-dialog'
 import { DeleteWorktreeFailedDialog } from './worktrees/delete-worktree-failed-dialog'
+import { PullBranchDeletedDialog } from './pull-branch-deleted/pull-branch-deleted-dialog'
 import { ManageRemotesDialog } from './manage-remotes/manage-remotes-dialog'
 import { AddRemoteDialog } from './manage-remotes/add-remote-dialog'
 import { getEditorOverrideLabel } from '../models/editor-override'
@@ -3093,6 +3094,16 @@ export class App extends React.Component<IAppProps, IAppState> {
           />
         )
       }
+      case PopupType.PullBranchDeleted:
+        return (
+          <PullBranchDeletedDialog
+            key="pull-branch-deleted"
+            dispatcher={this.props.dispatcher}
+            repository={popup.repository}
+            branchName={popup.branchName}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
       case PopupType.ManageRemotes:
         return (
           <ManageRemotesDialog

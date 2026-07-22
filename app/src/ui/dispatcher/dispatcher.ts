@@ -2893,6 +2893,17 @@ export class Dispatcher {
     await this.appStore._resetHardToUpstream(repository)
   }
 
+  /**
+   * Switch the repository to its default branch and pull it. Used to recover
+   * from a pull that failed because the current branch's remote branch no
+   * longer exists.
+   */
+  public async switchToDefaultBranchAndPull(
+    repository: Repository
+  ): Promise<void> {
+    return this.appStore._switchToDefaultBranchAndPull(repository)
+  }
+
   public setConfirmDiscardStashSetting(value: boolean) {
     return this.appStore._setConfirmDiscardStashSetting(value)
   }
