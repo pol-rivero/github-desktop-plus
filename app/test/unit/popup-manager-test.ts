@@ -3,6 +3,7 @@ import assert from 'node:assert'
 import { PopupManager } from '../../src/lib/popup-manager'
 import { Account } from '../../src/models/account'
 import { Popup, PopupType } from '../../src/models/popup'
+import { Repository } from '../../src/models/repository'
 
 describe('PopupManager', () => {
   describe('currentPopup', () => {
@@ -104,6 +105,26 @@ describe('PopupManager', () => {
 
       const popupsOfType = popupManager.getPopupsOfType(PopupType.About)
       assert.equal(popupsOfType.length, 1)
+    })
+
+    it('adds multiple popups of a duplicate-allowed type', () => {
+      const popupManager = new PopupManager()
+      const repository = new Repository('/path', 1, null, false)
+      popupManager.addPopup({
+        type: PopupType.PullBranchDeleted,
+        repository,
+        branchName: 'feature-a',
+      })
+      popupManager.addPopup({
+        type: PopupType.PullBranchDeleted,
+        repository,
+        branchName: 'feature-b',
+      })
+
+      const popupsOfType = popupManager.getPopupsOfType(
+        PopupType.PullBranchDeleted
+      )
+      assert.equal(popupsOfType.length, 2)
     })
 
     it('adds multiple popups of different types', () => {
