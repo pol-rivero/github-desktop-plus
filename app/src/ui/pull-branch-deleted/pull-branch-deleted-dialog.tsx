@@ -14,10 +14,6 @@ interface IPullBranchDeletedDialogProps {
   readonly onDismissed: () => void
 }
 
-interface IPullBranchDeletedDialogState {
-  readonly isSwitching: boolean
-}
-
 /**
  * Shown when pulling a repository fails because the current branch's remote
  * branch no longer exists (e.g. it was deleted or renamed on the remote).
@@ -26,15 +22,7 @@ interface IPullBranchDeletedDialogState {
  * which is especially useful for the "Pull all" action where handling each
  * affected repository manually is tedious.
  */
-export class PullBranchDeletedDialog extends React.Component<
-  IPullBranchDeletedDialogProps,
-  IPullBranchDeletedDialogState
-> {
-  public constructor(props: IPullBranchDeletedDialogProps) {
-    super(props)
-    this.state = { isSwitching: false }
-  }
-
+export class PullBranchDeletedDialog extends React.Component<IPullBranchDeletedDialogProps> {
   public render() {
     return (
       <Dialog
@@ -43,8 +31,6 @@ export class PullBranchDeletedDialog extends React.Component<
         type="error"
         role="alertdialog"
         ariaDescribedBy="pull-branch-deleted-message"
-        loading={this.state.isSwitching}
-        disabled={this.state.isSwitching}
         onSubmit={this.onSwitchToDefaultBranch}
         onDismissed={this.props.onDismissed}
       >
@@ -76,13 +62,11 @@ export class PullBranchDeletedDialog extends React.Component<
     )
   }
 
-  private onSwitchToDefaultBranch = async () => {
-    this.setState({ isSwitching: true })
-
-    await this.props.dispatcher.switchToDefaultBranchAndPull(
-      this.props.repository
-    )
-
+  private onSwitchToDefaultBranch = () => {
+    // Dismiss the dialog immediately and let the switch-and-pull run in the
+    // background. Its progress is reported through the normal pull progress
+    // indicator, and any failure surfaces through the standard error handler.
     this.props.onDismissed()
+    this.props.dispatcher.switchToDefaultBranchAndPull(this.props.repository)
   }
 }
