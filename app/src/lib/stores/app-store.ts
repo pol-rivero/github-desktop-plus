@@ -6300,7 +6300,15 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     await this._checkoutBranch(repository, defaultBranch)
-    await this._pull(repository)
+
+    // Only pull once we've actually switched to the default branch. When the
+    // branch has uncommitted changes the checkout may defer to a "stash and
+    // switch" confirmation and return without switching; pulling then would run
+    // on the branch whose remote branch is gone and fail with the same error.
+    const { tip } = this.repositoryStateCache.get(repository).branchesState
+    if (tip.kind === TipState.Valid && tip.branch.name === defaultBranch.name) {
+      await this._pull(repository)
+    }
   }
 
   public async _resetHardToUpstream(repository: Repository): Promise<void> {
