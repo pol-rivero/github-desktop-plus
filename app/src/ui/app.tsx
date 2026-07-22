@@ -136,6 +136,10 @@ import { SAMLReauthRequiredDialog } from './saml-reauth-required/saml-reauth-req
 import { CreateForkDialog } from './forks/create-fork-dialog'
 import { findContributionTargetDefaultBranch } from '../lib/branch'
 import {
+  getUpdateBranchStrategy,
+  UpdateBranchStrategy,
+} from '../lib/update-branch-strategy'
+import {
   GitHubRepository,
   hasWritePermission,
 } from '../models/github-repository'
@@ -186,7 +190,7 @@ import { generateRepositoryListContextMenu } from './repositories-list/repositor
 import * as ipcRenderer from '../lib/ipc-renderer'
 import { DiscardChangesRetryDialog } from './discard-changes/discard-changes-retry-dialog'
 import { PullRequestReview } from './notifications/pull-request-review'
-import { getRepositoryType } from '../lib/git'
+import { getCommitsBetweenCommits, getRepositoryType } from '../lib/git'
 import { SSHUserPassword } from './ssh/ssh-user-password'
 import { showContextualMenu } from '../lib/menu-item'
 import { UnreachableCommitsDialog } from './history/unreachable-commits-dialog'
@@ -679,8 +683,13 @@ export class App extends React.Component<IAppProps, IAppState> {
       return
     }
 
-    const { state, repository } = selectedState
+    const { repository } = selectedState
 
+    await this.props.dispatcher.fetch(repository, FetchType.UserInitiatedTask)
+
+    // Fetch can advance the contribution target, so resolve both branches from
+    // the latest repository state before choosing the configured operation.
+    const state = this.props.repositoryStateManager.get(repository)
     const contributionTargetDefaultBranch = findContributionTargetDefaultBranch(
       repository,
       state.branchesState
@@ -689,7 +698,32 @@ export class App extends React.Component<IAppProps, IAppState> {
       return
     }
 
-    await this.props.dispatcher.fetch(repository, FetchType.UserInitiatedTask)
+    if (
+      (await getUpdateBranchStrategy(repository)) ===
+      UpdateBranchStrategy.Rebase
+    ) {
+      const { tip } = state.branchesState
+      if (tip.kind !== TipState.Valid) {
+        return
+      }
+
+      const commits = await getCommitsBetweenCommits(
+        repository,
+        contributionTargetDefaultBranch.tip.sha,
+        tip.branch.tip.sha
+      )
+
+      if (commits === null) {
+        return
+      }
+
+      return this.props.dispatcher.startRebase(
+        repository,
+        contributionTargetDefaultBranch,
+        tip.branch,
+        commits
+      )
+    }
 
     this.props.dispatcher.initializeMergeOperation(
       repository,

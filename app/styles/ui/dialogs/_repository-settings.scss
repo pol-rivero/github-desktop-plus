@@ -3,6 +3,13 @@
 
   .dialog-content {
     min-height: 305px;
+
+    &.git-config-tab {
+      // The additional update strategy section makes this tab taller than the
+      // other repository settings, so keep the dialog usable on short screens.
+      max-height: 430px;
+      overflow: auto;
+    }
   }
 
   .no-remote {
@@ -48,6 +55,12 @@
 
   .config-row {
     margin-bottom: var(--spacing-double);
+  }
+
+  // Repository settings does not inherit Preferences' advanced-section gap.
+  // Keep the new update choice visually grouped but distinct from Git identity.
+  .update-branch-strategy {
+    margin-bottom: var(--spacing);
   }
 
   fieldset {

@@ -39,6 +39,11 @@ import {
   TargetPathArgument,
 } from '../../lib/custom-integration'
 import { getAvailableEditors } from '../../lib/editors/lookup'
+import {
+  getUpdateBranchStrategy,
+  updateBranchStrategyConfigKey,
+  UpdateBranchStrategy,
+} from '../../lib/update-branch-strategy'
 
 interface IRepositorySettingsProps {
   readonly initialSelectedTab?: RepositorySettingsTab
@@ -67,11 +72,13 @@ interface IRepositorySettingsState {
   readonly disabled: boolean
   readonly saveDisabled: boolean
   readonly gitConfigLocation: GitConfigLocation
+  readonly updateBranchStrategy: UpdateBranchStrategy
   readonly committerName: string
   readonly committerEmail: string
   readonly globalCommitterName: string
   readonly globalCommitterEmail: string
   readonly initialGitConfigLocation: GitConfigLocation
+  readonly initialUpdateBranchStrategy: UpdateBranchStrategy
   readonly initialCommitterName: string | null
   readonly initialCommitterEmail: string | null
   readonly errors?: ReadonlyArray<JSX.Element | string>
@@ -105,11 +112,13 @@ export class RepositorySettings extends React.Component<
       forkContributionTarget: getForkContributionTarget(props.repository),
       saveDisabled: false,
       gitConfigLocation: GitConfigLocation.Global,
+      updateBranchStrategy: UpdateBranchStrategy.Merge,
       committerName: '',
       committerEmail: '',
       globalCommitterName: '',
       globalCommitterEmail: '',
       initialGitConfigLocation: GitConfigLocation.Global,
+      initialUpdateBranchStrategy: UpdateBranchStrategy.Merge,
       initialCommitterName: null,
       initialCommitterEmail: null,
       isLoadingGitConfig: true,
@@ -151,6 +160,9 @@ export class RepositorySettings extends React.Component<
       'user.email',
       true
     )
+    const updateBranchStrategy = await getUpdateBranchStrategy(
+      this.props.repository
+    )
 
     const editors = await getAvailableEditors()
     const availableEditors = editors.map(e => e.editor) ?? null
@@ -191,6 +203,8 @@ export class RepositorySettings extends React.Component<
       globalCommitterName,
       globalCommitterEmail,
       initialGitConfigLocation: gitConfigLocation,
+      updateBranchStrategy,
+      initialUpdateBranchStrategy: updateBranchStrategy,
       initialCommitterName: localCommitterName,
       initialCommitterEmail: localCommitterEmail,
       isLoadingGitConfig: false,
@@ -321,7 +335,9 @@ export class RepositorySettings extends React.Component<
           <GitConfig
             account={this.props.repositoryAccount}
             gitConfigLocation={this.state.gitConfigLocation}
+            updateBranchStrategy={this.state.updateBranchStrategy}
             onGitConfigLocationChanged={this.onGitConfigLocationChanged}
+            onUpdateBranchStrategyChanged={this.onUpdateBranchStrategyChanged}
             name={this.state.committerName}
             email={this.state.committerEmail}
             globalName={this.state.globalCommitterName}
@@ -490,6 +506,31 @@ export class RepositorySettings extends React.Component<
     }
 
     if (
+      this.state.updateBranchStrategy !== this.state.initialUpdateBranchStrategy
+    ) {
+      try {
+        if (this.state.updateBranchStrategy === UpdateBranchStrategy.Rebase) {
+          await setConfigValue(
+            this.props.repository,
+            updateBranchStrategyConfigKey,
+            UpdateBranchStrategy.Rebase
+          )
+        } else {
+          await removeConfigValue(
+            this.props.repository,
+            updateBranchStrategyConfigKey
+          )
+        }
+      } catch (e) {
+        log.error(
+          `RepositorySettings: unable to update the branch strategy at ${this.props.repository.path}`,
+          e
+        )
+        errors.push(`Failed setting the update strategy: ${e}`)
+      }
+    }
+
+    if (
       this.state.useDefaultEditor !==
         !this.props.repository.customEditorOverride ||
       this.state.selectedExternalEditor !==
@@ -557,6 +598,10 @@ export class RepositorySettings extends React.Component<
 
   private onGitConfigLocationChanged = (value: GitConfigLocation) => {
     this.setState({ gitConfigLocation: value })
+  }
+
+  private onUpdateBranchStrategyChanged = (value: UpdateBranchStrategy) => {
+    this.setState({ updateBranchStrategy: value })
   }
 
   private onCommitterNameChanged = (committerName: string) => {

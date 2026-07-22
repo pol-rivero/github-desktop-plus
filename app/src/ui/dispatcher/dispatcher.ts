@@ -644,6 +644,13 @@ export class Dispatcher {
           baseBranch,
           commits,
         })
+        // Rebase normally starts from an already open branch-picker dialog.
+        // Direct callers (such as Update from…) need to open the warning
+        // themselves so the operation never remains blocked off-screen.
+        this.showPopup({
+          type: PopupType.MultiCommitOperation,
+          repository,
+        })
         return
       }
     }
