@@ -38,8 +38,8 @@ export class PullBranchDeletedDialog extends React.Component<IPullBranchDeletedD
           <div id="pull-branch-deleted-message">
             <p>
               Unable to pull <Ref>{this.props.repository.name}</Ref> because the
-              remote branch for <Ref>{this.props.branchName}</Ref> no longer
-              exists.
+              remote branch for <Ref>{this.props.branchName}</Ref> does not
+              exist.
             </p>
             <p>
               You can switch this repository to its default branch and pull
