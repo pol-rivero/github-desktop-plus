@@ -9,6 +9,7 @@ import { PopupType } from '../../models/popup'
 import {
   Repository,
   getForkContributionTarget,
+  getUpdateBranchStrategy,
   isRepositoryWithForkedGitHubRepository,
 } from '../../models/repository'
 import { Dialog, DialogError, DialogFooter } from '../dialog'
@@ -39,11 +40,7 @@ import {
   TargetPathArgument,
 } from '../../lib/custom-integration'
 import { getAvailableEditors } from '../../lib/editors/lookup'
-import {
-  getUpdateBranchStrategy,
-  updateBranchStrategyConfigKey,
-  UpdateBranchStrategy,
-} from '../../lib/update-branch-strategy'
+import { UpdateBranchStrategy } from '../../lib/update-branch-strategy'
 
 interface IRepositorySettingsProps {
   readonly initialSelectedTab?: RepositorySettingsTab
@@ -78,7 +75,6 @@ interface IRepositorySettingsState {
   readonly globalCommitterName: string
   readonly globalCommitterEmail: string
   readonly initialGitConfigLocation: GitConfigLocation
-  readonly initialUpdateBranchStrategy: UpdateBranchStrategy
   readonly initialCommitterName: string | null
   readonly initialCommitterEmail: string | null
   readonly errors?: ReadonlyArray<JSX.Element | string>
@@ -112,13 +108,12 @@ export class RepositorySettings extends React.Component<
       forkContributionTarget: getForkContributionTarget(props.repository),
       saveDisabled: false,
       gitConfigLocation: GitConfigLocation.Global,
-      updateBranchStrategy: UpdateBranchStrategy.Merge,
+      updateBranchStrategy: getUpdateBranchStrategy(props.repository),
       committerName: '',
       committerEmail: '',
       globalCommitterName: '',
       globalCommitterEmail: '',
       initialGitConfigLocation: GitConfigLocation.Global,
-      initialUpdateBranchStrategy: UpdateBranchStrategy.Merge,
       initialCommitterName: null,
       initialCommitterEmail: null,
       isLoadingGitConfig: true,
@@ -160,10 +155,6 @@ export class RepositorySettings extends React.Component<
       'user.email',
       true
     )
-    const updateBranchStrategy = await getUpdateBranchStrategy(
-      this.props.repository
-    )
-
     const editors = await getAvailableEditors()
     const availableEditors = editors.map(e => e.editor) ?? null
 
@@ -203,8 +194,6 @@ export class RepositorySettings extends React.Component<
       globalCommitterName,
       globalCommitterEmail,
       initialGitConfigLocation: gitConfigLocation,
-      updateBranchStrategy,
-      initialUpdateBranchStrategy: updateBranchStrategy,
       initialCommitterName: localCommitterName,
       initialCommitterEmail: localCommitterEmail,
       isLoadingGitConfig: false,
@@ -455,13 +444,16 @@ export class RepositorySettings extends React.Component<
     // only update this if it will be different from what we have stored
     if (
       this.state.forkContributionTarget !==
-      this.props.repository.workflowPreferences.forkContributionTarget
+        this.props.repository.workflowPreferences.forkContributionTarget ||
+      this.state.updateBranchStrategy !==
+        getUpdateBranchStrategy(this.props.repository)
     ) {
       await this.props.dispatcher.updateRepositoryWorkflowPreferences(
         this.props.repository,
         {
           ...this.props.repository.workflowPreferences,
           forkContributionTarget: this.state.forkContributionTarget,
+          updateBranchStrategy: this.state.updateBranchStrategy,
         }
       )
     }
@@ -503,31 +495,6 @@ export class RepositorySettings extends React.Component<
 
     if (shouldRefreshAuthor) {
       this.props.dispatcher.refreshAuthor(this.props.repository)
-    }
-
-    if (
-      this.state.updateBranchStrategy !== this.state.initialUpdateBranchStrategy
-    ) {
-      try {
-        if (this.state.updateBranchStrategy === UpdateBranchStrategy.Rebase) {
-          await setConfigValue(
-            this.props.repository,
-            updateBranchStrategyConfigKey,
-            UpdateBranchStrategy.Rebase
-          )
-        } else {
-          await removeConfigValue(
-            this.props.repository,
-            updateBranchStrategyConfigKey
-          )
-        }
-      } catch (e) {
-        log.error(
-          `RepositorySettings: unable to update the branch strategy at ${this.props.repository.path}`,
-          e
-        )
-        errors.push(`Failed setting the update strategy: ${e}`)
-      }
     }
 
     if (
