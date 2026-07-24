@@ -9,6 +9,7 @@ import { PopupType } from '../../models/popup'
 import {
   Repository,
   getForkContributionTarget,
+  getUpdateBranchStrategy,
   isRepositoryWithForkedGitHubRepository,
 } from '../../models/repository'
 import { Dialog, DialogError, DialogFooter } from '../dialog'
@@ -39,6 +40,7 @@ import {
   TargetPathArgument,
 } from '../../lib/custom-integration'
 import { getAvailableEditors } from '../../lib/editors/lookup'
+import { UpdateBranchStrategy } from '../../lib/update-branch-strategy'
 
 interface IRepositorySettingsProps {
   readonly initialSelectedTab?: RepositorySettingsTab
@@ -67,6 +69,7 @@ interface IRepositorySettingsState {
   readonly disabled: boolean
   readonly saveDisabled: boolean
   readonly gitConfigLocation: GitConfigLocation
+  readonly updateBranchStrategy: UpdateBranchStrategy
   readonly committerName: string
   readonly committerEmail: string
   readonly globalCommitterName: string
@@ -105,6 +108,7 @@ export class RepositorySettings extends React.Component<
       forkContributionTarget: getForkContributionTarget(props.repository),
       saveDisabled: false,
       gitConfigLocation: GitConfigLocation.Global,
+      updateBranchStrategy: getUpdateBranchStrategy(props.repository),
       committerName: '',
       committerEmail: '',
       globalCommitterName: '',
@@ -151,7 +155,6 @@ export class RepositorySettings extends React.Component<
       'user.email',
       true
     )
-
     const editors = await getAvailableEditors()
     const availableEditors = editors.map(e => e.editor) ?? null
 
@@ -321,7 +324,9 @@ export class RepositorySettings extends React.Component<
           <GitConfig
             account={this.props.repositoryAccount}
             gitConfigLocation={this.state.gitConfigLocation}
+            updateBranchStrategy={this.state.updateBranchStrategy}
             onGitConfigLocationChanged={this.onGitConfigLocationChanged}
+            onUpdateBranchStrategyChanged={this.onUpdateBranchStrategyChanged}
             name={this.state.committerName}
             email={this.state.committerEmail}
             globalName={this.state.globalCommitterName}
@@ -439,13 +444,16 @@ export class RepositorySettings extends React.Component<
     // only update this if it will be different from what we have stored
     if (
       this.state.forkContributionTarget !==
-      this.props.repository.workflowPreferences.forkContributionTarget
+        this.props.repository.workflowPreferences.forkContributionTarget ||
+      this.state.updateBranchStrategy !==
+        getUpdateBranchStrategy(this.props.repository)
     ) {
       await this.props.dispatcher.updateRepositoryWorkflowPreferences(
         this.props.repository,
         {
           ...this.props.repository.workflowPreferences,
           forkContributionTarget: this.state.forkContributionTarget,
+          updateBranchStrategy: this.state.updateBranchStrategy,
         }
       )
     }
@@ -557,6 +565,10 @@ export class RepositorySettings extends React.Component<
 
   private onGitConfigLocationChanged = (value: GitConfigLocation) => {
     this.setState({ gitConfigLocation: value })
+  }
+
+  private onUpdateBranchStrategyChanged = (value: UpdateBranchStrategy) => {
+    this.setState({ updateBranchStrategy: value })
   }
 
   private onCommitterNameChanged = (committerName: string) => {

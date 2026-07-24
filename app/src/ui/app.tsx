@@ -28,6 +28,7 @@ import {
   getGitHubHtmlUrl,
   getNonForkGitHubRepository,
   getNonGitHubUrl,
+  getUpdateBranchStrategy,
   isRepositoryWithGitHubRepository,
 } from '../models/repository'
 import { Branch } from '../models/branch'
@@ -137,6 +138,7 @@ import { WorkflowPushRejectedDialog } from './workflow-push-rejected/workflow-pu
 import { SAMLReauthRequiredDialog } from './saml-reauth-required/saml-reauth-required'
 import { CreateForkDialog } from './forks/create-fork-dialog'
 import { findContributionTargetDefaultBranch } from '../lib/branch'
+import { UpdateBranchStrategy } from '../lib/update-branch-strategy'
 import {
   GitHubRepository,
   hasWritePermission,
@@ -189,7 +191,7 @@ import { generateRepositoryListContextMenu } from './repositories-list/repositor
 import * as ipcRenderer from '../lib/ipc-renderer'
 import { DiscardChangesRetryDialog } from './discard-changes/discard-changes-retry-dialog'
 import { PullRequestReview } from './notifications/pull-request-review'
-import { getRepositoryType } from '../lib/git'
+import { getCommitsBetweenCommits, getRepositoryType } from '../lib/git'
 import { SSHUserPassword } from './ssh/ssh-user-password'
 import { showContextualMenu } from '../lib/menu-item'
 import { UnreachableCommitsDialog } from './history/unreachable-commits-dialog'
@@ -699,6 +701,11 @@ export class App extends React.Component<IAppProps, IAppState> {
 
     await this.props.dispatcher.fetch(repository, FetchType.UserInitiatedTask)
 
+    if (getUpdateBranchStrategy(repository) === UpdateBranchStrategy.Rebase) {
+      await this.rebaseOntoContributionTargetBranch(repository)
+      return
+    }
+
     this.props.dispatcher.initializeMergeOperation(
       repository,
       false,
@@ -710,6 +717,42 @@ export class App extends React.Component<IAppProps, IAppState> {
       repository,
       contributionTargetDefaultBranch,
       mergeStatus
+    )
+  }
+
+  private async rebaseOntoContributionTargetBranch(repository: Repository) {
+    // Re-read the repo state after the fetch so the force-push warning and the
+    // rebase progress reflect the just-fetched commits on the default branch.
+    const state = this.props.repositoryStateManager.get(repository)
+
+    const contributionTargetDefaultBranch = findContributionTargetDefaultBranch(
+      repository,
+      state.branchesState
+    )
+    if (contributionTargetDefaultBranch === null) {
+      return
+    }
+
+    const { tip } = state.branchesState
+    if (tip.kind !== TipState.Valid) {
+      return
+    }
+
+    const commits = await getCommitsBetweenCommits(
+      repository,
+      contributionTargetDefaultBranch.tip.sha,
+      tip.branch.tip.sha
+    )
+
+    if (commits === null) {
+      return
+    }
+
+    await this.props.dispatcher.startRebase(
+      repository,
+      contributionTargetDefaultBranch,
+      tip.branch,
+      commits
     )
   }
 
