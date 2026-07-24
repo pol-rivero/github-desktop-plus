@@ -298,11 +298,7 @@ export async function pullBranchDeletedHandler(
   }
 
   const gitError = asGitError(e.underlyingError)
-  if (!gitError || gitError.result.gitError === null) {
-    return error
-  }
-
-  if (gitError.result.gitError !== DugiteError.NoExistingRemoteBranch) {
+  if (gitError?.result.gitError !== DugiteError.NoExistingRemoteBranch) {
     return error
   }
 

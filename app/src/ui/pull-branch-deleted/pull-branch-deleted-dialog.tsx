@@ -27,7 +27,7 @@ export class PullBranchDeletedDialog extends React.Component<IPullBranchDeletedD
     return (
       <Dialog
         id="pull-branch-deleted"
-        title="Error"
+        title={__DARWIN__ ? 'Unable to Pull' : 'Unable to pull'}
         type="error"
         role="alertdialog"
         ariaDescribedBy="pull-branch-deleted-message"
