@@ -9,6 +9,17 @@ import { sendNonFatalException } from './helpers/non-fatal-exception'
 const defaultPopupStackLimit = 50
 
 /**
+ * Popup types that are allowed to appear more than once on the stack (in
+ * addition to `PopupType.Error`, which is handled separately) so the user can
+ * act on each occurrence in turn rather than having the extras silently
+ * dropped. For example, "Pull all" can produce one `PullBranchDeleted` dialog
+ * per affected repository.
+ */
+const duplicatePopupsAllowed: ReadonlySet<PopupType> = new Set([
+  PopupType.PullBranchDeleted,
+])
+
+/**
  * The popup manager is to manage the stack of currently open popups.
  *
  * Popup Flow Notes:
@@ -97,7 +108,10 @@ export class PopupManager {
 
     const popup = { id: ++this.popupCounter, ...popupToAdd }
 
-    if (existingPopup.length > 0) {
+    if (
+      existingPopup.length > 0 &&
+      !duplicatePopupsAllowed.has(popupToAdd.type)
+    ) {
       log.warn(
         `Attempted to add a popup of already existing type - ${popupToAdd.type}.`
       )

@@ -22,6 +22,7 @@ import {
   insufficientGitHubRepoPermissions,
   discardChangesHandler,
   secretScanningPushProtectionErrorHandler,
+  pullBranchDeletedHandler,
 } from './dispatcher'
 import {
   AppStore,
@@ -346,6 +347,7 @@ dispatcher.registerErrorHandler(lfsAttributeMismatchHandler)
 dispatcher.registerErrorHandler(insufficientGitHubRepoPermissions)
 dispatcher.registerErrorHandler(pushNeedsPullHandler)
 dispatcher.registerErrorHandler(samlReauthRequired)
+dispatcher.registerErrorHandler(pullBranchDeletedHandler)
 dispatcher.registerErrorHandler(backgroundTaskHandler)
 dispatcher.registerErrorHandler(missingRepositoryHandler)
 dispatcher.registerErrorHandler(localChangesOverwrittenHandler)
