@@ -155,7 +155,6 @@ import { CommitDragElement } from './drag-elements/commit-drag-element'
 import classNames from 'classnames'
 import { MoveToApplicationsFolder } from './move-to-applications-folder'
 import { ChangeRepositoryAlias } from './change-repository-alias/change-repository-alias-dialog'
-import { ChangeRepositoryGroupName } from './change-repository-group-name/change-repository-group-name-dialog'
 import { CreateRepositoryGroup } from './create-repository-group/create-repository-group-dialog'
 import { DeleteRepositoryGroup } from './delete-repository-group/delete-repository-group-dialog'
 import { ThankYou } from './thank-you'
@@ -2426,20 +2425,12 @@ export class App extends React.Component<IAppProps, IAppState> {
           />
         )
       }
-      case PopupType.ChangeRepositoryGroupName: {
-        return (
-          <ChangeRepositoryGroupName
-            dispatcher={this.props.dispatcher}
-            repository={popup.repository}
-            onDismissed={onPopupDismissedFn}
-          />
-        )
-      }
       case PopupType.CreateRepositoryGroup: {
         return (
           <CreateRepositoryGroup
             dispatcher={this.props.dispatcher}
             repositories={popup.repositories}
+            preselectedRepositoryId={popup.preselectedRepositoryId}
             onDismissed={onPopupDismissedFn}
           />
         )
@@ -3498,8 +3489,6 @@ export class App extends React.Component<IAppProps, IAppState> {
         showBranchNameInRepoList={this.state.showBranchNameInRepoList}
         showWorktrees={this.state.showWorktrees}
         showWorktreesInRepoList={this.state.showWorktreesInRepoList}
-        accounts={this.state.accounts}
-        selectedFilterAccountId={this.state.selectedFilterAccountId}
       />
     )
   }
@@ -3737,10 +3726,15 @@ export class App extends React.Component<IAppProps, IAppState> {
       this.props.dispatcher.changeRepositoryAlias(repository, null)
     }
 
-    const onChangeRepositoryGroupName = (repository: Repository) => {
+    const onNewGroupForRepository = (repository: Repository) => {
+      const repositories = this.state.repositories.filter(
+        (r): r is Repository => r instanceof Repository
+      )
+
       this.props.dispatcher.showPopup({
-        type: PopupType.ChangeRepositoryGroupName,
-        repository,
+        type: PopupType.CreateRepositoryGroup,
+        repositories,
+        preselectedRepositoryId: repository.id,
       })
     }
 
@@ -3753,28 +3747,6 @@ export class App extends React.Component<IAppProps, IAppState> {
       groupName: string
     ) => {
       this.props.dispatcher.changeRepositoryGroupName(repository, groupName)
-    }
-
-    const onPullAllInGroup = (groupName: string) => {
-      const repositories = this.state.repositories.filter(
-        (r): r is Repository =>
-          r instanceof Repository && r.groupName === groupName
-      )
-
-      this.props.dispatcher.pullRepositories(repositories)
-    }
-
-    const onDeleteGroup = (groupName: string) => {
-      const repositories = this.state.repositories.filter(
-        (r): r is Repository =>
-          r instanceof Repository && r.groupName === groupName
-      )
-
-      this.props.dispatcher.showPopup({
-        type: PopupType.DeleteRepositoryGroup,
-        groupName,
-        repositories,
-      })
     }
 
     const onCreateWorktree = (repository: Repository) => {
@@ -3798,12 +3770,10 @@ export class App extends React.Component<IAppProps, IAppState> {
       externalEditorLabel: this.getExternalEditorLabel(repository),
       onChangeRepositoryAlias: onChangeRepositoryAlias,
       onRemoveRepositoryAlias: onRemoveRepositoryAlias,
-      onChangeRepositoryGroupName: onChangeRepositoryGroupName,
+      onNewGroupForRepository: onNewGroupForRepository,
       onRemoveRepositoryGroupName: onRemoveRepositoryGroupName,
       groupNames: getKnownGroupNames(this.state.repositories),
       onAssignRepositoryGroupName: onAssignRepositoryGroupName,
-      onPullAllInGroup: onPullAllInGroup,
-      onDeleteGroup: onDeleteGroup,
       onViewOnGitHub: this.viewOnGitHub,
       onCreateWorktree: enableWorktreeSupport() ? onCreateWorktree : undefined,
       onShowWorktrees: enableWorktreeSupport() ? onShowWorktrees : undefined,

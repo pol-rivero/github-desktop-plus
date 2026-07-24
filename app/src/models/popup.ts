@@ -81,7 +81,6 @@ export enum PopupType {
   ConfirmDiscardSelection = 'ConfirmDiscardSelection',
   MoveToApplicationsFolder = 'MoveToApplicationsFolder',
   ChangeRepositoryAlias = 'ChangeRepositoryAlias',
-  ChangeRepositoryGroupName = 'ChangeRepositoryGroupName',
   CreateRepositoryGroup = 'CreateRepositoryGroup',
   DeleteRepositoryGroup = 'DeleteRepositoryGroup',
   ThankYou = 'ThankYou',
@@ -374,10 +373,10 @@ export type PopupDetail =
     }
   | { type: PopupType.MoveToApplicationsFolder }
   | { type: PopupType.ChangeRepositoryAlias; repository: Repository }
-  | { type: PopupType.ChangeRepositoryGroupName; repository: Repository }
   | {
       type: PopupType.CreateRepositoryGroup
       repositories: ReadonlyArray<Repository>
+      preselectedRepositoryId?: number
     }
   | {
       type: PopupType.DeleteRepositoryGroup

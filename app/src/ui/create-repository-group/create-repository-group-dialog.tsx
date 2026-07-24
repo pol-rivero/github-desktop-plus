@@ -11,11 +11,15 @@ interface ICreateRepositoryGroupProps {
   readonly dispatcher: Dispatcher
   readonly onDismissed: () => void
   readonly repositories: ReadonlyArray<Repository>
+
+  /** The id of a repository to preselect, if the dialog was opened from it */
+  readonly preselectedRepositoryId?: number
 }
 
 interface ICreateRepositoryGroupState {
   readonly groupName: string
   readonly selectedRepositoryIds: ReadonlySet<number>
+  readonly filterText: string
 }
 
 export class CreateRepositoryGroup extends React.Component<
@@ -25,7 +29,15 @@ export class CreateRepositoryGroup extends React.Component<
   public constructor(props: ICreateRepositoryGroupProps) {
     super(props)
 
-    this.state = { groupName: '', selectedRepositoryIds: new Set() }
+    this.state = {
+      groupName: '',
+      selectedRepositoryIds: new Set(
+        props.preselectedRepositoryId !== undefined
+          ? [props.preselectedRepositoryId]
+          : []
+      ),
+      filterText: '',
+    }
   }
 
   public render() {
@@ -51,8 +63,16 @@ export class CreateRepositoryGroup extends React.Component<
               autoFocus={true}
             />
           </p>
+          <p>
+            <TextBox
+              placeholder="Filter"
+              ariaLabel="Filter repositories"
+              value={this.state.filterText}
+              onValueChanged={this.onFilterTextChanged}
+            />
+          </p>
           <div className="repository-list-selector">
-            {this.props.repositories.map(this.renderRepositoryCheckbox)}
+            {this.getFilteredRepositories().map(this.renderRepositoryCheckbox)}
           </div>
         </DialogContent>
 
@@ -67,6 +87,22 @@ export class CreateRepositoryGroup extends React.Component<
         </DialogFooter>
       </Dialog>
     )
+  }
+
+  private getFilteredRepositories(): ReadonlyArray<Repository> {
+    const filterText = this.state.filterText.trim().toLowerCase()
+
+    if (filterText.length === 0) {
+      return this.props.repositories
+    }
+
+    return this.props.repositories.filter(repository =>
+      nameOf(repository).toLowerCase().includes(filterText)
+    )
+  }
+
+  private onFilterTextChanged = (filterText: string) => {
+    this.setState({ filterText })
   }
 
   private renderRepositoryCheckbox = (repository: Repository) => {

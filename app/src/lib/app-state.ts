@@ -441,12 +441,6 @@ export interface IAppState {
   /** Controls when to show the current branch name next to each repository in the repository list */
   readonly showBranchNameInRepoList: ShowBranchNameInRepoListSetting
 
-  /**
-   * The id of the account the repository list is currently filtered to, or
-   * null if repositories from all accounts should be shown.
-   */
-  readonly selectedFilterAccountId: number | null
-
   /** Controls slash normalization applied when copying paths to the clipboard */
   readonly copyPathNormalization: CopyPathNormalization
 

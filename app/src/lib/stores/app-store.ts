@@ -563,7 +563,6 @@ const diffFontFamilyKey = 'diff-font-family'
 const shellKey = 'shell'
 
 const showRecentRepositoriesKey = 'show-recent-repositories'
-const selectedFilterAccountIdKey = 'selected-filter-account-id'
 const showWorktreesKey = 'show-worktrees-foldout'
 const showWorktreesInRepoListKey = 'show-worktrees-in-repo-list'
 const showCompareTabKey = 'show-compare-tab'
@@ -755,7 +754,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private selectedDiffFontFamily = defaultDiffFontFamily
   private titleBarStyle: TitleBarStyle = __WIN32__ ? 'custom' : 'native'
   private showRecentRepositories: boolean = true
-  private selectedFilterAccountId: number | null = null
   private showWorktrees: boolean = false
   private showWorktreesInRepoList: boolean = false
   private showCompareTab: boolean = showCompareTabDefault
@@ -891,7 +889,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
       getBoolean(repositoryIndicatorsEnabledKey) ?? true
 
     this.showRecentRepositories = getBoolean(showRecentRepositoriesKey) ?? true
-    this.selectedFilterAccountId = getNumber(selectedFilterAccountIdKey) ?? null
     this.showWorktrees = getBoolean(showWorktreesKey) ?? true
     this.showWorktreesInRepoList =
       getBoolean(showWorktreesInRepoListKey) ?? false
@@ -1403,7 +1400,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
       selectedDiffFontFamily: this.selectedDiffFontFamily,
       titleBarStyle: this.titleBarStyle,
       showRecentRepositories: this.showRecentRepositories,
-      selectedFilterAccountId: this.selectedFilterAccountId,
       showWorktrees: this.showWorktrees,
       showWorktreesInRepoList: this.showWorktreesInRepoList,
       showCompareTab: this.showCompareTab,
@@ -4859,21 +4855,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
     setBoolean(showRecentRepositoriesKey, showRecentRepositories)
     this.showRecentRepositories = showRecentRepositories
-    this.emitUpdate()
-  }
-
-  public _setSelectedFilterAccountId(accountId: number | null) {
-    if (this.selectedFilterAccountId === accountId) {
-      return
-    }
-
-    if (accountId === null) {
-      localStorage.removeItem(selectedFilterAccountIdKey)
-    } else {
-      setNumber(selectedFilterAccountIdKey, accountId)
-    }
-
-    this.selectedFilterAccountId = accountId
     this.emitUpdate()
   }
 

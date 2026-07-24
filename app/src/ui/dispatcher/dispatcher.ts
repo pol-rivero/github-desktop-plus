@@ -3230,11 +3230,6 @@ export class Dispatcher {
     this.appStore._setShowRecentRepositories(showRecentRepositories)
   }
 
-  /** Filter the repository list to only show repositories belonging to the given account, or null to show all. */
-  public setSelectedFilterAccountId(accountId: number | null) {
-    this.appStore._setSelectedFilterAccountId(accountId)
-  }
-
   public setShowWorktrees(showWorktrees: boolean) {
     this.appStore._setShowWorktrees(showWorktrees)
   }

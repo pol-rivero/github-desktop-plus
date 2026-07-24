@@ -32,7 +32,6 @@ import { TooltippedContent } from '../lib/tooltipped-content'
 import memoizeOne from 'memoize-one'
 import { KeyboardShortcut } from '../keyboard-shortcut/keyboard-shortcut'
 import {
-  buildAssignToGroupMenuItems,
   generateRepositoryListContextMenu,
   generateWorktreeListItemContextMenu,
 } from '../repositories-list/repository-list-item-context-menu'
@@ -43,8 +42,6 @@ import { assertNever } from '../../lib/fatal-error'
 import { IAheadBehind } from '../../models/branch'
 import { ShowBranchNameInRepoListSetting } from '../../models/show-branch-name-in-repo-list'
 import { getEditorOverrideLabel } from '../../models/editor-override'
-import { Account } from '../../models/account'
-import { getAccountForRepository } from '../../lib/get-account-for-repository'
 
 const BlankSlateImage = encodePathAsUrl(__dirname, 'static/empty-no-repo.svg')
 
@@ -109,16 +106,6 @@ interface IRepositoriesListProps {
 
   /** Whether or not linked worktrees should be shown in the repository list */
   readonly showWorktreesInRepoList: boolean
-
-  /** The currently signed-in accounts, used to filter the repository list */
-  readonly accounts: ReadonlyArray<Account>
-
-  /**
-   * The id of the account the repository list is currently filtered to, or
-   * null if repositories from all accounts should be shown. Local
-   * (non-GitHub) repositories are always shown regardless of this filter.
-   */
-  readonly selectedFilterAccountId: number | null
 }
 
 interface IRepositoriesListState {
@@ -232,32 +219,6 @@ export class RepositoriesList extends React.Component<
   IRepositoriesListState
 > {
   /**
-   * A memoized function for filtering repositories down to those belonging
-   * to the currently selected account filter. Local (non-GitHub)
-   * repositories are always kept, regardless of the filter.
-   */
-  private getVisibleRepositories = memoizeOne(
-    (
-      repositories: ReadonlyArray<Repositoryish>,
-      accounts: ReadonlyArray<Account>,
-      selectedFilterAccountId: number | null
-    ) => {
-      if (selectedFilterAccountId === null) {
-        return repositories
-      }
-
-      return repositories.filter(repository => {
-        if (!(repository instanceof Repository)) {
-          return true
-        }
-
-        const account = getAccountForRepository(accounts, repository)
-        return account === null || account.id === selectedFilterAccountId
-      })
-    }
-  )
-
-  /**
    * A memoized function for grouping repositories for display
    * in the FilterList. The group will not be recomputed as long
    * as the provided list of repositories is equal to the last
@@ -329,26 +290,8 @@ export class RepositoriesList extends React.Component<
         changedFilesCount={item.changedFilesCount}
         branchName={this.shouldShowBranchName(item) ? item.branchName : null}
         worktree={item.worktree}
-        onAssignToGroupClick={this.onAssignToGroupClick}
       />
     )
-  }
-
-  private onAssignToGroupClick = (
-    repository: Repository,
-    event: React.MouseEvent
-  ) => {
-    event.preventDefault()
-    event.stopPropagation()
-
-    const items = buildAssignToGroupMenuItems(
-      repository,
-      getKnownGroupNames(this.getVisibleRepos()),
-      this.onAssignRepositoryGroupName,
-      this.onChangeRepositoryGroupName
-    )
-
-    showContextualMenu(items)
   }
 
   private getAheadBehindTooltip = (aheadBehind: IAheadBehind | null) => {
@@ -515,7 +458,7 @@ export class RepositoriesList extends React.Component<
   }
 
   private onDeleteGroup = (groupName: string) => {
-    const repositories = this.getVisibleRepos().filter(
+    const repositories = this.props.repositories.filter(
       (r): r is Repository =>
         r instanceof Repository && r.groupName === groupName
     )
@@ -527,17 +470,8 @@ export class RepositoriesList extends React.Component<
     })
   }
 
-  /** The repositories visible in the list, honoring the active account filter. */
-  private getVisibleRepos(): ReadonlyArray<Repositoryish> {
-    return this.getVisibleRepositories(
-      this.props.repositories,
-      this.props.accounts,
-      this.props.selectedFilterAccountId
-    )
-  }
-
   private onPullAllInGroup = (groupName: string) => {
-    const repositories = this.getVisibleRepos().filter(
+    const repositories = this.props.repositories.filter(
       (r): r is Repository =>
         r instanceof Repository && r.groupName === groupName
     )
@@ -624,12 +558,10 @@ export class RepositoriesList extends React.Component<
       externalEditorLabel: this.getExternalEditorLabel(item.repository),
       onChangeRepositoryAlias: this.onChangeRepositoryAlias,
       onRemoveRepositoryAlias: this.onRemoveRepositoryAlias,
-      onChangeRepositoryGroupName: this.onChangeRepositoryGroupName,
+      onNewGroupForRepository: this.onNewGroupForRepository,
       onRemoveRepositoryGroupName: this.onRemoveRepositoryGroupName,
-      groupNames: getKnownGroupNames(this.getVisibleRepos()),
+      groupNames: getKnownGroupNames(this.props.repositories),
       onAssignRepositoryGroupName: this.onAssignRepositoryGroupName,
-      onPullAllInGroup: this.onPullAllInGroup,
-      onDeleteGroup: this.onDeleteGroup,
       onViewOnGitHub: this.props.onViewOnGitHub,
       onCreateWorktree: enableWorktreeSupport()
         ? this.onCreateWorktree
@@ -642,13 +574,9 @@ export class RepositoriesList extends React.Component<
       shellLabel: this.props.shellLabel,
       onCopyRepoPath: path => this.props.dispatcher.copyPathToClipboard(path),
       isPinned,
-      onPinRepository:
+      onTogglePinnedRepository:
         item.repository instanceof Repository
-          ? this.onPinRepository
-          : undefined,
-      onUnpinRepository:
-        item.repository instanceof Repository
-          ? this.onUnpinRepository
+          ? this.onTogglePinnedRepository
           : undefined,
     })
 
@@ -666,7 +594,7 @@ export class RepositoriesList extends React.Component<
       this.getGroupLabel(groups[group].identifier)
 
   public render() {
-    const visibleRepositories = this.getVisibleRepos()
+    const visibleRepositories = this.props.repositories
 
     let groups = this.getRepositoryGroups(
       visibleRepositories,
@@ -819,19 +747,6 @@ export class RepositoriesList extends React.Component<
   private renderPostFilter = () => {
     return (
       <>
-        {this.props.accounts.length > 0 && (
-          <Button
-            className="repo-list-button account-filter button-with-icon"
-            onClick={this.onAccountFilterButtonClick}
-            tooltip="Filter repositories by account"
-            ariaLabel="Filter repositories by account"
-          >
-            <Octicon symbol={octicons.person} />
-            {this.getAccountFilterLabel()}
-            <Octicon symbol={octicons.triangleDown} />
-          </Button>
-        )}
-
         <Button
           className="repo-list-button new-repository button-with-icon"
           onClick={this.onNewRepositoryButtonClick}
@@ -861,54 +776,6 @@ export class RepositoriesList extends React.Component<
         )}
       </>
     )
-  }
-
-  /**
-   * A label that unambiguously identifies an account, even when two
-   * accounts share the same display name: the login is always unique per
-   * endpoint, and the endpoint disambiguates same-login accounts signed in
-   * on different GitHub Enterprise instances.
-   */
-  private getAccountLabel(account: Account): string {
-    return `${account.friendlyName} (@${account.login} · ${account.friendlyEndpoint})`
-  }
-
-  private getAccountFilterLabel(): string {
-    const { selectedFilterAccountId, accounts } = this.props
-    if (selectedFilterAccountId === null) {
-      return 'All accounts'
-    }
-
-    // Keep the toolbar button compact; the full name/endpoint disambiguation
-    // is shown in the dropdown menu items instead.
-    const account = accounts.find(a => a.id === selectedFilterAccountId)
-    return account ? `@${account.login}` : 'All accounts'
-  }
-
-  private onAccountFilterButtonClick = () => {
-    const { accounts, selectedFilterAccountId } = this.props
-
-    const items: IMenuItem[] = [
-      {
-        label: 'All accounts',
-        type: 'checkbox',
-        checked: selectedFilterAccountId === null,
-        action: () => this.onAccountFilterSelected(null),
-      },
-      { type: 'separator' },
-      ...accounts.map(account => ({
-        label: this.getAccountLabel(account),
-        type: 'checkbox' as const,
-        checked: selectedFilterAccountId === account.id,
-        action: () => this.onAccountFilterSelected(account.id),
-      })),
-    ]
-
-    showContextualMenu(items)
-  }
-
-  private onAccountFilterSelected = (accountId: number | null) => {
-    this.props.dispatcher.setSelectedFilterAccountId(accountId)
   }
 
   private onNewRepositoryButtonKeyDown = (
@@ -990,7 +857,7 @@ export class RepositoriesList extends React.Component<
   }
 
   private onNewGroup = () => {
-    const repositories = this.getVisibleRepos().filter(
+    const repositories = this.props.repositories.filter(
       (r): r is Repository => r instanceof Repository
     )
 
@@ -1043,10 +910,15 @@ export class RepositoriesList extends React.Component<
     openRepositoryInNewWindow(worktreePath)
   }
 
-  private onChangeRepositoryGroupName = (repository: Repository) => {
+  private onNewGroupForRepository = (repository: Repository) => {
+    const repositories = this.props.repositories.filter(
+      (r): r is Repository => r instanceof Repository
+    )
+
     this.props.dispatcher.showPopup({
-      type: PopupType.ChangeRepositoryGroupName,
-      repository,
+      type: PopupType.CreateRepositoryGroup,
+      repositories,
+      preselectedRepositoryId: repository.id,
     })
   }
 
@@ -1054,13 +926,12 @@ export class RepositoriesList extends React.Component<
     this.props.dispatcher.changeRepositoryGroupName(repository, null)
   }
 
-  private onPinRepository = (repository: Repository) => {
-    addPinnedRepository(repository)
-    this.setState({ pinnedRepositoriesIds: getPinnedRepositories() })
-  }
-
-  private onUnpinRepository = (repository: Repository) => {
-    removePinnedRepository(repository)
+  private onTogglePinnedRepository = (repository: Repository) => {
+    if (this.state.pinnedRepositoriesIds.includes(repository.id)) {
+      removePinnedRepository(repository)
+    } else {
+      addPinnedRepository(repository)
+    }
     this.setState({ pinnedRepositoriesIds: getPinnedRepositories() })
   }
 }

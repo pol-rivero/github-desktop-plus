@@ -29,7 +29,8 @@ interface IRepositoryListItemContextMenuConfig {
   onRemoveRepository: (repository: Repositoryish) => void
   onChangeRepositoryAlias: (repository: Repository) => void
   onRemoveRepositoryAlias: (repository: Repository) => void
-  onChangeRepositoryGroupName: (repository: Repository) => void
+  /** Opens the dialog to create a new group, preselecting this repository */
+  onNewGroupForRepository: (repository: Repository) => void
   onRemoveRepositoryGroupName: (repository: Repository) => void
   /** The custom group names currently in use, sorted */
   groupNames: ReadonlyArray<string>
@@ -37,12 +38,9 @@ interface IRepositoryListItemContextMenuConfig {
     repository: Repository,
     groupName: string
   ) => void
-  onPullAllInGroup: (groupName: string) => void
-  onDeleteGroup: (groupName: string) => void
   onCopyRepoPath: (path: string) => void
   isPinned?: boolean
-  onPinRepository?: (repository: Repository) => void
-  onUnpinRepository?: (repository: Repository) => void
+  onTogglePinnedRepository?: (repository: Repository) => void
   onCreateWorktree?: (repository: Repository) => void
   onShowWorktrees?: (repository: Repository) => void
   worktreePath?: string
@@ -70,7 +68,6 @@ export const generateRepositoryListContextMenu = (
   const items: ReadonlyArray<IMenuItem> = [
     ...buildAliasMenuItems(config),
     ...buildGroupNameMenuItems(config),
-    ...buildPinMenuItems(config),
     ...buildWorktreeMenuItems(config),
     { type: 'separator' },
     {
@@ -256,8 +253,8 @@ const buildAliasMenuItems = (
 
 /**
  * Builds the list of menu items offered when assigning a repository to a
- * group: one entry per existing custom group, plus an entry to create a
- * new one.
+ * group: a fake "Pinned" entry that just pins/unpins the repository, one
+ * entry per existing custom group, and an entry to create a new group.
  */
 export const buildAssignToGroupMenuItems = (
   repository: Repository,
@@ -266,21 +263,41 @@ export const buildAssignToGroupMenuItems = (
     repository: Repository,
     groupName: string
   ) => void,
-  onChangeRepositoryGroupName: (repository: Repository) => void
+  onNewGroupForRepository: (repository: Repository) => void,
+  pin?: {
+    isPinned: boolean
+    onTogglePinnedRepository: (repository: Repository) => void
+  }
 ): ReadonlyArray<IMenuItem> => {
-  const items: Array<IMenuItem> = groupNames.map(groupName => ({
-    label: groupName,
-    enabled: repository.groupName !== groupName,
-    action: () => onAssignRepositoryGroupName(repository, groupName),
-  }))
+  const items: Array<IMenuItem> = []
 
-  if (items.length > 0) {
+  if (pin) {
+    items.push(
+      {
+        label: 'Pinned',
+        type: 'checkbox',
+        checked: pin.isPinned,
+        action: () => pin.onTogglePinnedRepository(repository),
+      },
+      { type: 'separator' }
+    )
+  }
+
+  items.push(
+    ...groupNames.map(groupName => ({
+      label: groupName,
+      enabled: repository.groupName !== groupName,
+      action: () => onAssignRepositoryGroupName(repository, groupName),
+    }))
+  )
+
+  if (groupNames.length > 0) {
     items.push({ type: 'separator' })
   }
 
   items.push({
     label: __DARWIN__ ? 'New Group…' : 'New group…',
-    action: () => onChangeRepositoryGroupName(repository),
+    action: () => onNewGroupForRepository(repository),
   })
 
   return items
@@ -299,7 +316,13 @@ const buildGroupNameMenuItems = (
     repository,
     groupNames,
     config.onAssignRepositoryGroupName,
-    config.onChangeRepositoryGroupName
+    config.onNewGroupForRepository,
+    config.onTogglePinnedRepository
+      ? {
+          isPinned: config.isPinned ?? false,
+          onTogglePinnedRepository: config.onTogglePinnedRepository,
+        }
+      : undefined
   )
 
   const items: Array<IMenuItem> = [
@@ -307,66 +330,16 @@ const buildGroupNameMenuItems = (
       label: __DARWIN__ ? 'Assign to Group' : 'Assign to group',
       submenu,
     },
-    {
-      label: __DARWIN__ ? `Change Group Name` : `Change group name`,
-      action: () => config.onChangeRepositoryGroupName(repository),
-    },
   ]
 
   if (repository.groupName !== null) {
-    const groupName = repository.groupName
-
-    items.push({
-      label: __DARWIN__
-        ? `Pull All in Group "${groupName}"`
-        : `Pull all in group "${groupName}"`,
-      action: () => config.onPullAllInGroup(groupName),
-    })
-
     items.push({
       label: __DARWIN__ ? 'Restore Group Name' : 'Restore group name',
       action: () => config.onRemoveRepositoryGroupName(repository),
     })
-
-    items.push({
-      label: __DARWIN__
-        ? `Delete Group "${groupName}"`
-        : `Delete group "${groupName}"`,
-      action: () => config.onDeleteGroup(groupName),
-    })
   }
 
   return items
-}
-
-const buildPinMenuItems = (
-  config: IRepositoryListItemContextMenuConfig
-): ReadonlyArray<IMenuItem> => {
-  const { repository } = config
-
-  if (!(repository instanceof Repository)) {
-    return []
-  }
-
-  if (config.isPinned && config.onUnpinRepository) {
-    return [
-      {
-        label: __DARWIN__ ? 'Unpin Repository' : 'Unpin repository',
-        action: () => config.onUnpinRepository!(repository),
-      },
-    ]
-  }
-
-  if (!config.isPinned && config.onPinRepository) {
-    return [
-      {
-        label: __DARWIN__ ? 'Pin Repository' : 'Pin repository',
-        action: () => config.onPinRepository!(repository),
-      },
-    ]
-  }
-
-  return []
 }
 
 const buildWorktreeMenuItems = (

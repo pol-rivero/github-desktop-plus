@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogFooter } from '../dialog'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { Dispatcher } from '../dispatcher'
 import { Repository } from '../../models/repository'
+import { TrashNameLabel } from '../lib/context-menu'
 
 interface IDeleteRepositoryGroupProps {
   readonly dispatcher: Dispatcher
@@ -14,6 +15,7 @@ interface IDeleteRepositoryGroupProps {
 
 interface IDeleteRepositoryGroupState {
   readonly removeRepositories: boolean
+  readonly moveRepositoriesToTrash: boolean
   readonly isDeletingGroup: boolean
 }
 
@@ -24,7 +26,11 @@ export class DeleteRepositoryGroup extends React.Component<
   public constructor(props: IDeleteRepositoryGroupProps) {
     super(props)
 
-    this.state = { removeRepositories: false, isDeletingGroup: false }
+    this.state = {
+      removeRepositories: false,
+      moveRepositoriesToTrash: false,
+      isDeletingGroup: false,
+    }
   }
 
   public render() {
@@ -64,6 +70,17 @@ export class DeleteRepositoryGroup extends React.Component<
               }
               onChange={this.onRemoveRepositoriesChanged}
             />
+            {this.state.removeRepositories && (
+              <Checkbox
+                label={'Also move these repositories to ' + TrashNameLabel}
+                value={
+                  this.state.moveRepositoriesToTrash
+                    ? CheckboxValue.On
+                    : CheckboxValue.Off
+                }
+                onChange={this.onMoveRepositoriesToTrashChanged}
+              />
+            )}
           </div>
         </DialogContent>
         <DialogFooter>
@@ -76,7 +93,18 @@ export class DeleteRepositoryGroup extends React.Component<
   private onRemoveRepositoriesChanged = (
     event: React.FormEvent<HTMLInputElement>
   ) => {
-    this.setState({ removeRepositories: event.currentTarget.checked })
+    const removeRepositories = event.currentTarget.checked
+    this.setState({
+      removeRepositories,
+      moveRepositoriesToTrash:
+        removeRepositories && this.state.moveRepositoriesToTrash,
+    })
+  }
+
+  private onMoveRepositoriesToTrashChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    this.setState({ moveRepositoriesToTrash: event.currentTarget.checked })
   }
 
   private onSubmit = async () => {
@@ -87,7 +115,10 @@ export class DeleteRepositoryGroup extends React.Component<
     if (this.state.removeRepositories) {
       await Promise.all(
         repositories.map(repository =>
-          dispatcher.removeRepository(repository, false)
+          dispatcher.removeRepository(
+            repository,
+            this.state.moveRepositoriesToTrash
+          )
         )
       )
     } else {
