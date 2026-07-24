@@ -104,17 +104,18 @@ export class PopupManager {
       return this.addErrorPopup(popupToAdd.error)
     }
 
+    const existingPopup = this.getPopupsOfType(popupToAdd.type)
+
     const popup = { id: ++this.popupCounter, ...popupToAdd }
 
-    if (!duplicatePopupsAllowed.has(popupToAdd.type)) {
-      const existingPopup = this.getPopupsOfType(popupToAdd.type)
-
-      if (existingPopup.length > 0) {
-        log.warn(
-          `Attempted to add a popup of already existing type - ${popupToAdd.type}.`
-        )
-        return popupToAdd
-      }
+    if (
+      existingPopup.length > 0 &&
+      !duplicatePopupsAllowed.has(popupToAdd.type)
+    ) {
+      log.warn(
+        `Attempted to add a popup of already existing type - ${popupToAdd.type}.`
+      )
+      return popupToAdd
     }
 
     this.insertBeforeErrorPopups(popup)
