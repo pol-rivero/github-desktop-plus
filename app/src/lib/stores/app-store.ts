@@ -4670,7 +4670,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     if (!repository.defaultBranch && gitStore.defaultBranch) {
       this._updateRepositoryDefaultBranch(
         repository,
-        gitStore.defaultBranch.name
+        gitStore.defaultBranch.nameWithoutRemote
       )
     }
   }
