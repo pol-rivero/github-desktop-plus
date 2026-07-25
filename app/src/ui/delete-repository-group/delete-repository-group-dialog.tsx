@@ -52,8 +52,8 @@ export class DeleteRepositoryGroup extends React.Component<
         <DialogContent>
           <p>
             Are you sure you want to delete the group "{groupName}"? This will
-            unassign it from {count} {count === 1 ? 'repository' : 'repositories'}
-            .
+            unassign it from {count}{' '}
+            {count === 1 ? 'repository' : 'repositories'}.
           </p>
 
           <div>

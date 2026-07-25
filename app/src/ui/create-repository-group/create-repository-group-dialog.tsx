@@ -51,9 +51,9 @@ export class CreateRepositoryGroup extends React.Component<
       >
         <DialogContent>
           <p id="create-repository-group-description">
-            Choose a name for the new group and select which repositories to
-            add to it. You can change this later from each repository's
-            context menu.
+            Choose a name for the new group and select which repositories to add
+            to it. You can change this later from each repository's context
+            menu.
           </p>
           <p>
             <TextBox
@@ -143,10 +143,7 @@ export class CreateRepositoryGroup extends React.Component<
 
     await Promise.all(
       selectedRepositories.map(repository =>
-        this.props.dispatcher.changeRepositoryGroupName(
-          repository,
-          groupName
-        )
+        this.props.dispatcher.changeRepositoryGroupName(repository, groupName)
       )
     )
 
