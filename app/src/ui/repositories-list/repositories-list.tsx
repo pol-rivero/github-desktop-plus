@@ -42,6 +42,7 @@ import { assertNever } from '../../lib/fatal-error'
 import { IAheadBehind } from '../../models/branch'
 import { ShowBranchNameInRepoListSetting } from '../../models/show-branch-name-in-repo-list'
 import { getEditorOverrideLabel } from '../../models/editor-override'
+import classNames from 'classnames'
 
 const BlankSlateImage = encodePathAsUrl(__dirname, 'static/empty-no-repo.svg')
 
@@ -113,6 +114,9 @@ interface IRepositoriesListState {
   readonly pullingRepositories: boolean
   readonly selectedItem: IRepositoryListItem | null
   readonly pinnedRepositoriesIds: ReadonlyArray<number>
+
+  /** The names of the groups currently being pulled */
+  readonly pullingGroups: ReadonlySet<string>
 }
 
 const RowHeight = 29
@@ -151,6 +155,75 @@ function findMatchingListItem(
     return fallback
   }
   return null
+}
+
+interface IRepositoryGroupHeaderProps {
+  readonly groupName: string
+
+  /** Whether the repositories in this group are currently being pulled */
+  readonly isPulling: boolean
+  readonly onPullAll: (groupName: string) => void
+  readonly onDelete: (groupName: string) => void
+  readonly onContextMenu: (
+    groupName: string,
+    event: React.MouseEvent<HTMLDivElement>
+  ) => void
+}
+
+/**
+ * Wraps a custom repository group header adding buttons to pull all
+ * repositories in the group and to delete the group, with the same actions
+ * available on right-click.
+ */
+class RepositoryGroupHeader extends React.Component<IRepositoryGroupHeaderProps> {
+  private onContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
+    this.props.onContextMenu(this.props.groupName, event)
+  }
+
+  private onPullAllClick = (event: React.MouseEvent) => {
+    event.stopPropagation()
+    this.props.onPullAll(this.props.groupName)
+  }
+
+  private onDeleteClick = (event: React.MouseEvent) => {
+    event.stopPropagation()
+    this.props.onDelete(this.props.groupName)
+  }
+
+  public render() {
+    const { isPulling } = this.props
+    const pullLabel = `Pull all repositories in "${this.props.groupName}"`
+    const deleteLabel = `Delete group "${this.props.groupName}"`
+
+    return (
+      <div
+        className="repository-group-header"
+        onContextMenu={this.onContextMenu}
+      >
+        {this.props.children}
+        <Button
+          className={classNames('pull-group-button', { pulling: isPulling })}
+          onClick={this.onPullAllClick}
+          tooltip={pullLabel}
+          ariaLabel={pullLabel}
+          disabled={isPulling}
+        >
+          <Octicon
+            symbol={isPulling ? syncClockwise : octicons.arrowDown}
+            className={isPulling ? 'spin' : undefined}
+          />
+        </Button>
+        <Button
+          className="delete-group-button"
+          onClick={this.onDeleteClick}
+          tooltip={deleteLabel}
+          ariaLabel={deleteLabel}
+        >
+          <Octicon symbol={octicons.trash} />
+        </Button>
+      </div>
+    )
+  }
 }
 
 /** The list of user-added repositories. */
@@ -198,6 +271,7 @@ export class RepositoriesList extends React.Component<
       pullingRepositories: false,
       selectedItem: null,
       pinnedRepositoriesIds: getPinnedRepositories(),
+      pullingGroups: new Set<string>(),
     }
   }
 
@@ -339,7 +413,7 @@ export class RepositoriesList extends React.Component<
   private renderGroupHeader = (group: RepositoryListGroup) => {
     const label = this.getGroupLabel(group)
 
-    return (
+    const header = (
       <TooltippedContent
         key={getGroupKey(group)}
         className="filter-list-group-header"
@@ -350,6 +424,91 @@ export class RepositoriesList extends React.Component<
         {label}
       </TooltippedContent>
     )
+
+    // Custom (user-named) groups get a button to pull all of their
+    // repositories. Pins and recents can contain repositories of other
+    // groups so they don't get one.
+    const customGroupName =
+      group.kind !== 'pins' && group.kind !== 'recent'
+        ? group.displayName
+        : null
+
+    return customGroupName === null ? (
+      header
+    ) : (
+      <RepositoryGroupHeader
+        key={getGroupKey(group)}
+        groupName={customGroupName}
+        isPulling={this.state.pullingGroups.has(customGroupName)}
+        onPullAll={this.onPullAllInGroup}
+        onDelete={this.onDeleteGroup}
+        onContextMenu={this.onGroupHeaderContextMenu}
+      >
+        {header}
+      </RepositoryGroupHeader>
+    )
+  }
+
+  private onGroupHeaderContextMenu = (
+    groupName: string,
+    event: React.MouseEvent<HTMLDivElement>
+  ) => {
+    event.preventDefault()
+
+    showContextualMenu([
+      {
+        label: __DARWIN__
+          ? `Pull All Repositories in "${groupName}"`
+          : `Pull all repositories in "${groupName}"`,
+        action: () => this.onPullAllInGroup(groupName),
+      },
+      { type: 'separator' },
+      {
+        label: __DARWIN__
+          ? `Delete Group "${groupName}"`
+          : `Delete group "${groupName}"`,
+        action: () => this.onDeleteGroup(groupName),
+      },
+    ])
+  }
+
+  private onDeleteGroup = (groupName: string) => {
+    const repositories = this.props.repositories.filter(
+      (r): r is Repository =>
+        r instanceof Repository && r.groupName === groupName
+    )
+
+    this.props.dispatcher.showPopup({
+      type: PopupType.DeleteRepositoryGroup,
+      groupName,
+      repositories,
+    })
+  }
+
+  private onPullAllInGroup = async (groupName: string) => {
+    const repositories = this.props.repositories.filter(
+      (r): r is Repository =>
+        r instanceof Repository && r.groupName === groupName
+    )
+
+    this.setState(({ pullingGroups }) => ({
+      pullingGroups: new Set(pullingGroups).add(groupName),
+    }))
+
+    await this.props.dispatcher.pullRepositories(repositories)
+
+    this.setState(({ pullingGroups }) => {
+      const remaining = new Set(pullingGroups)
+      remaining.delete(groupName)
+      return { pullingGroups: remaining }
+    })
+  }
+
+  private onAssignRepositoryGroupName = (
+    repository: Repository,
+    groupName: string
+  ) => {
+    this.props.dispatcher.changeRepositoryGroupName(repository, groupName)
   }
 
   private onItemClick = (item: IRepositoryListItem) => {
@@ -424,8 +583,10 @@ export class RepositoriesList extends React.Component<
       externalEditorLabel: this.getExternalEditorLabel(item.repository),
       onChangeRepositoryAlias: this.onChangeRepositoryAlias,
       onRemoveRepositoryAlias: this.onRemoveRepositoryAlias,
-      onChangeRepositoryGroupName: this.onChangeRepositoryGroupName,
+      onNewGroupForRepository: this.onNewGroupForRepository,
       onRemoveRepositoryGroupName: this.onRemoveRepositoryGroupName,
+      groupNames: getKnownGroupNames(this.props.repositories),
+      onAssignRepositoryGroupName: this.onAssignRepositoryGroupName,
       onViewOnGitHub: this.props.onViewOnGitHub,
       onCreateWorktree: enableWorktreeSupport()
         ? this.onCreateWorktree
@@ -438,13 +599,9 @@ export class RepositoriesList extends React.Component<
       shellLabel: this.props.shellLabel,
       onCopyRepoPath: path => this.props.dispatcher.copyPathToClipboard(path),
       isPinned,
-      onPinRepository:
+      onTogglePinnedRepository:
         item.repository instanceof Repository
-          ? this.onPinRepository
-          : undefined,
-      onUnpinRepository:
-        item.repository instanceof Repository
-          ? this.onUnpinRepository
+          ? this.onTogglePinnedRepository
           : undefined,
     })
 
@@ -692,6 +849,11 @@ export class RepositoriesList extends React.Component<
           : 'Add existing repository…',
         action: this.onAddExistingRepository,
       },
+      { type: 'separator' },
+      {
+        label: __DARWIN__ ? 'New Group…' : 'New group…',
+        action: this.onNewGroup,
+      },
     ]
 
     this.setState({ newRepositoryMenuExpanded: true })
@@ -715,6 +877,17 @@ export class RepositoriesList extends React.Component<
 
   private onAddExistingRepository = () => {
     this.props.dispatcher.showPopup({ type: PopupType.AddRepository })
+  }
+
+  private onNewGroup = () => {
+    const repositories = this.props.repositories.filter(
+      (r): r is Repository => r instanceof Repository
+    )
+
+    this.props.dispatcher.showPopup({
+      type: PopupType.CreateRepositoryGroup,
+      repositories,
+    })
   }
 
   private onCreateNewRepository = () => {
@@ -760,10 +933,15 @@ export class RepositoriesList extends React.Component<
     openRepositoryInNewWindow(worktreePath)
   }
 
-  private onChangeRepositoryGroupName = (repository: Repository) => {
+  private onNewGroupForRepository = (repository: Repository) => {
+    const repositories = this.props.repositories.filter(
+      (r): r is Repository => r instanceof Repository
+    )
+
     this.props.dispatcher.showPopup({
-      type: PopupType.ChangeRepositoryGroupName,
-      repository,
+      type: PopupType.CreateRepositoryGroup,
+      repositories,
+      preselectedRepositoryId: repository.id,
     })
   }
 
@@ -771,13 +949,29 @@ export class RepositoriesList extends React.Component<
     this.props.dispatcher.changeRepositoryGroupName(repository, null)
   }
 
-  private onPinRepository = (repository: Repository) => {
-    addPinnedRepository(repository)
+  private onTogglePinnedRepository = (repository: Repository) => {
+    if (this.state.pinnedRepositoriesIds.includes(repository.id)) {
+      removePinnedRepository(repository)
+    } else {
+      addPinnedRepository(repository)
+    }
     this.setState({ pinnedRepositoriesIds: getPinnedRepositories() })
+  }
+}
+
+/** Collects the sorted, de-duplicated custom group names currently in use */
+export function getKnownGroupNames(
+  repositories: ReadonlyArray<Repositoryish>
+): ReadonlyArray<string> {
+  const groupNames = new Set<string>()
+
+  for (const repository of repositories) {
+    if (repository instanceof Repository && repository.groupName !== null) {
+      groupNames.add(repository.groupName)
+    }
   }
 
-  private onUnpinRepository = (repository: Repository) => {
-    removePinnedRepository(repository)
-    this.setState({ pinnedRepositoriesIds: getPinnedRepositories() })
-  }
+  return [...groupNames.values()].sort((x, y) =>
+    x.toLowerCase().localeCompare(y.toLowerCase())
+  )
 }

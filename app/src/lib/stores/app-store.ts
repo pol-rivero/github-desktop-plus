@@ -5987,8 +5987,16 @@ export class AppStore extends TypedBaseStore<IAppState> {
     repository: Repository,
     newGroupName: string | null
   ): Promise<void> {
+    return this._changeRepositoriesGroupName([repository], newGroupName)
+  }
+
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public async _changeRepositoriesGroupName(
+    repositories: ReadonlyArray<Repository>,
+    newGroupName: string | null
+  ): Promise<void> {
     return this.repositoriesStore.updateRepositoryGroupName(
-      [repository],
+      repositories,
       newGroupName
     )
   }
@@ -6437,6 +6445,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   public async _pullAllRepositories(): Promise<void> {
     const repositories = await this.repositoriesStore.getAll()
+    return this._pullRepositories(repositories)
+  }
+
+  public async _pullRepositories(
+    repositories: ReadonlyArray<Repository>
+  ): Promise<void> {
     const nonMissingRepos = repositories.filter(r => !r.missing)
     await Promise.all(
       nonMissingRepos.map(repository =>

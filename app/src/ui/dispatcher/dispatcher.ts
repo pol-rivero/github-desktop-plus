@@ -852,6 +852,17 @@ export class Dispatcher {
     }
   }
 
+  /** Pull each of the given repositories (e.g. all repositories in a group). */
+  public async pullRepositories(
+    repositories: ReadonlyArray<Repository>
+  ): Promise<void> {
+    try {
+      await this.appStore._pullRepositories(repositories)
+    } catch (error) {
+      this.postError(error)
+    }
+  }
+
   /** Fetch a specific refspec for the repository. */
   public fetchRefspec(
     repository: Repository,
@@ -979,6 +990,20 @@ export class Dispatcher {
     newGroupName: string | null
   ): Promise<void> {
     return this.appStore._changeRepositoryGroupName(repository, newGroupName)
+  }
+
+  /**
+   * Assigns several repositories to a group at once, or clears their group when
+   * the name is null.
+   */
+  public changeRepositoriesGroupName(
+    repositories: ReadonlyArray<Repository>,
+    newGroupName: string | null
+  ): Promise<void> {
+    return this.appStore._changeRepositoriesGroupName(
+      repositories,
+      newGroupName
+    )
   }
 
   /** Changes the repository's default branch */

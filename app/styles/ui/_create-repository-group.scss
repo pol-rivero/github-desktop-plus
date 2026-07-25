@@ -1,0 +1,20 @@
+#create-repository-group {
+  .no-repositories {
+    color: var(--text-secondary-color);
+  }
+
+  .repository-list-selector {
+    max-height: 220px;
+    overflow-y: auto;
+
+    .checkbox-component {
+      display: block;
+      margin-bottom: var(--spacing);
+
+      label {
+        position: relative;
+        top: -2px;
+      }
+    }
+  }
+}

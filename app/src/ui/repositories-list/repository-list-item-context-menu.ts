@@ -29,12 +29,18 @@ interface IRepositoryListItemContextMenuConfig {
   onRemoveRepository: (repository: Repositoryish) => void
   onChangeRepositoryAlias: (repository: Repository) => void
   onRemoveRepositoryAlias: (repository: Repository) => void
-  onChangeRepositoryGroupName: (repository: Repository) => void
+  /** Opens the dialog to create a new group, preselecting this repository */
+  onNewGroupForRepository: (repository: Repository) => void
   onRemoveRepositoryGroupName: (repository: Repository) => void
+  /** The custom group names currently in use, sorted */
+  groupNames: ReadonlyArray<string>
+  onAssignRepositoryGroupName: (
+    repository: Repository,
+    groupName: string
+  ) => void
   onCopyRepoPath: (path: string) => void
   isPinned?: boolean
-  onPinRepository?: (repository: Repository) => void
-  onUnpinRepository?: (repository: Repository) => void
+  onTogglePinnedRepository?: (repository: Repository) => void
   onCreateWorktree?: (repository: Repository) => void
   onShowWorktrees?: (repository: Repository) => void
   worktreePath?: string
@@ -62,7 +68,6 @@ export const generateRepositoryListContextMenu = (
   const items: ReadonlyArray<IMenuItem> = [
     ...buildAliasMenuItems(config),
     ...buildGroupNameMenuItems(config),
-    ...buildPinMenuItems(config),
     ...buildWorktreeMenuItems(config),
     { type: 'separator' },
     {
@@ -246,60 +251,104 @@ const buildAliasMenuItems = (
   return items
 }
 
-const buildGroupNameMenuItems = (
-  config: IRepositoryListItemContextMenuConfig
+/**
+ * Builds the list of menu items offered when assigning a repository to a
+ * group: a fake "Pinned" entry that just pins/unpins the repository, one
+ * toggleable entry per existing custom group, an entry to create a new group,
+ * and an entry to leave the current group.
+ */
+const buildAssignToGroupMenuItems = (
+  repository: Repository,
+  groupNames: ReadonlyArray<string>,
+  onAssignRepositoryGroupName: (
+    repository: Repository,
+    groupName: string
+  ) => void,
+  onRemoveRepositoryGroupName: (repository: Repository) => void,
+  onNewGroupForRepository: (repository: Repository) => void,
+  pin?: {
+    isPinned: boolean
+    onTogglePinnedRepository: (repository: Repository) => void
+  }
 ): ReadonlyArray<IMenuItem> => {
-  const { repository } = config
+  const items: Array<IMenuItem> = []
 
-  if (!(repository instanceof Repository)) {
-    return []
+  if (pin) {
+    items.push(
+      {
+        label: 'Pinned',
+        type: 'checkbox',
+        checked: pin.isPinned,
+        action: () => pin.onTogglePinnedRepository(repository),
+      },
+      { type: 'separator' }
+    )
   }
 
-  const items: Array<IMenuItem> = [
-    {
-      label: __DARWIN__ ? `Change Group Name` : `Change group name`,
-      action: () => config.onChangeRepositoryGroupName(repository),
-    },
-  ]
+  items.push(
+    ...groupNames.map(groupName => {
+      const isCurrentGroup = repository.groupName === groupName
+
+      return {
+        label: groupName,
+        type: 'checkbox' as const,
+        checked: isCurrentGroup,
+        action: () =>
+          isCurrentGroup
+            ? onRemoveRepositoryGroupName(repository)
+            : onAssignRepositoryGroupName(repository, groupName),
+      }
+    })
+  )
+
+  if (groupNames.length > 0) {
+    items.push({ type: 'separator' })
+  }
+
+  items.push({
+    label: __DARWIN__ ? 'New Group…' : 'New group…',
+    action: () => onNewGroupForRepository(repository),
+  })
 
   if (repository.groupName !== null) {
     items.push({
-      label: __DARWIN__ ? 'Restore Group Name' : 'Restore group name',
-      action: () => config.onRemoveRepositoryGroupName(repository),
+      label: __DARWIN__ ? 'Remove From Group' : 'Remove from group',
+      action: () => onRemoveRepositoryGroupName(repository),
     })
   }
 
   return items
 }
 
-const buildPinMenuItems = (
+const buildGroupNameMenuItems = (
   config: IRepositoryListItemContextMenuConfig
 ): ReadonlyArray<IMenuItem> => {
-  const { repository } = config
+  const { repository, groupNames } = config
 
   if (!(repository instanceof Repository)) {
     return []
   }
 
-  if (config.isPinned && config.onUnpinRepository) {
-    return [
-      {
-        label: __DARWIN__ ? 'Unpin Repository' : 'Unpin repository',
-        action: () => config.onUnpinRepository!(repository),
-      },
-    ]
-  }
+  const submenu = buildAssignToGroupMenuItems(
+    repository,
+    groupNames,
+    config.onAssignRepositoryGroupName,
+    config.onRemoveRepositoryGroupName,
+    config.onNewGroupForRepository,
+    config.onTogglePinnedRepository
+      ? {
+          isPinned: config.isPinned ?? false,
+          onTogglePinnedRepository: config.onTogglePinnedRepository,
+        }
+      : undefined
+  )
 
-  if (!config.isPinned && config.onPinRepository) {
-    return [
-      {
-        label: __DARWIN__ ? 'Pin Repository' : 'Pin repository',
-        action: () => config.onPinRepository!(repository),
-      },
-    ]
-  }
-
-  return []
+  return [
+    {
+      label: __DARWIN__ ? 'Assign to Group' : 'Assign to group',
+      submenu,
+    },
+  ]
 }
 
 const buildWorktreeMenuItems = (

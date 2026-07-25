@@ -188,6 +188,7 @@ export class RepositoryListItem extends React.Component<
     ) {
       return (
         nextProps.repository.id !== this.props.repository.id ||
+        nextProps.repository !== this.props.repository ||
         nextProps.matches !== this.props.matches ||
         nextProps.branchName !== this.props.branchName ||
         nextProps.needsDisambiguation !== this.props.needsDisambiguation ||
