@@ -254,15 +254,17 @@ const buildAliasMenuItems = (
 /**
  * Builds the list of menu items offered when assigning a repository to a
  * group: a fake "Pinned" entry that just pins/unpins the repository, one
- * entry per existing custom group, and an entry to create a new group.
+ * toggleable entry per existing custom group, an entry to create a new group,
+ * and an entry to leave the current group.
  */
-export const buildAssignToGroupMenuItems = (
+const buildAssignToGroupMenuItems = (
   repository: Repository,
   groupNames: ReadonlyArray<string>,
   onAssignRepositoryGroupName: (
     repository: Repository,
     groupName: string
   ) => void,
+  onRemoveRepositoryGroupName: (repository: Repository) => void,
   onNewGroupForRepository: (repository: Repository) => void,
   pin?: {
     isPinned: boolean
@@ -284,11 +286,19 @@ export const buildAssignToGroupMenuItems = (
   }
 
   items.push(
-    ...groupNames.map(groupName => ({
-      label: groupName,
-      enabled: repository.groupName !== groupName,
-      action: () => onAssignRepositoryGroupName(repository, groupName),
-    }))
+    ...groupNames.map(groupName => {
+      const isCurrentGroup = repository.groupName === groupName
+
+      return {
+        label: groupName,
+        type: 'checkbox' as const,
+        checked: isCurrentGroup,
+        action: () =>
+          isCurrentGroup
+            ? onRemoveRepositoryGroupName(repository)
+            : onAssignRepositoryGroupName(repository, groupName),
+      }
+    })
   )
 
   if (groupNames.length > 0) {
@@ -299,6 +309,13 @@ export const buildAssignToGroupMenuItems = (
     label: __DARWIN__ ? 'New Group…' : 'New group…',
     action: () => onNewGroupForRepository(repository),
   })
+
+  if (repository.groupName !== null) {
+    items.push({
+      label: __DARWIN__ ? 'Remove From Group' : 'Remove from group',
+      action: () => onRemoveRepositoryGroupName(repository),
+    })
+  }
 
   return items
 }
@@ -316,6 +333,7 @@ const buildGroupNameMenuItems = (
     repository,
     groupNames,
     config.onAssignRepositoryGroupName,
+    config.onRemoveRepositoryGroupName,
     config.onNewGroupForRepository,
     config.onTogglePinnedRepository
       ? {
@@ -325,21 +343,12 @@ const buildGroupNameMenuItems = (
       : undefined
   )
 
-  const items: Array<IMenuItem> = [
+  return [
     {
       label: __DARWIN__ ? 'Assign to Group' : 'Assign to group',
       submenu,
     },
   ]
-
-  if (repository.groupName !== null) {
-    items.push({
-      label: __DARWIN__ ? 'Restore Group Name' : 'Restore group name',
-      action: () => config.onRemoveRepositoryGroupName(repository),
-    })
-  }
-
-  return items
 }
 
 const buildWorktreeMenuItems = (
