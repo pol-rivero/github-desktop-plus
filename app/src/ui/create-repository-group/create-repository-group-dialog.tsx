@@ -6,6 +6,10 @@ import { Dialog, DialogContent, DialogFooter } from '../dialog'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { TextBox } from '../lib/text-box'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
+import { HighlightText } from '../lib/highlight-text'
+import { match } from '../../lib/fuzzy-find'
+import { AriaLiveContainer } from '../accessibility/aria-live-container'
+import * as octicons from '../octicons/octicons.generated'
 
 /**
  * Prefers the repo alias, otherwise falls back to the owner-qualified name
@@ -26,6 +30,13 @@ interface ICreateRepositoryGroupState {
   readonly groupName: string
   readonly selectedRepositoryIds: ReadonlySet<number>
   readonly filterText: string
+}
+
+interface IFilteredRepository {
+  readonly repository: Repository
+
+  /** Indices of the characters of the name that matched the filter */
+  readonly matches: ReadonlyArray<number>
 }
 
 export class CreateRepositoryGroup extends React.Component<
@@ -64,6 +75,7 @@ export class CreateRepositoryGroup extends React.Component<
           <p>
             <TextBox
               ariaLabel="Group name"
+              placeholder="Group name"
               value={this.state.groupName}
               onValueChanged={this.onGroupNameChanged}
               autoFocus={true}
@@ -71,16 +83,16 @@ export class CreateRepositoryGroup extends React.Component<
           </p>
           <p>
             <TextBox
+              type="search"
               placeholder="Filter"
               ariaLabel="Filter repositories"
+              prefixedIcon={octicons.search}
               value={this.state.filterText}
               onValueChanged={this.onFilterTextChanged}
               onKeyDown={this.onFilterKeyDown}
             />
           </p>
-          <div className="repository-list-selector">
-            {this.getFilteredRepositories().map(this.renderRepositoryCheckbox)}
-          </div>
+          {this.renderRepositoryList()}
         </DialogContent>
 
         <DialogFooter>
@@ -96,16 +108,51 @@ export class CreateRepositoryGroup extends React.Component<
     )
   }
 
-  private getFilteredRepositories(): ReadonlyArray<Repository> {
-    const filterText = this.state.filterText.trim().toLowerCase()
+  private renderRepositoryList() {
+    const repositories = this.getFilteredRepositories()
+    const resultCount = `${repositories.length} ${
+      repositories.length === 1 ? 'result' : 'results'
+    }`
+
+    return (
+      <>
+        <AriaLiveContainer
+          message={resultCount}
+          trackedUserInput={this.state.filterText}
+        />
+        {repositories.length === 0 ? (
+          <div className="no-repositories">
+            No repositories match your filter.
+          </div>
+        ) : (
+          <div
+            className="repository-list-selector"
+            role="group"
+            aria-label="Repositories to add to the group"
+          >
+            {repositories.map(this.renderRepositoryCheckbox)}
+          </div>
+        )}
+      </>
+    )
+  }
+
+  private getFilteredRepositories(): ReadonlyArray<IFilteredRepository> {
+    const filterText = this.state.filterText.trim()
 
     if (filterText.length === 0) {
-      return this.props.repositories
+      return this.props.repositories.map(repository => ({
+        repository,
+        matches: [],
+      }))
     }
 
-    return this.props.repositories.filter(repository =>
-      displayNameOf(repository).toLowerCase().includes(filterText)
-    )
+    return match(filterText, this.props.repositories, r => [
+      displayNameOf(r),
+    ]).map(({ item, matches }) => ({
+      repository: item,
+      matches: matches.title,
+    }))
   }
 
   private onFilterTextChanged = (filterText: string) => {
@@ -120,13 +167,18 @@ export class CreateRepositoryGroup extends React.Component<
     }
   }
 
-  private renderRepositoryCheckbox = (repository: Repository) => {
+  private renderRepositoryCheckbox = ({
+    repository,
+    matches,
+  }: IFilteredRepository) => {
     const isSelected = this.state.selectedRepositoryIds.has(repository.id)
 
     return (
       <Checkbox
         key={repository.id}
-        label={displayNameOf(repository)}
+        label={
+          <HighlightText text={displayNameOf(repository)} highlight={matches} />
+        }
         value={isSelected ? CheckboxValue.On : CheckboxValue.Off}
         onChange={this.onRepositoryCheckboxChange(repository.id)}
       />

@@ -92,36 +92,6 @@
         vertical-align: text-bottom;
       }
     }
-
-    .assign-to-group-button {
-      flex-shrink: 0;
-      height: 16px;
-      min-width: 0;
-      margin-left: var(--spacing-half);
-      padding: 0 var(--spacing-half);
-      background: transparent;
-      border: none;
-      box-shadow: none;
-      color: var(--text-secondary-color);
-      opacity: 0;
-      transition: opacity 0.1s ease-in-out;
-
-      &:hover,
-      &:focus {
-        background: transparent;
-        color: var(--text-color);
-      }
-
-      .octicon {
-        width: 12px;
-        height: 12px;
-      }
-    }
-
-    &:hover .assign-to-group-button,
-    &:focus-within .assign-to-group-button {
-      opacity: 1;
-    }
   }
 
   .filter-list-group-header {
@@ -195,7 +165,9 @@
     &:hover .pull-group-button,
     &:focus-within .pull-group-button,
     &:hover .delete-group-button,
-    &:focus-within .delete-group-button {
+    &:focus-within .delete-group-button,
+    // A pull in progress keeps its spinner visible after the pointer leaves
+    .pull-group-button.pulling {
       opacity: 1;
     }
   }

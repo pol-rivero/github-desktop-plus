@@ -42,6 +42,7 @@ import { assertNever } from '../../lib/fatal-error'
 import { IAheadBehind } from '../../models/branch'
 import { ShowBranchNameInRepoListSetting } from '../../models/show-branch-name-in-repo-list'
 import { getEditorOverrideLabel } from '../../models/editor-override'
+import classNames from 'classnames'
 
 const BlankSlateImage = encodePathAsUrl(__dirname, 'static/empty-no-repo.svg')
 
@@ -113,6 +114,9 @@ interface IRepositoriesListState {
   readonly pullingRepositories: boolean
   readonly selectedItem: IRepositoryListItem | null
   readonly pinnedRepositoriesIds: ReadonlyArray<number>
+
+  /** The names of the groups currently being pulled */
+  readonly pullingGroups: ReadonlySet<string>
 }
 
 const RowHeight = 29
@@ -155,6 +159,9 @@ function findMatchingListItem(
 
 interface IRepositoryGroupHeaderProps {
   readonly groupName: string
+
+  /** Whether the repositories in this group are currently being pulled */
+  readonly isPulling: boolean
   readonly onPullAll: (groupName: string) => void
   readonly onDelete: (groupName: string) => void
   readonly onContextMenu: (
@@ -173,7 +180,8 @@ class RepositoryGroupHeader extends React.Component<IRepositoryGroupHeaderProps>
     this.props.onContextMenu(this.props.groupName, event)
   }
 
-  private onPullAllClick = () => {
+  private onPullAllClick = (event: React.MouseEvent) => {
+    event.stopPropagation()
     this.props.onPullAll(this.props.groupName)
   }
 
@@ -183,6 +191,7 @@ class RepositoryGroupHeader extends React.Component<IRepositoryGroupHeaderProps>
   }
 
   public render() {
+    const { isPulling } = this.props
     const pullLabel = `Pull all repositories in "${this.props.groupName}"`
     const deleteLabel = `Delete group "${this.props.groupName}"`
 
@@ -193,12 +202,16 @@ class RepositoryGroupHeader extends React.Component<IRepositoryGroupHeaderProps>
       >
         {this.props.children}
         <Button
-          className="pull-group-button"
+          className={classNames('pull-group-button', { pulling: isPulling })}
           onClick={this.onPullAllClick}
           tooltip={pullLabel}
           ariaLabel={pullLabel}
+          disabled={isPulling}
         >
-          <Octicon symbol={octicons.arrowDown} />
+          <Octicon
+            symbol={isPulling ? syncClockwise : octicons.arrowDown}
+            className={isPulling ? 'spin' : undefined}
+          />
         </Button>
         <Button
           className="delete-group-button"
@@ -258,6 +271,7 @@ export class RepositoriesList extends React.Component<
       pullingRepositories: false,
       selectedItem: null,
       pinnedRepositoriesIds: getPinnedRepositories(),
+      pullingGroups: new Set<string>(),
     }
   }
 
@@ -414,17 +428,18 @@ export class RepositoriesList extends React.Component<
     // Custom (user-named) groups get a button to pull all of their
     // repositories. Pins and recents can contain repositories of other
     // groups so they don't get one.
-    const isCustomGroup =
-      group.kind !== 'pins' &&
-      group.kind !== 'recent' &&
-      group.displayName !== null
+    const customGroupName =
+      group.kind !== 'pins' && group.kind !== 'recent'
+        ? group.displayName
+        : null
 
-    return !isCustomGroup ? (
+    return customGroupName === null ? (
       header
     ) : (
       <RepositoryGroupHeader
         key={getGroupKey(group)}
-        groupName={label}
+        groupName={customGroupName}
+        isPulling={this.state.pullingGroups.has(customGroupName)}
         onPullAll={this.onPullAllInGroup}
         onDelete={this.onDeleteGroup}
         onContextMenu={this.onGroupHeaderContextMenu}
@@ -470,13 +485,23 @@ export class RepositoriesList extends React.Component<
     })
   }
 
-  private onPullAllInGroup = (groupName: string) => {
+  private onPullAllInGroup = async (groupName: string) => {
     const repositories = this.props.repositories.filter(
       (r): r is Repository =>
         r instanceof Repository && r.groupName === groupName
     )
 
-    this.props.dispatcher.pullRepositories(repositories)
+    this.setState(({ pullingGroups }) => ({
+      pullingGroups: new Set(pullingGroups).add(groupName),
+    }))
+
+    await this.props.dispatcher.pullRepositories(repositories)
+
+    this.setState(({ pullingGroups }) => {
+      const remaining = new Set(pullingGroups)
+      remaining.delete(groupName)
+      return { pullingGroups: remaining }
+    })
   }
 
   private onAssignRepositoryGroupName = (
@@ -594,10 +619,8 @@ export class RepositoriesList extends React.Component<
       this.getGroupLabel(groups[group].identifier)
 
   public render() {
-    const visibleRepositories = this.props.repositories
-
     let groups = this.getRepositoryGroups(
-      visibleRepositories,
+      this.props.repositories,
       this.props.localRepositoryStateLookup,
       this.props.recentRepositories
     )
@@ -641,7 +664,7 @@ export class RepositoriesList extends React.Component<
           renderNoItems={this.renderNoItems}
           groups={groups}
           invalidationProps={{
-            repositories: visibleRepositories,
+            repositories: this.props.repositories,
             filterText: this.props.filterText,
             localRepositoryStateLookup: this.props.localRepositoryStateLookup,
             showWorktreesInRepoList: this.props.showWorktreesInRepoList,

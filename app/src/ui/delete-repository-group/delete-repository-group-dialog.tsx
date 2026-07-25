@@ -93,11 +93,9 @@ export class DeleteRepositoryGroup extends React.Component<
   private onRemoveRepositoriesChanged = (
     event: React.FormEvent<HTMLInputElement>
   ) => {
-    const removeRepositories = event.currentTarget.checked
     this.setState({
-      removeRepositories,
-      moveRepositoriesToTrash:
-        removeRepositories && this.state.moveRepositoriesToTrash,
+      removeRepositories: event.currentTarget.checked,
+      moveRepositoriesToTrash: false,
     })
   }
 
