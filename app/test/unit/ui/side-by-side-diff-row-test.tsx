@@ -182,6 +182,19 @@ function getLineNumberLabel(lineNumber: string) {
 }
 
 describe('SideBySideDiffRow', () => {
+  it('keeps the line prefix outside the clipped text viewport', () => {
+    renderSideBySideDiffRow()
+
+    const content = document.querySelector('.content')
+    const prefix = document.querySelector('.prefix')
+    const contentWrapper = document.querySelector('.content-wrapper')
+    const contentText = document.querySelector('.content-text')
+
+    assert.strictEqual(prefix?.parentElement, content)
+    assert.strictEqual(contentWrapper?.parentElement, content)
+    assert.strictEqual(contentText?.parentElement, contentWrapper)
+  })
+
   it('starts line selection on primary-button mousedown events', () => {
     const { startedSelections } = renderSideBySideDiffRow()
 

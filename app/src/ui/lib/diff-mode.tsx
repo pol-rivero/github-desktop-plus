@@ -6,6 +6,8 @@ export const ShowDiffMinimapDefault = false
 const showDiffMinimapKey = 'show-diff-minimap'
 export const ShowWholeFileDefault = false
 const showWholeFileKey = 'show-whole-file'
+export const WrapDiffLinesDefault = true
+const wrapDiffLinesKey = 'wrap-diff-lines'
 
 /**
  * Gets a value indicating whether not to present diffs in a split view mode
@@ -50,4 +52,27 @@ export function getShowWholeFile(): boolean {
  */
 export function setShowWholeFile(showWholeFile: boolean) {
   setBoolean(showWholeFileKey, showWholeFile)
+}
+
+/**
+ * Gets a value indicating whether text diff lines should wrap.
+ */
+export function getWrapDiffLines(): boolean {
+  return getBoolean(wrapDiffLinesKey, WrapDiffLinesDefault)
+}
+
+/** Persists the text diff line wrapping preference. */
+export function setWrapDiffLines(wrapDiffLines: boolean) {
+  setBoolean(wrapDiffLinesKey, wrapDiffLines)
+}
+
+/**
+ * Converts wheel input into the shared horizontal diff scroll delta.
+ */
+export function getDiffHorizontalScrollDelta(
+  deltaX: number,
+  deltaY: number,
+  shiftKey: boolean
+): number {
+  return shiftKey ? deltaY || deltaX : deltaX
 }

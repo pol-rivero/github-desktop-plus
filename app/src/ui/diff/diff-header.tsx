@@ -24,6 +24,12 @@ interface IDiffHeaderProps {
   /** Called when the user changes the diff minimap setting. */
   readonly onShowDiffMinimapChanged: (checked: boolean) => void
 
+  /** Whether text diff lines should wrap within the viewport. */
+  readonly wrapDiffLines: boolean
+
+  /** Called when the user changes the diff line wrapping setting. */
+  readonly onWrapDiffLinesChanged: (checked: boolean) => void
+
   /** Whether the current diff can be expanded to show the whole file. */
   readonly canExpandWholeFile: boolean
 
@@ -96,6 +102,8 @@ export class DiffHeader extends React.Component<IDiffHeaderProps, {}> {
         showSideBySideDiff={this.props.showSideBySideDiff}
         onShowDiffMinimapChanged={this.props.onShowDiffMinimapChanged}
         showDiffMinimap={this.props.showDiffMinimap}
+        wrapDiffLines={this.props.wrapDiffLines}
+        onWrapDiffLinesChanged={this.props.onWrapDiffLinesChanged}
         onDiffOptionsOpened={this.props.onDiffOptionsOpened}
       />
     )

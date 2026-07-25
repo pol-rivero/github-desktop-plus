@@ -28,6 +28,7 @@ import {
   getGitHubHtmlUrl,
   getNonForkGitHubRepository,
   getNonGitHubUrl,
+  getUpdateBranchStrategy,
   isRepositoryWithGitHubRepository,
 } from '../models/repository'
 import { Branch } from '../models/branch'
@@ -84,6 +85,8 @@ import { AppMenuBar } from './app-menu'
 import { UpdateAvailable, renderBanner } from './banners'
 import { Preferences } from './preferences'
 import { ConfirmRestart } from './preferences/confirm-restart'
+import { CopilotSettingsDialog } from './preferences/copilot-settings-dialog'
+import { CopilotCustomProvidersDialog } from './preferences/copilot-custom-providers-dialog'
 import { EditCopilotBYOKProviderDialog } from './copilot/edit-byok-provider-dialog'
 import { EditCopilotBYOKModelDialog } from './copilot/edit-byok-model-dialog'
 import { ConfirmDeleteCopilotBYOKProviderDialog } from './copilot/confirm-delete-byok-provider-dialog'
@@ -135,6 +138,7 @@ import { WorkflowPushRejectedDialog } from './workflow-push-rejected/workflow-pu
 import { SAMLReauthRequiredDialog } from './saml-reauth-required/saml-reauth-required'
 import { CreateForkDialog } from './forks/create-fork-dialog'
 import { findContributionTargetDefaultBranch } from '../lib/branch'
+import { UpdateBranchStrategy } from '../lib/update-branch-strategy'
 import {
   GitHubRepository,
   hasWritePermission,
@@ -148,6 +152,7 @@ import memoizeOne from 'memoize-one'
 import { AheadBehindStore } from '../lib/stores/ahead-behind-store'
 import {
   getAccountForCommitMessageGeneration,
+  getAccountForCopilotConflictResolution,
   getAccountForRepository,
 } from '../lib/get-account-for-repository'
 import { CommitOneLine } from '../models/commit'
@@ -187,7 +192,7 @@ import { generateRepositoryListContextMenu } from './repositories-list/repositor
 import * as ipcRenderer from '../lib/ipc-renderer'
 import { DiscardChangesRetryDialog } from './discard-changes/discard-changes-retry-dialog'
 import { PullRequestReview } from './notifications/pull-request-review'
-import { getRepositoryType } from '../lib/git'
+import { getCommitsBetweenCommits, getRepositoryType } from '../lib/git'
 import { SSHUserPassword } from './ssh/ssh-user-password'
 import { showContextualMenu } from '../lib/menu-item'
 import { UnreachableCommitsDialog } from './history/unreachable-commits-dialog'
@@ -211,10 +216,15 @@ import { showTestUI } from './lib/test-ui-components/test-ui-components'
 import { ConfirmCommitFilteredChanges } from './changes/confirm-commit-filtered-changes-dialog'
 import { AboutTestDialog } from './about/about-test-dialog'
 import { TestCLIActionDialog } from './cli-action/test-cli-action-dialog'
+import { TestCopilotSnapshotCardDialog } from './preferences/test-copilot-snapshot-card-dialog'
 import {
   enableCopilotSdkCommitMessageGeneration,
   enableWorktreeSupport,
 } from '../lib/feature-flag'
+import {
+  getCopilotAccountCacheKey,
+  type CopilotFeature,
+} from '../lib/stores/copilot-store'
 import {
   ISecretScanResult,
   PushProtectionErrorDialog,
@@ -234,6 +244,7 @@ import { AddWorktreeDialog } from './worktrees/add-worktree-dialog'
 import { RenameWorktreeDialog } from './worktrees/rename-worktree-dialog'
 import { DeleteWorktreeDialog } from './worktrees/delete-worktree-dialog'
 import { DeleteWorktreeFailedDialog } from './worktrees/delete-worktree-failed-dialog'
+import { PullBranchDeletedDialog } from './pull-branch-deleted/pull-branch-deleted-dialog'
 import { ManageRemotesDialog } from './manage-remotes/manage-remotes-dialog'
 import { AddRemoteDialog } from './manage-remotes/add-remote-dialog'
 import { getEditorOverrideLabel } from '../models/editor-override'
@@ -692,6 +703,11 @@ export class App extends React.Component<IAppProps, IAppState> {
 
     await this.props.dispatcher.fetch(repository, FetchType.UserInitiatedTask)
 
+    if (getUpdateBranchStrategy(repository) === UpdateBranchStrategy.Rebase) {
+      await this.rebaseOntoContributionTargetBranch(repository)
+      return
+    }
+
     this.props.dispatcher.initializeMergeOperation(
       repository,
       false,
@@ -703,6 +719,42 @@ export class App extends React.Component<IAppProps, IAppState> {
       repository,
       contributionTargetDefaultBranch,
       mergeStatus
+    )
+  }
+
+  private async rebaseOntoContributionTargetBranch(repository: Repository) {
+    // Re-read the repo state after the fetch so the force-push warning and the
+    // rebase progress reflect the just-fetched commits on the default branch.
+    const state = this.props.repositoryStateManager.get(repository)
+
+    const contributionTargetDefaultBranch = findContributionTargetDefaultBranch(
+      repository,
+      state.branchesState
+    )
+    if (contributionTargetDefaultBranch === null) {
+      return
+    }
+
+    const { tip } = state.branchesState
+    if (tip.kind !== TipState.Valid) {
+      return
+    }
+
+    const commits = await getCommitsBetweenCommits(
+      repository,
+      contributionTargetDefaultBranch.tip.sha,
+      tip.branch.tip.sha
+    )
+
+    if (commits === null) {
+      return
+    }
+
+    await this.props.dispatcher.startRebase(
+      repository,
+      contributionTargetDefaultBranch,
+      tip.branch,
+      commits
     )
   }
 
@@ -1669,6 +1721,71 @@ export class App extends React.Component<IAppProps, IAppState> {
     )
   }
 
+  private getCopilotModelsForAccount(account: Account) {
+    return (
+      this.state.copilotModelsByAccount.get(
+        getCopilotAccountCacheKey(account)
+      ) ?? null
+    )
+  }
+
+  private getCopilotQuotaSnapshotsForAccount(account: Account) {
+    return (
+      this.state.copilotQuotaSnapshotsByAccount.get(
+        getCopilotAccountCacheKey(account)
+      ) ?? null
+    )
+  }
+
+  private getSelectedCopilotModelsForAccount(account: Account) {
+    return (
+      this.state.selectedCopilotModelsByAccount.get(
+        getCopilotAccountCacheKey(account)
+      ) ?? {}
+    )
+  }
+
+  private onSelectedCopilotModelChanged = (
+    account: Account,
+    feature: CopilotFeature,
+    model: string | null
+  ) => {
+    this.props.dispatcher.setSelectedCopilotModel(account, feature, model)
+  }
+
+  private onAlwaysUseCopilotForConflictResolutionChanged = (
+    checked: boolean
+  ) => {
+    this.props.dispatcher.setAlwaysUseCopilotForConflictResolution(checked)
+  }
+
+  private onAddCopilotBYOKProvider = () => {
+    this.props.dispatcher.showPopup({
+      type: PopupType.EditCopilotBYOKProvider,
+      provider: null,
+    })
+  }
+
+  private onEditCopilotBYOKProvider = (provider: IBYOKProvider) => {
+    this.props.dispatcher.showPopup({
+      type: PopupType.EditCopilotBYOKProvider,
+      provider,
+    })
+  }
+
+  private onDeleteCopilotBYOKProvider = (provider: IBYOKProvider) => {
+    this.props.dispatcher.showPopup({
+      type: PopupType.ConfirmDeleteCopilotBYOKProvider,
+      provider,
+    })
+  }
+
+  private onConfigureCopilotCustomProviders = () => {
+    this.props.dispatcher.showPopup({
+      type: PopupType.CopilotCustomProviders,
+    })
+  }
+
   private popupContent(popup: Popup, isTopMost: boolean): JSX.Element | null {
     if (popup.id === undefined) {
       // Should not be possible... but if it does we want to know about it.
@@ -1867,12 +1984,55 @@ export class App extends React.Component<IAppProps, IAppState> {
             showBranchNameInRepoList={this.state.showBranchNameInRepoList}
             branchSortOrder={this.state.branchSortOrder}
             copyPathNormalization={this.state.copyPathNormalization}
-            selectedCopilotModels={this.state.selectedCopilotModels}
-            copilotModels={this.state.copilotModels}
+            selectedCopilotModelsByAccount={
+              this.state.selectedCopilotModelsByAccount
+            }
+            copilotModelsByAccount={this.state.copilotModelsByAccount}
+            copilotQuotaSnapshotsByAccount={
+              this.state.copilotQuotaSnapshotsByAccount
+            }
             byokProviders={this.state.byokProviders}
             alwaysUseCopilotForConflictResolution={
               this.state.alwaysUseCopilotForConflictResolution
             }
+          />
+        )
+      case PopupType.CopilotUserSettings:
+        return (
+          <CopilotSettingsDialog
+            key={`copilot-settings-${getCopilotAccountCacheKey(popup.account)}`}
+            account={popup.account}
+            selectedCopilotModels={this.getSelectedCopilotModelsForAccount(
+              popup.account
+            )}
+            copilotModels={this.getCopilotModelsForAccount(popup.account)}
+            copilotQuotaSnapshots={this.getCopilotQuotaSnapshotsForAccount(
+              popup.account
+            )}
+            byokProviders={this.state.byokProviders}
+            showBYOKSettings={enableCopilotSdkCommitMessageGeneration(
+              popup.account
+            )}
+            alwaysUseCopilotForConflictResolution={
+              this.state.alwaysUseCopilotForConflictResolution
+            }
+            onSelectedCopilotModelChanged={this.onSelectedCopilotModelChanged}
+            onAlwaysUseCopilotForConflictResolutionChanged={
+              this.onAlwaysUseCopilotForConflictResolutionChanged
+            }
+            onConfigureCustomProviders={this.onConfigureCopilotCustomProviders}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      case PopupType.CopilotCustomProviders:
+        return (
+          <CopilotCustomProvidersDialog
+            key="copilot-custom-providers"
+            providers={this.state.byokProviders}
+            onAddProvider={this.onAddCopilotBYOKProvider}
+            onEditProvider={this.onEditCopilotBYOKProvider}
+            onDeleteProvider={this.onDeleteCopilotBYOKProvider}
+            onDismissed={onPopupDismissedFn}
           />
         )
       case PopupType.RepositorySettings: {
@@ -2252,6 +2412,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             repository={popup.repository}
             currentBranch={currentBranch}
             branchToCheckout={branchToCheckout}
+            onCheckedOut={popup.onCheckedOut}
             onDismissed={onPopupDismissedFn}
           />
         )
@@ -2534,6 +2695,19 @@ export class App extends React.Component<IAppProps, IAppState> {
           return null
         }
 
+        const account = getAccountForCopilotConflictResolution(
+          this.state.accounts,
+          popup.repository
+        )
+        const selectedCopilotModels =
+          account === undefined
+            ? {}
+            : this.getSelectedCopilotModelsForAccount(account)
+        const copilotModels =
+          account === undefined
+            ? null
+            : this.getCopilotModelsForAccount(account)
+
         return (
           <MultiCommitOperation
             key="multi-commit-operation"
@@ -2553,12 +2727,12 @@ export class App extends React.Component<IAppProps, IAppState> {
               this.state.copilotConflictResolutionClickCount === 0
             }
             copilotConflictResolutionModel={getConflictResolutionModelDisplay(
-              this.state.selectedCopilotModels['conflict-resolution'] ?? null,
-              this.state.copilotModels,
+              selectedCopilotModels['conflict-resolution'] ?? null,
+              copilotModels,
               this.state.byokProviders
             )}
             conflictResolutionDisabled={
-              this.state.selectedCopilotModels['conflict-resolution'] ===
+              selectedCopilotModels['conflict-resolution'] ===
               DisabledCopilotModel
             }
             openFileInExternalEditor={this.getOpenFileInExternalEditorHandler(
@@ -2566,6 +2740,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             )}
             resolvedExternalEditor={this.state.resolvedExternalEditor}
             openRepositoryInShell={this.openCurrentRepositoryInShell}
+            wrapDiffLines={this.state.wrapDiffLines}
           />
         )
       }
@@ -2813,6 +2988,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             repository={repository}
             externalEditorLabel={externalEditorLabel}
             showDiffMinimap={this.state.showDiffMinimap}
+            wrapDiffLines={this.state.wrapDiffLines}
             showSideBySideDiff={showSideBySideDiff}
             currentBranchHasPullRequest={currentBranchHasPullRequest}
             branchSortOrder={this.state.branchSortOrder}
@@ -2916,6 +3092,14 @@ export class App extends React.Component<IAppProps, IAppState> {
           <TestCLIActionDialog
             key="test-cli-action"
             dispatcher={this.props.dispatcher}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      case PopupType.TestCopilotSnapshotCard:
+        return (
+          <TestCopilotSnapshotCardDialog
+            key="test-copilot-snapshot-card"
+            accounts={this.state.accounts}
             onDismissed={onPopupDismissedFn}
           />
         )
@@ -3105,6 +3289,16 @@ export class App extends React.Component<IAppProps, IAppState> {
           />
         )
       }
+      case PopupType.PullBranchDeleted:
+        return (
+          <PullBranchDeletedDialog
+            key="pull-branch-deleted"
+            dispatcher={this.props.dispatcher}
+            repository={popup.repository}
+            branchName={popup.branchName}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
       case PopupType.ManageRemotes:
         return (
           <ManageRemotesDialog
@@ -4173,6 +4367,7 @@ export class App extends React.Component<IAppProps, IAppState> {
           showConventionalCommitBadges={state.showConventionalCommitBadges}
           showSideBySideDiff={state.showSideBySideDiff}
           showDiffMinimap={state.showDiffMinimap}
+          wrapDiffLines={state.wrapDiffLines}
           focusCommitMessage={state.focusCommitMessage}
           askForConfirmationOnDiscardChanges={
             state.askForConfirmationOnDiscardChanges
@@ -4211,10 +4406,9 @@ export class App extends React.Component<IAppProps, IAppState> {
           shouldShowGenerateCommitMessageCallOut={
             !this.state.commitMessageGenerationButtonClicked
           }
-          commitMessageGenerationDisabled={
-            this.state.selectedCopilotModels['commit-message-generation'] ===
-            DisabledCopilotModel
-          }
+          commitMessageGenerationDisabled={this.isCommitMessageGenerationDisabled(
+            selectedState.repository
+          )}
           skipCommitHooks={selectedState.state.skipCommitHooks}
           signOffCommits={selectedState.state.signOffCommits}
           allowEmptyCommit={selectedState.state.allowEmptyCommit}
@@ -4238,6 +4432,19 @@ export class App extends React.Component<IAppProps, IAppState> {
     } else {
       return assertNever(selectedState, `Unknown state: ${selectedState}`)
     }
+  }
+
+  private isCommitMessageGenerationDisabled(repository: Repository): boolean {
+    const commitMessageGenerationAccount = getAccountForCommitMessageGeneration(
+      this.state.accounts,
+      repository
+    )
+    return (
+      commitMessageGenerationAccount !== undefined &&
+      this.getSelectedCopilotModelsForAccount(commitMessageGenerationAccount)[
+        'commit-message-generation'
+      ] === DisabledCopilotModel
+    )
   }
 
   private renderWelcomeFlow() {

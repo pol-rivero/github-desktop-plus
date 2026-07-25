@@ -59,6 +59,9 @@ interface IOpenPullRequestDialogProps {
   /** Whether we should display the diff minimap. */
   readonly showDiffMinimap: boolean
 
+  /** Whether text diff lines should wrap within the viewport. */
+  readonly wrapDiffLines: boolean
+
   /** Whether we should hide whitespace in diff. */
   readonly hideWhitespaceInDiff: boolean
 
@@ -193,6 +196,7 @@ export class OpenPullRequestDialog extends React.Component<IOpenPullRequestDialo
         nonLocalCommitSHA={nonLocalCommitSHA}
         selectedFile={file}
         showDiffMinimap={this.props.showDiffMinimap}
+        wrapDiffLines={this.props.wrapDiffLines}
         showSideBySideDiff={this.props.showSideBySideDiff}
         repository={repository}
         onOpenInExternalEditor={this.props.onOpenInExternalEditor}

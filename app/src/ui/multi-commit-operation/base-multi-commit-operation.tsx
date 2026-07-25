@@ -77,6 +77,9 @@ export interface IMultiCommitOperationProps {
   readonly openFileInExternalEditor: (path: string) => void
   readonly resolvedExternalEditor: string | null
   readonly openRepositoryInShell: (repository: Repository) => void
+
+  /** Whether text diff lines should wrap within the viewport. */
+  readonly wrapDiffLines: boolean
 }
 
 /** A base component for the shared logic of multi commit operations. */
@@ -368,6 +371,7 @@ export abstract class BaseMultiCommitOperation extends React.Component<IMultiCom
             onAbort={this.onConfirmingAbort}
             onDismissed={this.onConflictsDialogDismissed}
             emoji={this.props.emoji}
+            wrapDiffLines={this.props.wrapDiffLines}
           />
         )
       default:

@@ -24,6 +24,9 @@ interface IDiffOptionsProps {
   readonly showDiffMinimap: boolean
   readonly onShowDiffMinimapChanged: (showDiffMinimap: boolean) => void
 
+  readonly wrapDiffLines: boolean
+  readonly onWrapDiffLinesChanged: (wrapDiffLines: boolean) => void
+
   /** Called when the user opens the diff options popover */
   readonly onDiffOptionsOpened: () => void
 }
@@ -90,6 +93,12 @@ export class DiffOptions extends React.Component<
     return this.props.onShowDiffMinimapChanged(event.currentTarget.checked)
   }
 
+  private onWrapDiffLinesChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    return this.props.onWrapDiffLinesChanged(event.currentTarget.checked)
+  }
+
   public render() {
     const buttonLabel = `Diff ${__DARWIN__ ? 'Settings' : 'Options'}`
     return (
@@ -131,6 +140,7 @@ export class DiffOptions extends React.Component<
         <h3 id="diff-options-popover-header">{header}</h3>
         {this.renderHideWhitespaceChanges()}
         {this.renderShowSideBySide()}
+        {this.renderWrapDiffLines()}
         {this.renderShowDiffMinimap()}
       </Popover>
     )
@@ -202,6 +212,21 @@ export class DiffOptions extends React.Component<
           }
           onChange={this.onShowDiffMinimapChanged}
           label={__DARWIN__ ? 'Show Minimap' : 'Show minimap'}
+        />
+      </fieldset>
+    )
+  }
+
+  private renderWrapDiffLines() {
+    return (
+      <fieldset>
+        <legend>Line wrapping</legend>
+        <Checkbox
+          value={
+            this.props.wrapDiffLines ? CheckboxValue.On : CheckboxValue.Off
+          }
+          onChange={this.onWrapDiffLinesChanged}
+          label={__DARWIN__ ? 'Wrap Lines' : 'Wrap lines'}
         />
       </fieldset>
     )

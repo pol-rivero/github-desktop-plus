@@ -281,6 +281,48 @@ export async function mergeConflictHandler(
 }
 
 /**
+ * Handler for when a pull fails because the current branch's remote branch no
+ * longer exists (e.g. it was deleted or renamed on the remote). Directs the
+ * user to a dialog offering to switch to the default branch and retry, instead
+ * of the generic Git error dialog. This is especially helpful for the "Pull
+ * all" action where recovering from each affected repository manually is
+ * tedious.
+ */
+export async function pullBranchDeletedHandler(
+  error: Error,
+  dispatcher: Dispatcher
+): Promise<Error | null> {
+  const e = asErrorWithMetadata(error)
+  if (!e) {
+    return error
+  }
+
+  const gitError = asGitError(e.underlyingError)
+  if (gitError?.result.gitError !== DugiteError.NoExistingRemoteBranch) {
+    return error
+  }
+
+  const { repository, gitContext } = e.metadata
+  if (!(repository instanceof Repository)) {
+    return error
+  }
+
+  // Only handle this for pull operations. The same Git error can surface from
+  // other operations (e.g. push) where switching branches is not the fix.
+  if (gitContext == null || gitContext.kind !== 'pull') {
+    return error
+  }
+
+  dispatcher.showPopup({
+    type: PopupType.PullBranchDeleted,
+    repository,
+    branchName: gitContext.currentBranch,
+  })
+
+  return null
+}
+
+/**
  * Handler for when we attempt to install the global LFS filters and LFS throws
  * an error.
  */

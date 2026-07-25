@@ -53,6 +53,22 @@ interface ISeamlessDiffSwitcherProps {
   /** The diff that should be rendered */
   readonly diff: IDiff | null
 
+  /**
+   * Externally-supplied contents of the old and new files backing the current
+   * text diff.
+   *
+   * When this prop is defined (including `null`), the switcher treats it as the
+   * authoritative source for syntax highlighting and context expansion and does
+   * *not* fetch file contents from git. This is required for synthetic diffs
+   * whose sides don't correspond to an addressable git revision (e.g. the
+   * Copilot conflict resolution diffs, where the base is the on-disk conflicted
+   * file and the target is arbitrary resolved content). A value of `null` means
+   * the contents aren't ready yet and the diff should keep showing as loading.
+   *
+   * When left `undefined` the switcher loads contents from git as usual.
+   */
+  readonly externalFileContents?: IFileContents | null
+
   /** The type of image diff to display. */
   // Used in getDerivedStateFromProps, no-unused-prop-types doesn't know that
   // eslint-disable-next-line react/no-unused-prop-types
@@ -72,6 +88,11 @@ interface ISeamlessDiffSwitcherProps {
   // Used in getDerivedStateFromProps, no-unused-prop-types doesn't know that
   // eslint-disable-next-line react/no-unused-prop-types
   readonly showDiffMinimap: boolean
+
+  /** Whether text diff lines should wrap within the viewport. */
+  // Used in getDerivedStateFromProps, no-unused-prop-types doesn't know that
+  // eslint-disable-next-line react/no-unused-prop-types
+  readonly wrapDiffLines: boolean
 
   /** Whether contextual gaps should be expanded to show the whole file. */
   readonly showWholeFile?: boolean
@@ -288,6 +309,20 @@ export class SeamlessDiffSwitcher extends React.Component<
       return
     }
 
+    // When contents are supplied externally we don't fetch anything from git;
+    // we just apply what the parent gave us (once it corresponds to the file
+    // being displayed).
+    if (this.props.externalFileContents !== undefined) {
+      const fileContents = this.props.externalFileContents
+      if (fileContents === null || !isSameFile(fileContents.file, fileToLoad)) {
+        // Contents aren't ready (or are for a different file) yet.
+        return
+      }
+
+      this.applyFileContents(diff, fileContents)
+      return
+    }
+
     // Are we currently loading file contents for this file and is the diff
     // still the same? If so we can wait for that to load
     if (
@@ -312,6 +347,13 @@ export class SeamlessDiffSwitcher extends React.Component<
       return
     }
 
+    this.applyFileContents(diff, fileContents)
+  }
+
+  private applyFileContents(
+    diff: ITextDiff | ILargeTextDiff,
+    fileContents: IFileContents
+  ) {
     const newDiff =
       fileContents.canBeExpanded && diff.kind === DiffType.Text
         ? getTextDiffWithBottomDummyHunk(
@@ -381,6 +423,7 @@ export class SeamlessDiffSwitcher extends React.Component<
       hideWhitespaceInDiff,
       showSideBySideDiff,
       showDiffMinimap,
+      wrapDiffLines,
       showDiffCheckMarks,
       onIncludeChanged,
       onDiscardChanges,
@@ -416,6 +459,7 @@ export class SeamlessDiffSwitcher extends React.Component<
             hideWhitespaceInDiff={hideWhitespaceInDiff}
             showSideBySideDiff={showSideBySideDiff}
             showDiffMinimap={showDiffMinimap}
+            wrapDiffLines={wrapDiffLines}
             showWholeFile={this.props.showWholeFile}
             onShowWholeFileChanged={this.props.onShowWholeFileChanged}
             askForConfirmationOnDiscardChanges={

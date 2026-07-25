@@ -42,6 +42,7 @@ export class MultiCommitOperation extends React.Component<IMultiCommitOperationP
             openFileInExternalEditor={this.props.openFileInExternalEditor}
             resolvedExternalEditor={this.props.resolvedExternalEditor}
             openRepositoryInShell={this.props.openRepositoryInShell}
+            wrapDiffLines={this.props.wrapDiffLines}
           />
         )
       case MultiCommitOperationKind.Squash:
@@ -69,6 +70,7 @@ export class MultiCommitOperation extends React.Component<IMultiCommitOperationP
             openFileInExternalEditor={this.props.openFileInExternalEditor}
             resolvedExternalEditor={this.props.resolvedExternalEditor}
             openRepositoryInShell={this.props.openRepositoryInShell}
+            wrapDiffLines={this.props.wrapDiffLines}
           />
         )
       case MultiCommitOperationKind.Reorder:
@@ -96,6 +98,7 @@ export class MultiCommitOperation extends React.Component<IMultiCommitOperationP
             openFileInExternalEditor={this.props.openFileInExternalEditor}
             resolvedExternalEditor={this.props.resolvedExternalEditor}
             openRepositoryInShell={this.props.openRepositoryInShell}
+            wrapDiffLines={this.props.wrapDiffLines}
           />
         )
       default:

@@ -111,6 +111,7 @@ export enum PopupType {
   ConfirmCommitFilteredChanges = 'ConfirmCommitFilteredChanges',
   TestAbout = 'TestAbout',
   TestCLIAction = 'TestCLIAction',
+  TestCopilotSnapshotCard = 'TestCopilotSnapshotCard',
   PushProtectionError = 'PushProtectionError',
   BypassPushProtection = 'BypassPushProtection',
   GenerateCommitMessageOverrideWarning = 'GenerateCommitMessageOverrideWarning',
@@ -126,11 +127,14 @@ export enum PopupType {
   CantDeleteCurrentBranchUncommittedChanges = 'CantDeleteCurrentBranchUncommittedChanges',
   EditCopilotBYOKProvider = 'EditCopilotBYOKProvider',
   EditCopilotBYOKModel = 'EditCopilotBYOKModel',
+  CopilotUserSettings = 'CopilotUserSettings',
+  CopilotCustomProviders = 'CopilotCustomProviders',
   ConfirmDeleteCopilotBYOKProvider = 'ConfirmDeleteCopilotBYOKProvider',
   CopilotConflictResolutionAlwaysNudge = 'CopilotConflictResolutionAlwaysNudge',
   ManageRemotes = 'ManageRemotes',
   AddRemote = 'AddRemote',
   DeleteWorktreeFailed = 'DeleteWorktreeFailed',
+  PullBranchDeleted = 'PullBranchDeleted',
 }
 
 interface IBasePopup {
@@ -200,6 +204,11 @@ export type PopupDetail =
       otherModelIds: ReadonlyArray<string>
       onSave: (model: IBYOKModel) => void
     }
+  | {
+      type: PopupType.CopilotUserSettings
+      account: Account
+    }
+  | { type: PopupType.CopilotCustomProviders }
   | {
       type: PopupType.ConfirmDeleteCopilotBYOKProvider
       provider: IBYOKProvider
@@ -304,6 +313,7 @@ export type PopupDetail =
       type: PopupType.StashAndSwitchBranch
       repository: Repository
       branchToCheckout: Branch
+      onCheckedOut?: () => Promise<void>
     }
   | {
       type: PopupType.ConfirmDiscardStash
@@ -534,6 +544,9 @@ export type PopupDetail =
       type: PopupType.TestCLIAction
     }
   | {
+      type: PopupType.TestCopilotSnapshotCard
+    }
+  | {
       type: PopupType.PushProtectionError
       secrets: ReadonlyArray<ISecretScanResult>
     }
@@ -607,5 +620,11 @@ export type PopupDetail =
       worktreePath: string
       error: Error
       originalWorktree: WorktreeEntry | null
+    }
+  | {
+      type: PopupType.PullBranchDeleted
+      repository: Repository
+      /** The name of the branch whose remote branch no longer exists. */
+      branchName: string
     }
 export type Popup = IBasePopup & PopupDetail

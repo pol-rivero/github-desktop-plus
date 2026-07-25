@@ -68,6 +68,7 @@ interface ICopilotConflictsDialogProps {
   readonly onAbort: () => Promise<void>
   readonly onDismissed: () => void
   readonly emoji: Map<string, Emoji>
+  readonly wrapDiffLines: boolean
 }
 
 enum CopilotConflictsTab {
@@ -646,6 +647,7 @@ export class CopilotConflictsDialog extends React.Component<
             ourBranch={this.props.conflictState.ourBranch}
             theirBranch={this.props.conflictState.theirBranch}
             onResolutionDropdownClick={this.onResolutionDropdownClick}
+            wrapDiffLines={this.props.wrapDiffLines}
           />
         )
       }

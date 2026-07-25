@@ -36,6 +36,9 @@ interface IStashDiffViewerProps {
   /** Whether we should display the diff minimap. */
   readonly showDiffMinimap: boolean
 
+  /** Whether text diff lines should wrap within the viewport. */
+  readonly wrapDiffLines: boolean
+
   /**
    * Called when the user requests to open a binary file in an the
    * system-assigned application for said file type.
@@ -130,6 +133,7 @@ export class StashDiffViewer extends React.PureComponent<IStashDiffViewerProps> 
           showDiffCheckMarks={false}
           showSideBySideDiff={this.props.showSideBySideDiff}
           showDiffMinimap={this.props.showDiffMinimap}
+          wrapDiffLines={this.props.wrapDiffLines}
           onOpenBinaryFile={onOpenBinaryFile}
           onChangeImageDiffType={onChangeImageDiffType}
           onHideWhitespaceInDiffChanged={

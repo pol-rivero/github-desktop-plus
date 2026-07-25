@@ -54,7 +54,7 @@ import { ILaunchStats, StatsStore } from '../../lib/stats'
 import { AppStore } from '../../lib/stores/app-store'
 import type {
   CopilotFeature,
-  CopilotModelSelections,
+  CopilotModelSelectionsByAccount,
 } from '../../lib/stores/copilot-store'
 import type { IBYOKProvider } from '../../lib/copilot/byok'
 import { RepositoryStateCache } from '../../lib/stores/repository-state-cache'
@@ -644,6 +644,13 @@ export class Dispatcher {
           baseBranch,
           commits,
         })
+        // Rebase normally starts from an already open branch-picker dialog.
+        // Direct callers (such as Update from…) need to open the warning
+        // themselves so the operation never remains blocked off-screen.
+        this.showPopup({
+          type: PopupType.MultiCommitOperation,
+          repository,
+        })
         return
       }
     }
@@ -793,9 +800,15 @@ export class Dispatcher {
   public checkoutBranch(
     repository: Repository,
     branch: Branch,
-    strategy?: UncommittedChangesStrategy
+    strategy?: UncommittedChangesStrategy,
+    onCheckedOut?: () => Promise<void>
   ): Promise<Repository> {
-    return this.appStore._checkoutBranch(repository, branch, strategy)
+    return this.appStore._checkoutBranch(
+      repository,
+      branch,
+      strategy,
+      onCheckedOut
+    )
   }
 
   /** Check out the given commit. */
@@ -2676,6 +2689,11 @@ export class Dispatcher {
     return this.appStore._setShowDiffMinimap(showDiffMinimap)
   }
 
+  /** Change the diff line wrapping setting */
+  public onWrapDiffLinesChanged(wrapDiffLines: boolean) {
+    return this.appStore._setWrapDiffLines(wrapDiffLines)
+  }
+
   /** Install the global Git LFS filters. */
   public installGlobalLFSFilters(force: boolean): Promise<void> {
     return this.appStore._installGlobalLFSFilters(force)
@@ -2902,6 +2920,21 @@ export class Dispatcher {
 
     await this.appStore._fetch(repository, FetchType.UserInitiatedTask)
     await this.appStore._resetHardToUpstream(repository)
+  }
+
+  /**
+   * Switch the repository to its default branch and pull it. Used to recover
+   * from a pull that failed because the current branch's remote branch no
+   * longer exists.
+   */
+  public async switchToDefaultBranchAndPull(
+    repository: Repository,
+    deleteStaleBranch: boolean = false
+  ): Promise<void> {
+    return this.appStore._switchToDefaultBranchAndPull(
+      repository,
+      deleteStaleBranch
+    )
   }
 
   public setConfirmDiscardStashSetting(value: boolean) {
@@ -4639,15 +4672,18 @@ export class Dispatcher {
 
   /** Set the selected Copilot model for a specific feature. */
   public setSelectedCopilotModel(
+    account: Account,
     feature: CopilotFeature,
     model: string | null
   ) {
-    return this.appStore._setSelectedCopilotModel(feature, model)
+    return this.appStore._setSelectedCopilotModel(account, feature, model)
   }
 
-  /** Replace all per-feature Copilot model selections at once. */
-  public setSelectedCopilotModels(models: CopilotModelSelections) {
-    return this.appStore._setSelectedCopilotModels(models)
+  /** Replace all account-scoped Copilot model selections at once. */
+  public setSelectedCopilotModelsByAccount(
+    modelsByAccount: CopilotModelSelectionsByAccount
+  ) {
+    return this.appStore._setSelectedCopilotModelsByAccount(modelsByAccount)
   }
 
   public setAlwaysUseCopilotForConflictResolution(value: boolean): void {
@@ -4657,6 +4693,11 @@ export class Dispatcher {
   /** Fetch the list of available Copilot models from the SDK. */
   public fetchCopilotModels(): Promise<void> {
     return this.appStore._fetchCopilotModels()
+  }
+
+  /** Fetch Copilot quota usage snapshots from the SDK. */
+  public fetchCopilotQuotaSnapshots(): Promise<void> {
+    return this.appStore._fetchCopilotQuotaSnapshots()
   }
 
   /**

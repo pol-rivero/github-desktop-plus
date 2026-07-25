@@ -7,6 +7,7 @@ import {
   WorkflowPreferences,
   ForkContributionTarget,
 } from './workflow-preferences'
+import { UpdateBranchStrategy } from '../lib/update-branch-strategy'
 import { assertNever, fatalError } from '../lib/fatal-error'
 import { createEqualityHash } from './equality-hash'
 import { getRemotes } from '../lib/git'
@@ -86,6 +87,7 @@ export class Repository {
       this.defaultBranch,
       getCustomOverrideHash(this.customEditorOverride),
       this.workflowPreferences.forkContributionTarget,
+      this.workflowPreferences.updateBranchStrategy,
       this.isTutorialRepository,
       this.overrideLogin
     )
@@ -309,6 +311,19 @@ export function getForkContributionTarget(
   return repository.workflowPreferences.forkContributionTarget !== undefined
     ? repository.workflowPreferences.forkContributionTarget
     : ForkContributionTarget.Parent
+}
+
+/**
+ * Returns how the "Update from <default branch>" action should update the
+ * current branch.
+ */
+export function getUpdateBranchStrategy(
+  repository: Repository
+): UpdateBranchStrategy {
+  return (
+    repository.workflowPreferences.updateBranchStrategy ??
+    UpdateBranchStrategy.Merge
+  )
 }
 
 /**

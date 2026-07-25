@@ -542,9 +542,9 @@ dialog {
         padding: 0;
 
         .copilot-tab-content {
-          padding: var(--spacing-double);
+          padding: 0;
           max-height: $default-tab-height;
-          overflow: auto;
+          overflow: hidden;
         }
       }
     }
@@ -602,6 +602,12 @@ dialog {
       p {
         margin: 0;
       }
+    }
+  }
+
+  &#pull-branch-deleted {
+    .checkbox-component {
+      margin-top: var(--spacing);
     }
   }
 

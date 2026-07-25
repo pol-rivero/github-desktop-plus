@@ -45,6 +45,10 @@ export abstract class DiffPresentationStateComponent<
     return this.getDispatcher().onShowDiffMinimapChanged(showDiffMinimap)
   }
 
+  protected onWrapDiffLinesChanged = (wrapDiffLines: boolean) => {
+    return this.getDispatcher().onWrapDiffLinesChanged(wrapDiffLines)
+  }
+
   protected onShowWholeFileChanged = (showWholeFile: boolean) => {
     // Persist the preference globally so changes/history stay in sync, while
     // each active diff still decides whether whole-file mode can be applied.

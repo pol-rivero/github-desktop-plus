@@ -76,6 +76,9 @@ interface IDiffProps {
   /** Whether we should display the diff minimap. */
   readonly showDiffMinimap: boolean
 
+  /** Whether text diff lines should wrap within the viewport. */
+  readonly wrapDiffLines: boolean
+
   /** Whether contextual gaps should be expanded to show the whole file. */
   readonly showWholeFile?: boolean
 
@@ -331,6 +334,7 @@ export class Diff extends React.Component<IDiffProps, IDiffState> {
         hideWhitespaceInDiff={this.props.hideWhitespaceInDiff}
         showSideBySideDiff={this.props.showSideBySideDiff}
         showDiffMinimap={this.props.showDiffMinimap}
+        wrapDiffLines={this.props.wrapDiffLines}
         showWholeFile={this.props.showWholeFile}
         onShowWholeFileChanged={this.props.onShowWholeFileChanged}
         onIncludeChanged={this.props.onIncludeChanged}

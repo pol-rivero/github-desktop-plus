@@ -869,7 +869,7 @@ export class CommitList extends React.Component<
     const isResettableCommit = !isHeadCommit
     const canBeResetTo =
       this.props.canResetToCommits === true && isResettableCommit
-    const canBeCheckedOut = actualRow > 0 //Cannot checkout the current commit
+    const canBeCheckedOut = !isHeadCommit //Cannot checkout the current commit
 
     const gitHubRepository = this.props.repository?.gitHubRepository
 

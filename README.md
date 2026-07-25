@@ -6,13 +6,13 @@ This is an **up-to-date** fork of [GitHub Desktop](https://desktop.github.com) w
 > This is a community-maintained project. It **is not** an official GitHub product. 
 
 ## Highlights 👀
-| <h4>Search commits by title, message, tag, or hash</h4> | <h4>Add multiple GitHub, Bitbucket & GitLab accounts</h4> |
+| <h4>Search commits by title, message, tag, or hash</h4> | <h4>Add multiple GitHub, Bitbucket, GitLab & Codeberg accounts</h4> |
 | :---: | :---: |
-| ![Commit search](docs/assets/desktop-plus-demo-search.webp) | ![Multiple accounts](docs/assets/desktop-plus-demo-multiaccount.webp) |
+| <img src="docs/assets/desktop-plus-demo-search.webp" alt="Commit search" width="450"> | <img src="docs/assets/desktop-plus-demo-multiaccount.webp" alt="Multiple accounts" width="450"> |
 | <h4>Create multiple stashes per branch</h4> | <h4>Visualize the Commit Graph</h4> |
-| ![Multiple stashes](docs/assets/desktop-plus-demo-stashes.webp) | ![Commit Graph](docs/assets/desktop-plus-demo-commit-graph.webp) |
+| <img src="docs/assets/desktop-plus-demo-stashes.webp" alt="Multiple stashes" width="450"> | <img src="docs/assets/desktop-plus-demo-commit-graph.webp" alt="Commit Graph" width="450"> |
 | <h4>Buttons optimized for visual recognition</h4> | <h4>Quickly find unpushed branches</h4> |
-| ![Stash header](docs/assets/desktop-plus-demo-stash-header.webp) | ![Branch push indicator](docs/assets/desktop-plus-demo-push-indicator.webp) |
+| <img src="docs/assets/desktop-plus-demo-stash-header.webp" alt="Stash header" width="450"> | <img src="docs/assets/desktop-plus-demo-push-indicator.webp" alt="Branch push indicator" width="450"> |
 
 
 ## Additional Features in GH Desktop Plus ✨
@@ -108,10 +108,10 @@ This is an **up-to-date** fork of [GitHub Desktop](https://desktop.github.com) w
 #### Using Winget (Recommended)
 
 ```powershell
-winget install polrivero.GitHubDesktopPlus
+winget install DesktopPlus.DesktopPlus
 ```
 
-To update, run `winget upgrade polrivero.GitHubDesktopPlus` or `winget upgrade --all` to update all your winget packages. Make sure to update regularly to get the latest features and fixes.
+To update, run `winget upgrade DesktopPlus.DesktopPlus` or `winget upgrade --all` to update all your winget packages. Make sure to update regularly to get the latest features and fixes.
 
 #### Manual download (Not recommended)
 
