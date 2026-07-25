@@ -5349,12 +5349,16 @@ export class AppStore extends TypedBaseStore<IAppState> {
    * strategy are dialogs and other confirmation constructs where the user
    * has made an explicit choice about how to proceed.
    *
+   * When provided, `onCheckedOut` runs once the branch has actually been
+   * checked out in this repository.
+   *
    * Note: This shouldn't be called directly. See `Dispatcher`.
    */
   public async _checkoutBranch(
     repository: Repository,
     branch: Branch,
-    explicitStrategy?: UncommittedChangesStrategy
+    explicitStrategy?: UncommittedChangesStrategy,
+    onCheckedOut?: () => Promise<void>
   ): Promise<Repository> {
     const repositoryState = this.repositoryStateCache.get(repository)
     const { changesState, branchesState } = repositoryState
@@ -5364,6 +5368,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     // No point in checking out the currently checked out branch.
     if (tip.kind === TipState.Valid && tip.branch.name === branch.name) {
+      await onCheckedOut?.()
       return repository
     }
 
@@ -5386,7 +5391,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
     if (strategy === UncommittedChangesStrategy.AskForConfirmation) {
       if (hasChanges) {
         const type = PopupType.StashAndSwitchBranch
-        this._showPopup({ type, branchToCheckout: branch, repository })
+        this._showPopup({
+          type,
+          branchToCheckout: branch,
+          repository,
+          onCheckedOut,
+        })
         return repository
       }
     }
@@ -5400,16 +5410,25 @@ export class AppStore extends TypedBaseStore<IAppState> {
     )
 
     return this.withRefreshedGitHubRepository(repository, repository => {
+      let checkedOut = true
+
       // We always want to end with refreshing the repository regardless of
       // whether the checkout succeeded or not in order to present the most
       // up-to-date information to the user.
       return this.checkoutImplementation(repository, branch, strategy)
         .then(() => this.onSuccessfulCheckout(repository, branch))
         .catch(async e => {
+          checkedOut = false
           this.emitError(new CheckoutError(e, repository, branch))
         })
         .then(() => this.refreshAfterCheckout(repository, branch.name))
         .finally(() => this.updateCheckoutProgress(repository, null))
+        .then(async refreshedRepository => {
+          if (checkedOut) {
+            await onCheckedOut?.()
+          }
+          return refreshedRepository
+        })
     })
   }
 
@@ -6362,10 +6381,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
    * remote branch no longer exists (e.g. it was deleted on the remote).
    */
   public async _switchToDefaultBranchAndPull(
-    repository: Repository
+    repository: Repository,
+    deleteStaleBranch: boolean = false
   ): Promise<void> {
     const { branchesState } = this.repositoryStateCache.get(repository)
-    const { defaultBranch } = branchesState
+    const { defaultBranch, tip } = branchesState
 
     if (defaultBranch === null) {
       this.emitError(
@@ -6376,16 +6396,31 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return
     }
 
-    await this._checkoutBranch(repository, defaultBranch)
+    const shouldDeleteStaleBranch =
+      deleteStaleBranch &&
+      tip.kind === TipState.Valid &&
+      tip.branch.name !== defaultBranch.name
 
-    // Only pull once we've actually switched to the default branch. When the
-    // branch has uncommitted changes the checkout may defer to a "stash and
+    const branchToDelete = shouldDeleteStaleBranch ? tip.branch : null
+
+    // Only pull (and maybe delete) once we've actually switched to the default branch.
+    // When the branch has uncommitted changes the checkout may defer to a "stash and
     // switch" confirmation and return without switching; pulling then would run
     // on the branch whose remote branch is gone and fail with the same error.
-    const { tip } = this.repositoryStateCache.get(repository).branchesState
-    if (tip.kind === TipState.Valid && tip.branch.name === defaultBranch.name) {
+    const onSuccessfulCheckout = async () => {
+      if (branchToDelete !== null) {
+        await this._deleteBranch(repository, branchToDelete, false)
+      }
+
       await this._pull(repository)
     }
+
+    await this._checkoutBranch(
+      repository,
+      defaultBranch,
+      undefined,
+      onSuccessfulCheckout
+    )
   }
 
   public async _resetHardToUpstream(repository: Repository): Promise<void> {

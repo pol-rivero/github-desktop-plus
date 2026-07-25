@@ -312,6 +312,7 @@ export type PopupDetail =
       type: PopupType.StashAndSwitchBranch
       repository: Repository
       branchToCheckout: Branch
+      onCheckedOut?: () => Promise<void>
     }
   | {
       type: PopupType.ConfirmDiscardStash

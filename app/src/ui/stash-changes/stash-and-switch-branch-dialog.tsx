@@ -22,6 +22,12 @@ interface ISwitchBranchProps {
   /** The branch to checkout after the user selects a stash action */
   readonly branchToCheckout: Branch
 
+  /**
+   * Work to run once `branchToCheckout` has been checked out, carried over from
+   * the caller whose checkout was deferred to this dialog.
+   */
+  readonly onCheckedOut?: () => Promise<void>
+
   /** Whether `currentBranch` has an existing stash association */
   readonly onDismissed: () => void
 }
@@ -104,7 +110,8 @@ export class StashAndSwitchBranch extends React.Component<
   }
 
   private onSubmit = async () => {
-    const { repository, branchToCheckout, dispatcher } = this.props
+    const { repository, branchToCheckout, onCheckedOut, dispatcher } =
+      this.props
     const { selectedStashAction } = this.state
 
     this.setState({ isStashingChanges: true })
@@ -115,14 +122,16 @@ export class StashAndSwitchBranch extends React.Component<
         await dispatcher.checkoutBranch(
           repository,
           branchToCheckout,
-          UncommittedChangesStrategy.StashOnCurrentBranch
+          UncommittedChangesStrategy.StashOnCurrentBranch,
+          onCheckedOut
         )
       } else if (selectedStashAction === StashAction.MoveToNewBranch) {
         // attempt to checkout the branch without creating a stash entry
         await dispatcher.checkoutBranch(
           repository,
           branchToCheckout,
-          UncommittedChangesStrategy.MoveToNewBranch
+          UncommittedChangesStrategy.MoveToNewBranch,
+          onCheckedOut
         )
       }
     } finally {

@@ -2411,6 +2411,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             repository={popup.repository}
             currentBranch={currentBranch}
             branchToCheckout={branchToCheckout}
+            onCheckedOut={popup.onCheckedOut}
             onDismissed={onPopupDismissedFn}
           />
         )

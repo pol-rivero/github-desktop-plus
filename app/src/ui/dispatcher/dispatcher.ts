@@ -800,9 +800,15 @@ export class Dispatcher {
   public checkoutBranch(
     repository: Repository,
     branch: Branch,
-    strategy?: UncommittedChangesStrategy
+    strategy?: UncommittedChangesStrategy,
+    onCheckedOut?: () => Promise<void>
   ): Promise<Repository> {
-    return this.appStore._checkoutBranch(repository, branch, strategy)
+    return this.appStore._checkoutBranch(
+      repository,
+      branch,
+      strategy,
+      onCheckedOut
+    )
   }
 
   /** Check out the given commit. */
@@ -2911,9 +2917,13 @@ export class Dispatcher {
    * longer exists.
    */
   public async switchToDefaultBranchAndPull(
-    repository: Repository
+    repository: Repository,
+    deleteStaleBranch: boolean = false
   ): Promise<void> {
-    return this.appStore._switchToDefaultBranchAndPull(repository)
+    return this.appStore._switchToDefaultBranchAndPull(
+      repository,
+      deleteStaleBranch
+    )
   }
 
   public setConfirmDiscardStashSetting(value: boolean) {
