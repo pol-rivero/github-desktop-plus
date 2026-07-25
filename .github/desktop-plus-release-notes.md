@@ -1,27 +1,32 @@
-Desktop Plus v3.6.3
+Desktop Plus v3.6.4-beta1
 
-Upstream: [GitHub Desktop 3.6.3 release notes](https://github.com/desktop/desktop/releases/tag/release-3.6.3)
+Upstream: [GitHub Desktop 3.6.4-beta1 release notes](https://github.com/desktop/desktop/releases/tag/release-3.6.4-beta1)
 
 ---
 
+> [!WARNING]
+> If you use **Winget** to install Desktop Plus in Windows, you will need to uninstall the old package name (`polrivero.GitHubDesktopPlus`) and install the new package name (`DesktopPlus.DesktopPlus`) to continue receiving updates.  
+> Unlike other package managers, Winget does not support a user-friendly way to transition from one package name to another.
+>
+> You can reinstall Desktop Plus using the following commands:  
+> ```
+> winget uninstall polrivero.GitHubDesktopPlus --all-versions
+> winget install DesktopPlus.DesktopPlus
+> ```
+
 ## **Changes and improvements:**
 
-- [#178] We now support **Codeberg** accounts in Desktop Plus! Thank you @fl-f for your contribution!  
-  You can now sign in using your Codeberg account and:
-  - Clone repositories from within the app.
-  - Preview and create pull requests.
-  - View pull request status, including checks.
-  - Enjoy other minor UI improvements that make your experience with Codeberg better.
+- [#217] The old "Change group name", "Restore group name" and "Pin/Unpin repository" repository context menu options have been replaced with a new "Assign to group" submenu. Thank you @s-iorio!  
+  This makes it much easier to create new groups and assign repositories to them, especially when you have many repositories in your list. It also reduces clutter in the context menu.
 
-- You can now rename stashes to make them easier to identify.  
-  Simply click the edit (pencil) icon next to the stash title, or right-click on a stash in the Changes list and select "Rename...".
+- [#216] Allow disabling line wrapping in the diff view. Thank you @ignatremizov!  
+  To disable it, click on the "Diff options" gear icon and uncheck the "Wrap lines" option.
 
-- All OAuth providers (GitHub, Bitbucket, GitLab, and Codeberg) now use PKCE (Proof Key for Code Exchange) for improved security. You shouldn't notice any difference in your sign-in experience, but if you encounter any problems, please [open an issue](https://github.com/desktop-plus/desktop-plus/issues/new/choose).
+- [#221] When using the "Pull all" button to update all repositories, if the checked-out branch has been removed in the remote, the app will now offer to switch to the main branch and optionally delete the local branch. Thank you @guplem!  
+
+- [#175] Allow configuring the default strategy (*Merge* or *Rebase*) for updating from the default branch (`Ctrl/Cmd + Shift + U`). Thank you @kurtextrem!  
+  To change the update strategy, go to `File > Repository options > Git config`.
 
 ## Fixes:
 
-- [#213] Handle autosquash prefixes properly when rendering conventional commit badges.
-
-- [#215] Avoid showing the developer tools panel when quickly hovering over PRs in the PR list.
-
-- The native title bar now shows the correct Desktop Plus logo instead of the upstream (GitHub Desktop) logo.
+- [#219] Fix a bug where the "Checkout commit" option was grayed out for some commits in the *commit graph* view. Thank you @jabelardo!
