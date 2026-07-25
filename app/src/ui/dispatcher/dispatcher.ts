@@ -992,6 +992,20 @@ export class Dispatcher {
     return this.appStore._changeRepositoryGroupName(repository, newGroupName)
   }
 
+  /**
+   * Assigns several repositories to a group at once, or clears their group when
+   * the name is null.
+   */
+  public changeRepositoriesGroupName(
+    repositories: ReadonlyArray<Repository>,
+    newGroupName: string | null
+  ): Promise<void> {
+    return this.appStore._changeRepositoriesGroupName(
+      repositories,
+      newGroupName
+    )
+  }
+
   /** Changes the repository's default branch */
   public updateRepositoryDefaultBranch(
     repository: Repository,

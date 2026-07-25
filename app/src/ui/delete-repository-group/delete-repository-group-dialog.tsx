@@ -122,11 +122,7 @@ export class DeleteRepositoryGroup extends React.Component<
         )
       )
     } else {
-      await Promise.all(
-        repositories.map(repository =>
-          dispatcher.changeRepositoryGroupName(repository, null)
-        )
-      )
+      await dispatcher.changeRepositoriesGroupName(repositories, null)
     }
 
     this.props.onDismissed()

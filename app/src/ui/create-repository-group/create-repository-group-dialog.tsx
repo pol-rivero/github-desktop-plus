@@ -7,6 +7,12 @@ import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { TextBox } from '../lib/text-box'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
 
+/**
+ * Prefers the repo alias, otherwise falls back to the owner-qualified name
+ */
+const displayNameOf = (repository: Repository) =>
+  repository.alias ?? nameOf(repository)
+
 interface ICreateRepositoryGroupProps {
   readonly dispatcher: Dispatcher
   readonly onDismissed: () => void
@@ -69,6 +75,7 @@ export class CreateRepositoryGroup extends React.Component<
               ariaLabel="Filter repositories"
               value={this.state.filterText}
               onValueChanged={this.onFilterTextChanged}
+              onKeyDown={this.onFilterKeyDown}
             />
           </p>
           <div className="repository-list-selector">
@@ -97,12 +104,20 @@ export class CreateRepositoryGroup extends React.Component<
     }
 
     return this.props.repositories.filter(repository =>
-      nameOf(repository).toLowerCase().includes(filterText)
+      displayNameOf(repository).toLowerCase().includes(filterText)
     )
   }
 
   private onFilterTextChanged = (filterText: string) => {
     this.setState({ filterText })
+  }
+
+  private onFilterKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    // Enter in the filter field would otherwise submit the dialog and create
+    // the group while the user is still narrowing down the list.
+    if (event.key === 'Enter') {
+      event.preventDefault()
+    }
   }
 
   private renderRepositoryCheckbox = (repository: Repository) => {
@@ -111,7 +126,7 @@ export class CreateRepositoryGroup extends React.Component<
     return (
       <Checkbox
         key={repository.id}
-        label={nameOf(repository)}
+        label={displayNameOf(repository)}
         value={isSelected ? CheckboxValue.On : CheckboxValue.Off}
         onChange={this.onRepositoryCheckboxChange(repository.id)}
       />
@@ -141,10 +156,9 @@ export class CreateRepositoryGroup extends React.Component<
       selectedRepositoryIds.has(r.id)
     )
 
-    await Promise.all(
-      selectedRepositories.map(repository =>
-        this.props.dispatcher.changeRepositoryGroupName(repository, groupName)
-      )
+    await this.props.dispatcher.changeRepositoriesGroupName(
+      selectedRepositories,
+      groupName
     )
 
     this.props.onDismissed()
