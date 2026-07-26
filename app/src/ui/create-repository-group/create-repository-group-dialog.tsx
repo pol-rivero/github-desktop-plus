@@ -109,7 +109,7 @@ export class CreateRepositoryGroup extends React.Component<
   }
 
   private renderRepositoryList() {
-    const repositories = this.getFilteredRepositories()
+    const repositories = this.sortRepositories(this.getFilteredRepositories())
     const resultCount = `${repositories.length} ${
       repositories.length === 1 ? 'result' : 'results'
     }`
@@ -153,6 +153,12 @@ export class CreateRepositoryGroup extends React.Component<
       repository: item,
       matches: matches.title,
     }))
+  }
+
+  private sortRepositories(repositories: ReadonlyArray<IFilteredRepository>) {
+    return repositories.toSorted((a, b) =>
+      displayNameOf(a.repository).localeCompare(displayNameOf(b.repository))
+    )
   }
 
   private onFilterTextChanged = (filterText: string) => {
