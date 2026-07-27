@@ -1,7 +1,10 @@
 import * as Path from 'path'
 import * as React from 'react'
 import { Dispatcher } from '../dispatcher'
-import { getDefaultDir, setDefaultDir } from '../lib/default-dir'
+import {
+  getDefaultDirForAccount,
+  setDefaultDirForAccount,
+} from '../lib/default-dir'
 import { Account, AccountAPIType } from '../../models/account'
 import { FoldoutType } from '../../lib/app-state'
 import {
@@ -73,17 +76,6 @@ interface ICloneRepositoryProps {
 }
 
 interface ICloneRepositoryState {
-  /** A copy of the path state field which is set when the component initializes.
-   *
-   *  This value, as opposed to the path state variable, doesn't change for the
-   *  lifetime of the component. Used to keep track of whether the user has
-   *  modified the path state field which influences whether we show a
-   *  warning about the directory already existing or not.
-   *
-   *  See the onWindowFocus method for more information.
-   */
-  readonly initialPath: string | null
-
   /** Are we currently trying to load the entered repository? */
   readonly loading: boolean
 
@@ -207,7 +199,6 @@ export class CloneRepository extends React.Component<
     }
 
     this.state = {
-      initialPath: defaultDirectory,
       loading: false,
       dotComTabState: {
         kind: 'dotcom',
@@ -315,30 +306,20 @@ export class CloneRepository extends React.Component<
   }
 
   private initializePath = async () => {
-    const initialPath = await getDefaultDir()
-    const dotComTabState = { ...this.state.dotComTabState, path: initialPath }
-    const enterpriseTabState = {
-      ...this.state.enterpriseTabState,
-      path: initialPath,
-    }
-    const bitbucketTabState = {
-      ...this.state.bitbucketTabState,
-      path: initialPath,
-    }
-    const gitlabTabState = { ...this.state.gitlabTabState, path: initialPath }
-    const codebergTabState = {
-      ...this.state.codebergTabState,
-      path: initialPath,
-    }
-    const urlTabState = { ...this.state.urlTabState, path: initialPath }
+    const withDefaultPath = async <T extends IBaseTabState>(
+      tabState: T
+    ): Promise<T> => ({
+      ...tabState,
+      path: await getDefaultDirForAccount(tabState.selectedAccount),
+    })
+
     this.setState({
-      initialPath,
-      dotComTabState,
-      enterpriseTabState,
-      bitbucketTabState,
-      gitlabTabState,
-      codebergTabState,
-      urlTabState,
+      dotComTabState: await withDefaultPath(this.state.dotComTabState),
+      enterpriseTabState: await withDefaultPath(this.state.enterpriseTabState),
+      bitbucketTabState: await withDefaultPath(this.state.bitbucketTabState),
+      gitlabTabState: await withDefaultPath(this.state.gitlabTabState),
+      codebergTabState: await withDefaultPath(this.state.codebergTabState),
+      urlTabState: await withDefaultPath(this.state.urlTabState),
     })
 
     // Update the local path based on the current url now that we have an
@@ -518,7 +499,24 @@ export class CloneRepository extends React.Component<
         { selectedAccount: account },
         this.props.selectedTab
       )
+      this.updatePathForAccount(account, this.props.selectedTab)
     }
+  }
+
+  /**
+   * Point the path field of the given tab to the last clone location used
+   * with the given account, keeping the repository name entered by the user.
+   */
+  private updatePathForAccount = async (
+    account: Account,
+    tab: CloneRepositoryTab
+  ) => {
+    const defaultDir = await getDefaultDirForAccount(account)
+    const { lastParsedIdentifier } = this.getTabState(tab)
+    const path = lastParsedIdentifier
+      ? Path.join(defaultDir, lastParsedIdentifier.name)
+      : defaultDir
+    this.setTabState({ path }, tab, this.validatePath)
   }
 
   private getAccountForTab(tab: CloneRepositoryTab): Account | null {
@@ -716,9 +714,9 @@ export class CloneRepository extends React.Component<
 
   private validatePath = async () => {
     const tabState = this.getSelectedTabState()
-    const { path, url, error } = tabState
-    const { initialPath } = this.state
-    const isDefaultPath = initialPath === path
+    const { path, url, error, selectedAccount } = tabState
+    const isDefaultPath =
+      (await getDefaultDirForAccount(selectedAccount)) === path
     const isURLNotEntered = url === ''
 
     if (isDefaultPath && isURLNotEntered) {
@@ -951,10 +949,11 @@ export class CloneRepository extends React.Component<
     login: string | null,
     defaultBranch?: string
   ) {
+    const { selectedAccount } = this.getSelectedTabState()
     this.props.dispatcher.clone(url, path, login, { defaultBranch })
     this.props.onDismissed()
 
-    setDefaultDir(Path.resolve(path, '..'))
+    setDefaultDirForAccount(Path.resolve(path, '..'), selectedAccount)
   }
 
   private onWindowFocus = () => {
