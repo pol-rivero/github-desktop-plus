@@ -65,7 +65,12 @@ import type {
   CopilotModelRequest,
   CopilotProviderConfig,
 } from './copilot-store'
-import { Account, isDotComAccount, UnknownLogin } from '../../models/account'
+import {
+  Account,
+  CopilotLicenseTypeNoAccess,
+  isDotComAccount,
+  UnknownLogin,
+} from '../../models/account'
 import { AppMenu, IMenu } from '../../models/app-menu'
 import { Author } from '../../models/author'
 import { Branch, BranchType, IAheadBehind } from '../../models/branch'
@@ -642,7 +647,6 @@ export const showChangesFilterKey = 'show-changes-filter'
 // per account, not globally.
 const selectedCopilotModelsKey = 'selected-copilot-models'
 const selectedCopilotModelsByAccountKey = 'selected-copilot-models-by-account'
-const CopilotLicenseTypeNoAccess = 'NO_ACCESS'
 export const showChangesFilterDefault = true
 
 export class AppStore extends TypedBaseStore<IAppState> {
