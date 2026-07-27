@@ -2031,11 +2031,15 @@ export class AppStore extends TypedBaseStore<IAppState> {
         this.emitUpdate()
       }
       if (filteredCommits.length < MinimumFilteredCommitsToLoad) {
-        return this._loadNextCommitBatch(
+        await this._loadNextCommitBatch(
           repository,
           filteredCommits.length,
           queryLowercase
         )
+      }
+      if (action.kind === HistoryTabMode.Compare) {
+        // A branch comparison is active, recompute
+        return this.updateCompareToBranch(repository, action)
       }
       return
     }
