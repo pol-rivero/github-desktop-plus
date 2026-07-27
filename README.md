@@ -15,86 +15,14 @@ This is an **up-to-date** fork of [GitHub Desktop](https://desktop.github.com) w
 | <img src="docs/assets/desktop-plus-demo-stash-header.webp" alt="Stash header" width="450"> | <img src="docs/assets/desktop-plus-demo-push-indicator.webp" alt="Branch push indicator" width="450"> |
 
 
-## Additional Features in GH Desktop Plus ✨
+## Additional Features in Desktop Plus ✨
+
+**See the [full list of features here](https://desktop-plus.org/#feature-list).**
 
 <details>
-<summary>Click to expand list</summary>
+<summary>See demo video</summary>
 
-### General:
-
-- Support for **multiple accounts** of the same endpoint (e.g., multiple GitHub accounts).  
-  Simply add as many accounts as you want in the "Accounts" settings page. If a repository is using an incorrect account, you can change it in the repository settings.
-
-- Support for **multiple windows**: open multiple repositories in separate windows, or the same repository in multiple windows (e.g., to view different files at the same time).  
-  Select "File" > "Open new window" or press `Ctrl+Alt+N`/`Cmd+Alt+N`. You can also right-click on a repository in the list and select "Open repository in new window".
-
-- **Bitbucket** and **GitLab** integration:
-  - Clone repositories from within the app.
-  - Preview and create pull requests.
-  - View pull request status, including checks.
-  - Display a commit or PR in Bitbucket/GitLab (web browser).
-  - Correctly set repository owner (instead of displaying "Other").
-
-  The integration is enabled automatically for the corresponding repositories if you are logged in to your account. 
-
-- Allow using a **different text editor for a given repo**, by overriding it in the repository settings.
-
-- Allow displaying **SVG files as an image** preview in the diff view.
-
-- Some similar-looking buttons now have distinct **icons** for faster visual recognition.
-
-- Buttons with destructive actions have a red background to make them more visually distinct.
-
-- Allow generating **branch name presets** by calling an external script (e.g., fetching ticket numbers from an issue tracker).  
-  [Click here for more details](docs/branch-name-presets.md).
-
-- Allow showing the effective **Git name and email** used for commits more prominently above the commit message input.
-
-- Fully disables all the GitHub/Microsoft telemetry from the app.
-
-### Repositories list:
-
-- "**Pull all**" button to fetch and pull all your repositories at once.
-
-- Allow showing the **current branch name** next to the repository name.
-
-- Allow **hiding** the "Recent" repositories section.
-
-- Allow customizing the **repository groups** to better organize your repositories.  
-  Right-click on a repository and select "Change group name".
-
-- Allow **pinning** repositories to the top of the list.
-
-### Branches list:
-
-- Added a warning indicator to **local-only branches** (branches that have not been pushed to the remote, or that have been deleted automatically after a PR).
-
-- Allow manually setting which is the **default branch** for a repository (even if it doesn't match the one configured in the remote).  
-  Right-click on a branch and select "Set as default branch". The default branch is used as the base when creating new branches.
-
-- Allow changing the **sort order** of the branch list to either "Recently updated" or "Alphabetical".
-
-### History tab:
-
-- **Search commits** by title, message, tag, or hash.
-
-- Allow switching to a **Commit Graph** view to visualize the merge history.
-
-- Use a different font style for **merge commits** in order to make them visually distinct, since most of the time they are not as relevant.
-
-- Allow choosing between relative dates ("3 days ago") or absolute dates ("Mar 14, 2026, 2:34 PM") for displaying commit dates.
-
-- If a commit modifies only 1 file, allow double-clicking the commit to open the file. For other commits, you can still double-click the file as usual.
-
-- Allow deleting commits and tags that have already been pushed. Please note that this is intended for advanced users only, and can cause problems if the commits have already been pulled by other collaborators.
-
-### Changes tab:
-
-- Added the option to **permanently discard changes** without sending to trash. This is useful when there are many changed files and the regular "Discard" is extremely slow.
-
----
-
-<img src="docs/assets/desktop-plus-demo.webp" alt="Demo" style="max-width:1000px;">
+<video src="https://github.com/user-attachments/assets/a1be6c03-8773-4608-be13-152b5e12c5a9"></video>
 
 </details>
 
