@@ -29,6 +29,7 @@ import {
   suppressCertificateErrorFor,
 } from './suppress-certificate-error'
 import { HttpStatusCode } from './http-status-code'
+import { urlWithoutCredentials } from './trampoline/url-without-credentials'
 import { CopilotError, parseCopilotPaymentRequiredError } from './copilot-error'
 import { BypassReasonType } from '../ui/secret-scanning/bypass-push-protection-dialog'
 import { assertNever } from './fatal-error'
@@ -230,11 +231,10 @@ export interface IBitbucketAPIRepositorySummary {
 function summaryToIAPIRepository(
   repo: IBitbucketAPIRepositorySummary
 ): IAPIRepository {
-  const sshUrl = `git@bitbucket.org:${repo.full_name}.git`
   const [owner, name] = repo.full_name.split('/')
   return {
-    clone_url: sshUrl,
-    ssh_url: sshUrl,
+    clone_url: `https://bitbucket.org/${repo.full_name}.git`,
+    ssh_url: `git@bitbucket.org:${repo.full_name}.git`,
     html_url: repo.links.html.href,
     name,
     owner: {
@@ -323,10 +323,12 @@ function toIAPIRepository(repo: IBitbucketAPIRepository): IAPIRepository {
   const sshUrl =
     repo.links.clone.filter(c => c.name === 'ssh')[0]?.href ||
     `git@bitbucket.org:${repo.full_name}.git`
+  const httpsLink = repo.links.clone.filter(c => c.name === 'https')[0]?.href
+  const httpsUrl = httpsLink
+    ? urlWithoutCredentials(httpsLink)
+    : `https://bitbucket.org/${repo.full_name}.git`
   return {
-    // The Bitbucket integration does not currently provide repository access, users need to set up SSH keys.
-    // For this reason, clone using SSH instead of HTTP.
-    clone_url: sshUrl,
+    clone_url: httpsUrl,
     ssh_url: sshUrl,
     html_url: repo.links.html.href,
     name: repo.slug,
@@ -2006,6 +2008,21 @@ export class API {
     // No special handling on GitHub
   }
 
+  /**
+   * Refresh the access token if it has expired and return the (possibly
+   * refreshed) token. Git operations don't go through `request` and its lazy
+   * refresh logic, so they use this method to obtain a token that's safe to
+   * hand to git as an HTTPS credential.
+   */
+  public async ensureFreshToken(): Promise<string> {
+    const expiration = this.getTokenExpiration()
+    if (expiration !== null && expiration.getTime() < Date.now()) {
+      log.info(`Token expired for endpoint ${this.endpoint}, refreshing token`)
+      await this.refreshTokenWithMutex()
+    }
+    return this.token
+  }
+
   /** Fetch the logged in account. */
   public async fetchAccount(): Promise<IAPIFullIdentity> {
     try {
@@ -3454,7 +3471,9 @@ export function getGitLabOAuthAuthorizationURL(
   state: string,
   codeChallenge: string
 ): string {
-  const scope = encodeURIComponent('read_user read_api read_repository')
+  const scope = encodeURIComponent(
+    'read_user read_api read_repository write_repository'
+  )
   const encodedRedirectUri = encodeURIComponent(oauthRedirectUri)
   const pkceParams = pkceChallengeParams(codeChallenge)
   return `https://gitlab.com/oauth/authorize?client_id=${ClientIDGitLab}&redirect_uri=${encodedRedirectUri}&response_type=code&scope=${scope}&state=${state}&${pkceParams}`

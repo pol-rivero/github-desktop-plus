@@ -28,6 +28,11 @@ import { urlWithoutCredentials } from './url-without-credentials'
 import { trampolineUIHelper as ui } from './trampoline-ui-helper'
 import { getAPIEndpoint, isGitHubHost } from '../api'
 import { isDotCom, isGHE, isGist } from '../endpoint-capabilities'
+import {
+  accountToGitCredential,
+  isAccountCredential,
+  rememberAccountCredential,
+} from './third-party-git-auth'
 
 type Credential = Map<string, string>
 type Store = AccountsStore
@@ -57,6 +62,8 @@ async function getGitHubCredential(
   const account = await findGitHubTrampolineAccount(store, endpoint, login)
   if (account) {
     info(`found GitHub credential for ${endpoint} in store`)
+    rememberAccountCredential(token, getCredentialUrl(cred))
+    return credWithAccount(cred, await accountToGitCredential(account))
   }
   return credWithAccount(cred, account)
 }
@@ -197,6 +204,13 @@ const getEndpointKind = async (
 
 /** Implementation of the 'store' git credential helper command */
 async function storeCredential(cred: Credential, store: Store, token: string) {
+  // Credentials that came from one of the user's accounts (e.g. short-lived
+  // third-party OAuth tokens) must not be persisted as generic credentials,
+  // the account is their source of truth
+  if (isAccountCredential(token, getCredentialUrl(cred))) {
+    return
+  }
+
   if ((await getEndpointKind(cred, store, token)) !== 'generic') {
     return
   }
@@ -217,6 +231,13 @@ const storeExternalCredential = (cred: Credential, token: string) => {
 
 /** Implementation of the 'erase' git credential helper command */
 async function eraseCredential(cred: Credential, store: Store, token: string) {
+  // Credentials that came from one of the user's accounts are never
+  // persisted, so there's nothing to erase and generic credentials must be
+  // left untouched
+  if (isAccountCredential(token, getCredentialUrl(cred))) {
+    return
+  }
+
   if ((await getEndpointKind(cred, store, token)) !== 'generic') {
     return
   }

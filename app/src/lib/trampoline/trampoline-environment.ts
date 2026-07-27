@@ -10,6 +10,7 @@ import { GitError as DugiteError, exec } from 'dugite'
 import memoizeOne from 'memoize-one'
 import { GitError, getDescriptionForError } from '../git/core'
 import { getDesktopAskpassTrampolineFilename } from 'desktop-trampoline'
+import { forgetAccountCredentials } from './third-party-git-auth'
 
 const hasRejectedCredentialsForEndpoint = new Map<string, Set<string>>()
 
@@ -197,6 +198,7 @@ export async function withTrampolineEnv<T>(
       isBackgroundTaskEnvironment.delete(token)
       hasRejectedCredentialsForEndpoint.delete(token)
       trampolineEnvironmentPath.delete(token)
+      forgetAccountCredentials(token)
     }
   })
 }
