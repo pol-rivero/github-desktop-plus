@@ -83,9 +83,6 @@ const DefaultMinimapWidth = 7.5
 const MinMinimapWidth = 4
 const MaxMinimapWidth = 20
 
-let oldWidth = 0
-let oldHeight = 0
-
 export interface ISelection {
   /// Initial diff line number in the selection
   readonly from: number
@@ -245,11 +242,6 @@ interface ISideBySideDiffState {
   } | null
 }
 
-const listRowsHeightCache = new CellMeasurerCache({
-  defaultHeight: DefaultRowHeight,
-  fixedWidth: true,
-})
-
 export class SideBySideDiff extends React.Component<
   ISideBySideDiffProps,
   ISideBySideDiffState
@@ -264,6 +256,19 @@ export class SideBySideDiff extends React.Component<
   private horizontalScrollRef = React.createRef<HTMLDivElement>()
 
   /**
+   * Measured row heights. Kept per instance because several diffs can be
+   * mounted at once.
+   */
+  private readonly listRowsHeightCache = new CellMeasurerCache({
+    defaultHeight: DefaultRowHeight,
+    fixedWidth: true,
+  })
+
+  /** Size of the diff list as of the last `checkOnResize` call. */
+  private lastListWidth = 0
+  private lastListHeight = 0
+
+  /**
    * Width (in pixels) of the widest line across the diff rows that have been
    * rendered so far due to virtualization.
    */
@@ -271,9 +276,6 @@ export class SideBySideDiff extends React.Component<
 
   /** Horizontal overflow (in pixels) currently applied to the scrollbar. */
   private appliedContentOverflow = 0
-
-  /** Width of the diff list as of the last `checkOnResize` call. */
-  private lastListWidth = 0
 
   /** Pending animation frame handle used to coalesce overflow measurements. */
   private pendingWidthMeasurement: number | null = null
@@ -932,7 +934,7 @@ export class SideBySideDiff extends React.Component<
                 {({ height, width }) =>
                   this.checkOnResize(height, width) && (
                     <List
-                      deferredMeasurementCache={listRowsHeightCache}
+                      deferredMeasurementCache={this.listRowsHeightCache}
                       width={width}
                       height={height}
                       rowCount={rows.length}
@@ -1002,14 +1004,16 @@ export class SideBySideDiff extends React.Component<
   }
 
   private checkOnResize = (height: number, width: number) => {
-    if (height !== oldHeight || width !== oldWidth) {
-      oldHeight = height
-      oldWidth = width
-      this.clearListRowsHeightCache()
-    }
-    if (width !== this.lastListWidth) {
+    const widthChanged = width !== this.lastListWidth
+    const heightChanged = height !== this.lastListHeight
+    if (widthChanged || heightChanged) {
       this.lastListWidth = width
-      this.scheduleUnwrappedWidthUpdate()
+      this.lastListHeight = height
+      this.clearListRowsHeightCache()
+
+      if (widthChanged) {
+        this.scheduleUnwrappedWidthUpdate()
+      }
     }
     return true
   }
@@ -1253,7 +1257,7 @@ export class SideBySideDiff extends React.Component<
 
     return (
       <CellMeasurer
-        cache={listRowsHeightCache}
+        cache={this.listRowsHeightCache}
         columnIndex={0}
         key={key}
         parent={parent}
@@ -1332,11 +1336,11 @@ export class SideBySideDiff extends React.Component<
   }
 
   private getRowHeight = (row: { index: number }) => {
-    return listRowsHeightCache.rowHeight(row) ?? DefaultRowHeight
+    return this.listRowsHeightCache.rowHeight(row) ?? DefaultRowHeight
   }
 
   private getMinimapRowHeight = (index: number): number => {
-    return listRowsHeightCache.getHeight(index, 0) ?? DefaultRowHeight
+    return this.listRowsHeightCache.getHeight(index, 0) ?? DefaultRowHeight
   }
 
   // Drives the minimap-width drag without React state so the diff list
@@ -1400,7 +1404,7 @@ export class SideBySideDiff extends React.Component<
   }
 
   private clearListRowsHeightCache = () => {
-    listRowsHeightCache.clearAll()
+    this.listRowsHeightCache.clearAll()
   }
 
   private async initDiffSyntaxMode() {
@@ -1710,10 +1714,11 @@ export class SideBySideDiff extends React.Component<
     // contains the mouse, we scroll to it and update the temporary selection.
     for (let index = 0; index < totalRows; index++) {
       // Use row height cache in order to do the math faster
-      let height = listRowsHeightCache.getHeight(index, 0)
+      let height = this.listRowsHeightCache.getHeight(index, 0)
       if (height === undefined) {
         list.recomputeRowHeights(index)
-        height = listRowsHeightCache.getHeight(index, 0) ?? DefaultRowHeight
+        height =
+          this.listRowsHeightCache.getHeight(index, 0) ?? DefaultRowHeight
       }
 
       if (
