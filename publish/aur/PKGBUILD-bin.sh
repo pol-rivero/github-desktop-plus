@@ -4,7 +4,6 @@
 # Contributor: Ian MacKay <immackay0@gmail.com>
 
 _pkgname='desktop-plus'
-_old_pkgname='github-desktop-plus'
 pkgname="${_pkgname}-bin"
 pkgver=[[APP_VERSION]]
 pkgrel=1
@@ -12,9 +11,8 @@ pkgdesc="GitHub Desktop fork with extra features and improvements (binary releas
 arch=('x86_64' 'aarch64')
 url="https://github.com/desktop-plus/desktop-plus"
 license=('MIT')
-provides=(${_pkgname} ${_old_pkgname})
-conflicts=(${_pkgname} ${_old_pkgname})
-replaces=("${_old_pkgname}-bin")
+provides=(${_pkgname})
+conflicts=(${_pkgname})
 depends=(
     'curl'
     'libcurl-gnutls'
