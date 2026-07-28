@@ -1,32 +1,24 @@
-Desktop Plus v3.6.4-beta1
-
-Upstream: [GitHub Desktop 3.6.4-beta1 release notes](https://github.com/desktop/desktop/releases/tag/release-3.6.4-beta1)
-
----
-
-> [!WARNING]
-> If you use **Winget** to install Desktop Plus in Windows, you will need to uninstall the old package name (`polrivero.GitHubDesktopPlus`) and install the new package name (`DesktopPlus.DesktopPlus`) to continue receiving updates.  
-> Unlike other package managers, Winget does not support a user-friendly way to transition from one package name to another.
->
-> You can reinstall Desktop Plus using the following commands:  
-> ```
-> winget uninstall polrivero.GitHubDesktopPlus --all-versions
-> winget install DesktopPlus.DesktopPlus
-> ```
+Desktop Plus v3.6.4-alpha2
 
 ## **Changes and improvements:**
 
-- [#217] The old "Change group name", "Restore group name" and "Pin/Unpin repository" repository context menu options have been replaced with a new "Assign to group" submenu. Thank you @s-iorio!  
-  This makes it much easier to create new groups and assign repositories to them, especially when you have many repositories in your list. It also reduces clutter in the context menu.
+- The "Last clone" location (that is, the autopopulated parent directory when cloning a repository) is now remembered per-account instead of globally. This is useful if you have a work account and a personal account, and you would like to keep your work repositories in a different location than your personal repositories.
 
-- [#216] Allow disabling line wrapping in the diff view. Thank you @ignatremizov!  
-  To disable it, click on the "Diff options" gear icon and uncheck the "Wrap lines" option.
+- [#222] The app now uses HTTPS instead of SSH for git operations (clone, push, pull...), in all third-party integrations. This means these accounts now work out of the box without you needing to set up SSH keys:
+  - **GitHub** accounts: They already used HTTPS, no changes were made.
+  - **GitLab** accounts: You will need to log out and log back in to your GitLab account. After logging back in, you will be able to clone, push, and pull your public and private repositories without needing to set up SSH keys.
+  - **Bitbucket** accounts: All sessions were automatically invalidated, you may have noticed a forced re-login some hours ago. After logging back in, you will be able to clone, push, and pull your public and private repositories without needing to set up SSH keys.
+  - **Codeberg** accounts: They already used HTTPS, but it should now work more reliably.
 
-- [#221] When using the "Pull all" button to update all repositories, if the checked-out branch has been removed in the remote, the app will now offer to switch to the main branch and optionally delete the local branch. Thank you @guplem!  
-
-- [#175] Allow configuring the default strategy (*Merge* or *Rebase*) for updating from the default branch (`Ctrl/Cmd + Shift + U`). Thank you @kurtextrem!  
-  To change the update strategy, go to `File > Repository options > Git config`.
+  > [!NOTE]
+  > Please note that already cloned repositories will continue to use SSH for git operations. There is no advantage to switching them to HTTPS, but if you want to do so you can either:
+  > - Delete the repository and re-clone it from within the app, or
+  > - Change the remote URL to use the HTTPS URL
 
 ## Fixes:
 
-- [#219] Fix a bug where the "Checkout commit" option was grayed out for some commits in the *commit graph* view. Thank you @jabelardo!
+- The Compare tab (Ahead/Behind list) is now correctly refreshed when switching branches, pulling remote changes, etc.
+
+- When "Wrap lines" is disabled in the diff options, resizing the window or sidebar now correctly updates the horizontal scrollbar.
+
+- Fixed a race condition that could show incorrect error information or cause the app to remove the incorrect branch if the user switched branches while the "Pull all" process was in progress.
