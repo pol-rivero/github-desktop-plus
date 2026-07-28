@@ -6462,9 +6462,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
     const nonMissingRepos = repositories.filter(r => !r.missing)
     await Promise.all(
       nonMissingRepos.map(repository =>
-        this.withRepoInfoInError('Error pulling', repository, () =>
-          this._pull(repository)
-        )
+        this.withRepoInfoInError('Error pulling', repository, async () => {
+          // The cached tip of a repository that isn't the selected one can be stale, refresh first.
+          await this.gitStoreCache.get(repository).loadStatus()
+          await this._pull(repository)
+        })
       )
     )
   }
