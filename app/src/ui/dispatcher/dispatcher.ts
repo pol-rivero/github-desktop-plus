@@ -2943,11 +2943,11 @@ export class Dispatcher {
    */
   public async switchToDefaultBranchAndPull(
     repository: Repository,
-    deleteStaleBranch: boolean = false
+    staleBranchToDelete: string | null = null
   ): Promise<void> {
     return this.appStore._switchToDefaultBranchAndPull(
       repository,
-      deleteStaleBranch
+      staleBranchToDelete
     )
   }
 

@@ -105,7 +105,7 @@ export class PullBranchDeletedDialog extends React.Component<
     this.props.onDismissed()
     this.props.dispatcher.switchToDefaultBranchAndPull(
       this.props.repository,
-      this.state.deleteStaleBranch
+      this.state.deleteStaleBranch ? this.props.branchName : null
     )
   }
 }

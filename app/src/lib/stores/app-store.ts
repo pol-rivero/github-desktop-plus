@@ -6398,7 +6398,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
    */
   public async _switchToDefaultBranchAndPull(
     repository: Repository,
-    deleteStaleBranch: boolean = false
+    staleBranchToDelete: string | null = null
   ): Promise<void> {
     const { branchesState } = this.repositoryStateCache.get(repository)
     const { defaultBranch, tip } = branchesState
@@ -6413,11 +6413,18 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     const shouldDeleteStaleBranch =
-      deleteStaleBranch &&
+      staleBranchToDelete !== null &&
       tip.kind === TipState.Valid &&
+      tip.branch.name === staleBranchToDelete &&
       tip.branch.name !== defaultBranch.name
 
     const branchToDelete = shouldDeleteStaleBranch ? tip.branch : null
+
+    if (staleBranchToDelete !== null && branchToDelete === null) {
+      log.info(
+        `Not deleting branch '${staleBranchToDelete}' in '${repository.name}' because it is no longer the checked out branch.`
+      )
+    }
 
     // Only pull (and maybe delete) once we've actually switched to the default branch.
     // When the branch has uncommitted changes the checkout may defer to a "stash and
