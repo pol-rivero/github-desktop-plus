@@ -13,7 +13,7 @@ import memoizeOne from 'memoize-one'
 export async function getRemotes(
   repository: Repository
 ): Promise<ReadonlyArray<IRemote>> {
-  return memoizedGetRemotesFromPath(repository.path)
+  return getRemotesFromPath(repository.path)
 }
 
 /**

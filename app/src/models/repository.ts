@@ -10,7 +10,7 @@ import {
 import { UpdateBranchStrategy } from '../lib/update-branch-strategy'
 import { assertNever, fatalError } from '../lib/fatal-error'
 import { createEqualityHash } from './equality-hash'
-import { getRemotes } from '../lib/git'
+import { memoizedGetRemotesFromPath } from '../lib/git'
 import { findDefaultRemote } from '../lib/stores/helpers/find-default-remote'
 import { isTrustedRemoteHost } from '../lib/api'
 import { EditorOverride } from './editor-override'
@@ -114,7 +114,7 @@ export class Repository {
 
   private fetchUrl(): void {
     // Get the URL of the default remote, if it exists.
-    getRemotes(this).then(remotes => {
+    memoizedGetRemotesFromPath(this.path).then(remotes => {
       const defaultRemote = findDefaultRemote(remotes)
       if (defaultRemote) {
         this._url = defaultRemote.url
