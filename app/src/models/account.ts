@@ -106,7 +106,8 @@ export class Account {
       this.plan,
       this.copilotEndpoint,
       this.isCopilotDesktopEnabled,
-      this.features
+      this.features,
+      this.copilotLicenseType
     )
   }
 

@@ -410,7 +410,8 @@ export class RepositoriesStore extends TypedBaseStore<
       repository.workflowPreferences,
       repository.customEditorOverride,
       repository.isTutorialRepository,
-      repository.overrideLogin
+      repository.overrideLogin,
+      repository.gitDir
     )
   }
 
@@ -441,7 +442,8 @@ export class RepositoriesStore extends TypedBaseStore<
       repository.workflowPreferences,
       repository.customEditorOverride,
       repository.isTutorialRepository,
-      account?.login ?? LoginSpecialValue.ForceNullLogin
+      account?.login ?? LoginSpecialValue.ForceNullLogin,
+      repository.gitDir
     )
   }
 
@@ -719,7 +721,8 @@ export class RepositoriesStore extends TypedBaseStore<
       oldRepo.workflowPreferences,
       oldRepo.customEditorOverride,
       newRepo.isTutorialRepository,
-      oldRepo.overrideLogin
+      oldRepo.overrideLogin,
+      newRepo.gitDir
     )
   }
 
