@@ -517,6 +517,12 @@ function copyCopilotDependency() {
   const copilotDestination = path.resolve(outRoot, 'copilot')
   removeAndCopy(copilotPkgDir, copilotDestination)
 
+  // The Copilot CLI ships as a ~150MB Node SEA alongside the plain JS files.
+  // We never run it, and instead run index.js (see copilot-store.ts), we can remove it.
+  for (const seaBinary of ['copilot', 'copilot.exe']) {
+    rmSync(path.join(copilotDestination, seaBinary), { force: true })
+  }
+
   // Platforms and architectures to remove from prebuild directories. This is
   // an exhaustive list of all non-current platforms rather than an allowlist,
   // because some packages (clipboard, pvrecorder) have entries without
