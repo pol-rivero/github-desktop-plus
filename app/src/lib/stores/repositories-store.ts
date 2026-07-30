@@ -306,6 +306,10 @@ export class RepositoriesStore extends TypedBaseStore<
     repository: Repository,
     missing: boolean
   ): Promise<Repository> {
+    if (repository.missing === missing) {
+      return repository
+    }
+
     await this.db.repositories.update(repository.id, { missing })
 
     this.emitUpdatedRepositories()
@@ -331,6 +335,10 @@ export class RepositoriesStore extends TypedBaseStore<
     repository: Repository,
     gitDir: string
   ): Promise<Repository> {
+    if (repository.gitDir === gitDir) {
+      return repository
+    }
+
     await this.db.repositories.update(repository.id, { gitDir })
 
     this.emitUpdatedRepositories()
@@ -395,6 +403,10 @@ export class RepositoriesStore extends TypedBaseStore<
     repository: Repository,
     defaultBranch: string | null
   ): Promise<Repository> {
+    if (repository.defaultBranch === defaultBranch) {
+      return repository
+    }
+
     await this.db.repositories.update(repository.id, { defaultBranch })
 
     this.emitUpdatedRepositories()

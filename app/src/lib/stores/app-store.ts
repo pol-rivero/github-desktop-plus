@@ -4753,7 +4753,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.updateCurrentTutorialStep(repository)
 
     if (!repository.defaultBranch && gitStore.defaultBranch) {
-      this._updateRepositoryDefaultBranch(
+      // Don't call _updateRepositoryDefaultBranch, it refreshes the repository
+      // and we're in the middle of doing exactly that.
+      await this.repositoriesStore.updateRepositoryDefaultBranch(
         repository,
         gitStore.defaultBranch.nameWithoutRemote
       )
