@@ -52,6 +52,7 @@ import {
 } from 'fs'
 import { join } from 'path'
 import { updateLicenseDump } from './licenses/update-license-dump'
+import { removeCurlVersionRequirements } from './remove-curl-version-requirements'
 import { verifyInjectedSassVariables } from './validate-sass/validate-all'
 
 // Always use ad-hoc code signing ('-'), even for published builds, to avoid "app is damaged" error.
@@ -377,6 +378,11 @@ function copyDependencies() {
     recursive: true,
     verbatimSymlinks: true,
   })
+
+  if (process.platform === 'linux') {
+    // Avoids ld.so warnings on distros without libcurl symbol versioning
+    removeCurlVersionRequirements(gitDir)
+  }
 
   console.log('  Copying desktop credential helper…')
   const mingw = getDistArchitecture() === 'x64' ? 'mingw64' : 'clangarm64'
