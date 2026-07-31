@@ -55,6 +55,7 @@ function makeAccount(options: IAccountOptions = {}): Account {
   return new Account(
     options.login ?? 'mona',
     options.endpoint ?? 'https://api.github.com',
+    'dotcom',
     'token',
     'refreshToken',
     0,

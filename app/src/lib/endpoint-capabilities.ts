@@ -1,11 +1,12 @@
 import * as semver from 'semver'
 import {
-  getBitbucketAPIEndpoint,
-  getCodebergAPIEndpoint,
+  getBitbucketCloudAPIEndpoint,
+  getCodebergCloudAPIEndpoint,
   getDotComAPIEndpoint,
-  getGitLabAPIEndpoint,
+  getGitLabCloudAPIEndpoint,
 } from './api'
 import { assertNonNullable } from './fatal-error'
+import { getRegisteredApiType } from './endpoint-api-type-registry'
 
 export type VersionConstraint = {
   /**
@@ -63,16 +64,20 @@ export const isGist = (ep: string) => {
   return hostname === 'gist.github.com' || hostname === 'gist.ghe.io'
 }
 
-export const isBitbucket = (ep: string) => {
-  return ep === getBitbucketAPIEndpoint()
+export const isBitbucketCloud = (ep: string) => {
+  return ep === getBitbucketCloudAPIEndpoint()
 }
 
-export const isGitLab = (ep: string) => {
-  return ep === getGitLabAPIEndpoint()
+export const isGitLabCloud = (ep: string) => {
+  return ep === getGitLabCloudAPIEndpoint()
 }
 
-export const isCodeberg = (ep: string) => {
-  return ep === getCodebergAPIEndpoint()
+export const isCodebergCloud = (ep: string) => {
+  return ep === getCodebergCloudAPIEndpoint()
+}
+
+export const isCodebergCloudOrForgejo = (ep: string) => {
+  return isCodebergCloud(ep) || getRegisteredApiType(ep) === 'codeberg'
 }
 
 /** Whether or not the given endpoint URI is under the ghe.com domain */
@@ -85,9 +90,10 @@ export const isGHE = (ep: string) => new URL(ep).hostname.endsWith('.ghe.com')
 export const isGHES = (ep: string) =>
   !isDotCom(ep) &&
   !isGHE(ep) &&
-  !isBitbucket(ep) &&
-  !isGitLab(ep) &&
-  !isCodeberg(ep)
+  !isBitbucketCloud(ep) &&
+  !isGitLabCloud(ep) &&
+  !isCodebergCloud(ep) &&
+  getRegisteredApiType(ep) === undefined
 
 export function getEndpointVersion(endpoint: string) {
   const key = endpointVersionKey(endpoint)

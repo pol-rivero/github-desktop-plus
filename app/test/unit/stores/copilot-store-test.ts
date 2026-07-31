@@ -67,6 +67,7 @@ function makeAccount(overrides: IAccountOverrides = {}): Account {
   return new Account(
     login,
     overrides.endpoint ?? getDotComAPIEndpoint(),
+    'dotcom',
     overrides.token ?? 'token',
     'refreshToken',
     0,

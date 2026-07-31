@@ -1,11 +1,4 @@
-import {
-  getBitbucketAPIEndpoint,
-  getCodebergAPIEndpoint,
-  getDotComAPIEndpoint,
-  getGitLabAPIEndpoint,
-  getHTMLURL,
-  IAPIEmail,
-} from '../lib/api'
+import { getDotComAPIEndpoint, getHTMLURL, IAPIEmail } from '../lib/api'
 
 export const CopilotLicenseTypeNoAccess = 'NO_ACCESS'
 /**
@@ -42,6 +35,7 @@ export class Account {
     return new Account(
       '',
       getDotComAPIEndpoint(),
+      'dotcom',
       '',
       '',
       0,
@@ -55,14 +49,13 @@ export class Account {
 
   private _friendlyEndpoint: string | undefined = undefined
 
-  private _apiType: AccountAPIType | undefined = undefined
-
   /**
    * Create an instance of an account
    *
    * @param login The login name for this account
    * @param endpoint The server for this account - GitHub or a GitHub Enterprise instance
    * @param token The access token used to perform operations on behalf of this account
+   * @param apiType The API type of the provider this account belongs to.
    * @param refreshToken The refresh token used to obtain a new access token
    * @param tokenExpiresAt The expiration time of the access token, in milliseconds since the epoch
    * @param emails The current list of email addresses associated with the account
@@ -78,6 +71,7 @@ export class Account {
   public constructor(
     public readonly login: string,
     public readonly endpoint: string,
+    public readonly apiType: AccountAPIType,
     public readonly token: string,
     public readonly refreshToken: string,
     public readonly tokenExpiresAt: number,
@@ -96,6 +90,7 @@ export class Account {
     return new Account(
       this.login,
       this.endpoint,
+      this.apiType,
       token,
       this.refreshToken,
       this.tokenExpiresAt,
@@ -119,6 +114,7 @@ export class Account {
     return new Account(
       this.login,
       this.endpoint,
+      this.apiType,
       token,
       refreshToken,
       tokenExpiresAt,
@@ -155,24 +151,6 @@ export class Account {
     return (this._friendlyEndpoint ??= isDotComAccount(this)
       ? 'GitHub.com'
       : new URL(getHTMLURL(this.endpoint)).hostname)
-  }
-
-  public get apiType(): AccountAPIType {
-    return (this._apiType ??= this.computeApiType())
-  }
-
-  private computeApiType(): AccountAPIType {
-    if (this.endpoint === getDotComAPIEndpoint()) {
-      return 'dotcom'
-    } else if (this.endpoint === getBitbucketAPIEndpoint()) {
-      return 'bitbucket'
-    } else if (this.endpoint === getGitLabAPIEndpoint()) {
-      return 'gitlab'
-    } else if (this.endpoint === getCodebergAPIEndpoint()) {
-      return 'codeberg'
-    } else {
-      return 'enterprise'
-    }
   }
 
   public get isAnonymous() {

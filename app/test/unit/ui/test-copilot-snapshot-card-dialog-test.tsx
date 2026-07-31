@@ -11,6 +11,7 @@ function makeAccount(): Account {
   return new Account(
     'octo',
     'https://enterprise.example.com/api/v3',
+    'enterprise',
     'token',
     'refreshToken',
     0,

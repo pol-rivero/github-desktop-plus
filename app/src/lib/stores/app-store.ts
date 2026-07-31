@@ -1184,7 +1184,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       this.updateCopilotModelsForCurrentAccount()
       this.updateCopilotQuotaSnapshotsForCurrentAccount()
       const endpointTokens = accounts.map<EndpointToken>(
-        ({ endpoint, token }) => ({ endpoint, token })
+        ({ endpoint, token, apiType }) => ({ endpoint, token, apiType })
       )
 
       updateAccounts(endpointTokens)

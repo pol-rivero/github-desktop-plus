@@ -49,7 +49,13 @@ export function installAuthenticatedImageFilter(
 
   return (accounts: ReadonlyArray<EndpointToken>) => {
     originTokens = new Map(
-      accounts.map(({ endpoint, token }) => [new URL(endpoint).origin, token])
+      accounts
+        // The paths this filter matches only exist on GitHub hosts,
+        // never attach a third-party (Bitbucket/GitLab/Forgejo) token
+        .filter(
+          ({ apiType }) => apiType === 'dotcom' || apiType === 'enterprise'
+        )
+        .map(({ endpoint, token }) => [new URL(endpoint).origin, token])
     )
 
     // If we have a token for api.github.com, add another entry in our

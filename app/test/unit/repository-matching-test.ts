@@ -16,6 +16,7 @@ describe('repository-matching', () => {
         new Account(
           'alovelace',
           'https://api.github.com',
+          'dotcom',
           '',
           '',
           0,
@@ -41,6 +42,7 @@ describe('repository-matching', () => {
         new Account(
           'alovelace',
           'https://api.github.com',
+          'dotcom',
           '',
           '',
           0,
@@ -66,6 +68,7 @@ describe('repository-matching', () => {
         new Account(
           'alovelace',
           'https://api.github.com',
+          'dotcom',
           '',
           '',
           0,
@@ -91,6 +94,7 @@ describe('repository-matching', () => {
         new Account(
           'alovelace',
           'https://api.github.com',
+          'dotcom',
           '',
           '',
           0,
@@ -116,6 +120,7 @@ describe('repository-matching', () => {
         new Account(
           'firstaccount',
           'https://api.github.com',
+          'dotcom',
           '',
           '',
           0,
@@ -128,6 +133,7 @@ describe('repository-matching', () => {
         new Account(
           'someuser',
           'https://api.github.com',
+          'dotcom',
           '',
           '',
           0,
@@ -152,6 +158,7 @@ describe('repository-matching', () => {
         new Account(
           'alovelace',
           'https://api.github.com',
+          'dotcom',
           '',
           '',
           0,
@@ -164,6 +171,7 @@ describe('repository-matching', () => {
         new Account(
           'cbabbage',
           'https://api.github.com',
+          'dotcom',
           '',
           '',
           0,
@@ -188,6 +196,7 @@ describe('repository-matching', () => {
         new Account(
           'alovelace',
           'https://github.babbageinc.com',
+          'enterprise',
           '',
           '',
           0,

@@ -1,6 +1,11 @@
 import { IAPIEmail } from './api'
 import { Account } from '../models/account'
-import { isCodeberg, isDotCom, isGHE, isGHES } from './endpoint-capabilities'
+import {
+  isCodebergCloudOrForgejo,
+  isDotCom,
+  isGHE,
+  isGHES,
+} from './endpoint-capabilities'
 
 /**
  * Lookup a suitable email address to display in the application, based on the
@@ -57,7 +62,7 @@ const getStealthEmailHostForEndpoint = (endpoint: string) => {
     return `users.noreply.${new URL(endpoint).hostname}`
   } else if (isDotCom(endpoint)) {
     return 'users.noreply.github.com'
-  } else if (isCodeberg(endpoint)) {
+  } else if (isCodebergCloudOrForgejo(endpoint)) {
     // https://codeberg.org/forgejo/forgejo/issues/5055
     return `noreply.${new URL(endpoint).hostname}`
   } else {

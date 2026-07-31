@@ -7,9 +7,9 @@ import {
 } from '../databases/repositories-database'
 import { Owner } from '../../models/owner'
 import {
-  deduceRepositoryType,
   GitHubRepository,
   GitHubRepositoryPermission,
+  RepoType,
 } from '../../models/github-repository'
 import {
   LoginSpecialValue,
@@ -24,6 +24,7 @@ import {
   IAPIBranch,
   IAPIFullRepository,
   GitHubAccountType,
+  deriveApiType,
 } from '../api'
 import { TypedBaseStore } from './base-store'
 import { WorkflowPreferences } from '../../models/workflow-preferences'
@@ -35,6 +36,17 @@ import { Account } from '../../models/account'
 
 type AddRepositoryOptions = {
   missing?: boolean
+}
+
+function repoTypeFromEndpoint(endpoint: string): RepoType {
+  const apiType = deriveApiType(endpoint)
+  switch (apiType) {
+    case 'dotcom':
+    case 'enterprise':
+      return 'github'
+    default:
+      return apiType
+  }
 }
 
 /** The store for local repositories. */
@@ -125,11 +137,12 @@ export class RepositoriesStore extends TypedBaseStore<
         dbOwner.login,
         dbOwner.endpoint,
         dbOwner.id!,
-        dbOwner.type
+        dbOwner.type,
+        dbOwner.apiType
       )
     }
 
-    const repoType = deduceRepositoryType(repo.htmlURL || '')
+    const repoType = owner.apiType ?? repoTypeFromEndpoint(owner.endpoint)
     const ghRepo = new GitHubRepository(
       repo.name,
       repoType,
@@ -635,6 +648,9 @@ export class RepositoriesStore extends TypedBaseStore<
     const existingOwner = await this.db.owners.get({ key })
     let id
 
+    const apiType =
+      repoTypeFromEndpoint(endpoint) ?? existingOwner?.apiType ?? 'github'
+
     // Since we look up the owner based on a key which is the product of the
     // lowercased endpoint and login we know that we've found our match but it's
     // possible that the case differs (i.e we found `usera` but the actual login
@@ -644,7 +660,8 @@ export class RepositoriesStore extends TypedBaseStore<
       existingOwner === undefined ||
       existingOwner.login !== login ||
       // This is added so that we update existing owners with an undefined type.
-      (ownerType !== undefined && existingOwner.type !== ownerType)
+      (ownerType !== undefined && existingOwner.type !== ownerType) ||
+      existingOwner.apiType !== apiType
     ) {
       id = existingOwner?.id
       const existingId = id !== undefined ? { id } : {}
@@ -653,13 +670,20 @@ export class RepositoriesStore extends TypedBaseStore<
         key,
         endpoint,
         login,
-        type: ownerType,
+        type: ownerType ?? existingOwner?.type,
+        apiType,
       })
     } else {
       id = forceUnwrap('Missing owner id', existingOwner.id)
     }
 
-    return new Owner(login, endpoint, id, ownerType ?? existingOwner?.type)
+    return new Owner(
+      login,
+      endpoint,
+      id,
+      ownerType ?? existingOwner?.type,
+      apiType
+    )
   }
 
   public async upsertGitHubRepositoryFromMatch(

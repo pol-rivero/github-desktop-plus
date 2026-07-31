@@ -35,6 +35,7 @@ function createAccount() {
   return new Account(
     'mona',
     'https://api.github.com',
+    'dotcom',
     'token',
     '',
     0,

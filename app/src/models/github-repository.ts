@@ -1,9 +1,10 @@
+import { findRegisteredEndpointForHostname } from '../lib/endpoint-api-type-registry'
 import { createEqualityHash } from './equality-hash'
 import { Owner } from './owner'
 
 export type GitHubRepositoryPermission = 'read' | 'write' | 'admin' | null
 
-export type RepoType = 'github' | 'bitbucket' | 'gitlab' | 'codeberg'
+export type RepoType = 'github' | 'bitbucket' | 'gitlab' | 'codeberg' // TODO: Rename to 'forgejo'
 
 /** A GitHub repository. */
 export class GitHubRepository {
@@ -102,6 +103,10 @@ export function deduceRepositoryType(url: string): RepoType {
       return 'gitlab'
     } else if (host === 'codeberg.org') {
       return 'codeberg'
+    }
+    const registered = findRegisteredEndpointForHostname(host)
+    if (registered !== undefined) {
+      return registered.type
     }
     return 'github'
   } catch (e) {

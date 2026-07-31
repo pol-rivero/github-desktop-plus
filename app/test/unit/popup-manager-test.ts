@@ -203,6 +203,7 @@ describe('PopupManager', () => {
       const mockAccount = new Account(
         'test',
         '',
+        'dotcom',
         'deadbeef',
         '',
         0,

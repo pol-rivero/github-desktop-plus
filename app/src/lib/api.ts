@@ -1,5 +1,9 @@
 import * as URL from 'url'
-import { Account, UnknownLogin } from '../models/account'
+import { Account, AccountAPIType, UnknownLogin } from '../models/account'
+import {
+  findRegisteredEndpointForHostname,
+  getRegisteredApiType,
+} from './endpoint-api-type-registry'
 import {
   ICopilotCommitMessage,
   parseCopilotCommitMessage,
@@ -16,12 +20,11 @@ import {
 import { GitProtocol, parseRemote } from './remote-parsing'
 import {
   getEndpointVersion,
-  isBitbucket,
-  isCodeberg,
+  isBitbucketCloud,
+  isCodebergCloud,
   isDotCom,
   isGHE,
-  isGHES,
-  isGitLab,
+  isGitLabCloud,
   updateEndpointVersion,
 } from './endpoint-capabilities'
 import {
@@ -1398,11 +1401,12 @@ interface ICodebergAPICombinedStatus {
   readonly statuses: ReadonlyArray<ICodebergAPICommitStatus> | null
 }
 function toIAPIRefStatusItemFromCodeberg(
-  status: ICodebergAPICommitStatus
+  status: ICodebergAPICommitStatus,
+  endpoint: string
 ): IAPIRefStatusItem {
   return {
     state: mapRefStateFromCodeberg(status.status),
-    target_url: toCodebergAbsoluteURL(status.target_url),
+    target_url: toCodebergAbsoluteURL(status.target_url, endpoint),
     description: status.description,
     context: status.context,
     id: status.id,
@@ -1424,14 +1428,17 @@ function mapRefStateFromCodeberg(state: CodebergAPIStatusState): APIRefState {
       return 'pending'
   }
 }
-function toCodebergAbsoluteURL(url: string | null): string | null {
+function toCodebergAbsoluteURL(
+  url: string | null,
+  endpoint: string
+): string | null {
   if (!url) {
     return null
   }
   try {
     // Statuses reported by Forgejo Actions use a target_url that is relative
     // to the instance root (e.g. /owner/repo/actions/runs/123)
-    const host = new window.URL(getCodebergAPIEndpoint()).host
+    const host = new window.URL(endpoint).host
     return new window.URL(url, `https://${host}`).toString()
   } catch {
     return null
@@ -1698,42 +1705,15 @@ export class API {
 
   /** Create a new API client from the given account. */
   public static fromAccount(account: Account): API {
-    switch (account.apiType) {
-      case 'bitbucket':
-        // eslint-disable-next-line @typescript-eslint/no-use-before-define -- a necessary evil if we want to minimize the diff in other files
-        return new BitbucketAPI(
-          account.token,
-          account.login,
-          account.refreshToken,
-          account.tokenExpiresAt
-        )
-      case 'gitlab':
-        // eslint-disable-next-line @typescript-eslint/no-use-before-define -- a necessary evil if we want to minimize the diff in other files
-        return GitLabAPI.get(
-          account.token,
-          account.login,
-          account.refreshToken,
-          account.tokenExpiresAt
-        )
-      case 'codeberg':
-        // eslint-disable-next-line @typescript-eslint/no-use-before-define -- a necessary evil if we want to minimize the diff in other files
-        return CodebergAPI.get(
-          account.token,
-          account.login,
-          account.refreshToken,
-          account.tokenExpiresAt
-        )
-      case 'dotcom':
-      case 'enterprise':
-        return new API(
-          account.endpoint,
-          account.token,
-          account.login,
-          account.copilotEndpoint
-        )
-      default:
-        assertNever(account.apiType, 'Unknown API type')
-    }
+    return instantiateAPI(
+      account.apiType,
+      account.endpoint,
+      account.token,
+      account.login,
+      account.refreshToken,
+      account.tokenExpiresAt,
+      account.copilotEndpoint
+    )
   }
 
   protected endpoint: string
@@ -3139,7 +3119,7 @@ export class API {
    */
   public async fetchUserCopilotInfo(): Promise<UserCopilotInfo | undefined> {
     // Copilot is not available on GHES
-    if (isGHES(this.endpoint)) {
+    if (!isDotCom(this.endpoint) && !isGHE(this.endpoint)) {
       return undefined
     }
 
@@ -3251,24 +3231,21 @@ export async function deleteToken(account: Account) {
 /** Fetch the user authenticated by the token. */
 export async function fetchUser(
   endpoint: string,
+  apiType: AccountAPIType,
   token: string,
   refreshToken: string,
   expiresAt: number,
   login: string | UnknownLogin
 ): Promise<Account> {
-  let api: API
-  if (endpoint === getBitbucketAPIEndpoint()) {
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    api = new BitbucketAPI(token, login, refreshToken, expiresAt)
-  } else if (endpoint === getGitLabAPIEndpoint()) {
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    api = GitLabAPI.get(token, login, refreshToken, expiresAt)
-  } else if (endpoint === getCodebergAPIEndpoint()) {
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    api = CodebergAPI.get(token, login, refreshToken, expiresAt)
-  } else {
-    api = new API(endpoint, token, login)
-  }
+  const api = instantiateAPI(
+    apiType,
+    endpoint,
+    token,
+    login,
+    refreshToken,
+    expiresAt,
+    undefined
+  )
   try {
     const [user, emails, copilotInfo, features] = await Promise.all([
       api.fetchAccount(),
@@ -3280,6 +3257,7 @@ export async function fetchUser(
     return new Account(
       user.login,
       endpoint,
+      apiType,
       api.getToken(), // Grab it back from the API because it may have been refreshed
       api.getRefreshToken(),
       api.getExpiresAt(),
@@ -3318,13 +3296,17 @@ export function getEndpointForRepository(url: string): string | null {
   if (parsed.hostname === 'github.com') {
     return getDotComAPIEndpoint()
   } else if (parsed.hostname === 'bitbucket.org') {
-    return getBitbucketAPIEndpoint()
+    return getBitbucketCloudAPIEndpoint()
   } else if (parsed.hostname === 'gitlab.com') {
-    return getGitLabAPIEndpoint()
+    return getGitLabCloudAPIEndpoint()
   } else if (parsed.hostname === 'codeberg.org') {
-    return getCodebergAPIEndpoint()
+    return getCodebergCloudAPIEndpoint()
   } else {
-    return `${parsed.protocol}//${parsed.hostname}/api`
+    const registered = findRegisteredEndpointForHostname(parsed.hostname)
+    if (registered !== undefined) {
+      return registered.endpoint
+    }
+    return `${parsed.protocol}://${parsed.hostname}/api`
   }
 }
 
@@ -3349,11 +3331,11 @@ export function getHTMLURL(endpoint: string): string {
   // We need to normalize them.
   if (endpoint === getDotComAPIEndpoint() && !envEndpoint) {
     return 'https://github.com'
-  } else if (endpoint === getBitbucketAPIEndpoint()) {
+  } else if (endpoint === getBitbucketCloudAPIEndpoint()) {
     return 'https://bitbucket.org'
-  } else if (endpoint === getGitLabAPIEndpoint()) {
+  } else if (endpoint === getGitLabCloudAPIEndpoint()) {
     return 'https://gitlab.com'
-  } else if (endpoint === getCodebergAPIEndpoint()) {
+  } else if (endpoint === getCodebergCloudAPIEndpoint()) {
     return 'https://codeberg.org'
   } else {
     if (isGHE(endpoint)) {
@@ -3369,7 +3351,7 @@ export function getHTMLURL(endpoint: string): string {
     }
 
     const parsed = URL.parse(endpoint)
-    return `${parsed.protocol}//${parsed.hostname}`
+    return `${parsed.protocol}//${parsed.host}`
   }
 }
 
@@ -3385,17 +3367,23 @@ export function getEnterpriseAPIURL(endpoint: string): string {
 }
 
 export const getAPIEndpoint = (endpoint: string) => {
+  const registered = findRegisteredEndpointForHostname(
+    new window.URL(endpoint).hostname
+  )
+  if (registered !== undefined) {
+    return registered.endpoint
+  }
   if (isDotCom(endpoint)) {
     return getDotComAPIEndpoint()
   }
-  if (isBitbucket(endpoint)) {
-    return getBitbucketAPIEndpoint()
+  if (isBitbucketCloud(endpoint)) {
+    return getBitbucketCloudAPIEndpoint()
   }
-  if (isGitLab(endpoint)) {
-    return getGitLabAPIEndpoint()
+  if (isGitLabCloud(endpoint)) {
+    return getGitLabCloudAPIEndpoint()
   }
-  if (isCodeberg(endpoint)) {
-    return getCodebergAPIEndpoint()
+  if (isCodebergCloud(endpoint)) {
+    return getCodebergCloudAPIEndpoint()
   }
   return getEnterpriseAPIURL(endpoint)
 }
@@ -3414,16 +3402,30 @@ export function getDotComAPIEndpoint(): string {
   return 'https://api.github.com'
 }
 
-export function getBitbucketAPIEndpoint(): string {
+export function getBitbucketCloudAPIEndpoint(): string {
   return 'https://api.bitbucket.org/2.0'
 }
 
-export function getGitLabAPIEndpoint(): string {
+export function getGitLabCloudAPIEndpoint(): string {
   return 'https://gitlab.com/api/v4'
 }
 
-export function getCodebergAPIEndpoint(): string {
+export function getCodebergCloudAPIEndpoint(): string {
   return 'https://codeberg.org/api/v1'
+}
+
+export function deriveApiType(endpoint: string): AccountAPIType {
+  if (endpoint === getDotComAPIEndpoint()) {
+    return 'dotcom'
+  } else if (endpoint === getBitbucketCloudAPIEndpoint()) {
+    return 'bitbucket'
+  } else if (endpoint === getGitLabCloudAPIEndpoint()) {
+    return 'gitlab'
+  } else if (endpoint === getCodebergCloudAPIEndpoint()) {
+    return 'codeberg'
+  } else {
+    return getRegisteredApiType(endpoint) ?? 'enterprise'
+  }
 }
 
 /** Get the account for the endpoint. */
@@ -3751,12 +3753,13 @@ export class BitbucketAPI extends API {
   private expiresAt: Date | null = null
 
   public constructor(
+    endpoint: string,
     token: string,
     login: string | UnknownLogin,
     refreshToken: string,
     expiresAt: number
   ) {
-    super(getBitbucketAPIEndpoint(), token, login)
+    super(endpoint, token, login)
     this.apiRefreshToken = refreshToken
     this.expiresAt = expiresAt ? new Date(expiresAt) : null
   }
@@ -3787,6 +3790,7 @@ export class BitbucketAPI extends API {
 
   protected override async refreshToken() {
     try {
+      // This API won't work for Bitbucket Server anyways, so it's fine to hardcode the oauth endpoint here
       const response = await fetch(
         'https://bitbucket.org/site/oauth2/access_token',
         {
@@ -4091,18 +4095,26 @@ export class GitLabAPI extends API {
   private static instances: Map<string, GitLabAPI> = new Map()
 
   public static get(
+    endpoint: string,
     token: string,
     login: string | UnknownLogin,
     refreshToken: string,
     expiresAt: number
   ): GitLabAPI {
     if (login === UnknownLogin.InitialAuthFetch) {
-      return new GitLabAPI(token, login, refreshToken, expiresAt)
+      return new GitLabAPI(endpoint, token, login, refreshToken, expiresAt)
     }
-    const instance = this.instances.get(login)
+    const instanceKey = `${endpoint}:${login}`
+    const instance = this.instances.get(instanceKey)
     if (!instance || !instance.token) {
-      const newInstance = new GitLabAPI(token, login, refreshToken, expiresAt)
-      this.instances.set(login, newInstance)
+      const newInstance = new GitLabAPI(
+        endpoint,
+        token,
+        login,
+        refreshToken,
+        expiresAt
+      )
+      this.instances.set(instanceKey, newInstance)
       return newInstance
     }
     return instance
@@ -4112,12 +4124,13 @@ export class GitLabAPI extends API {
   private expiresAt: Date | null = null
 
   private constructor(
+    endpoint: string,
     token: string,
     login: string | UnknownLogin,
     refreshToken: string,
     expiresAt: number
   ) {
-    super(getGitLabAPIEndpoint(), token, login)
+    super(endpoint, token, login)
     this.apiRefreshToken = refreshToken
     this.expiresAt = expiresAt ? new Date(expiresAt) : null
   }
@@ -4148,7 +4161,9 @@ export class GitLabAPI extends API {
 
   protected override async refreshToken() {
     try {
-      const response = await fetch('https://gitlab.com/oauth/token', {
+      // https://gitlab.example.com/api/v4 -> https://gitlab.example.com
+      const instanceRoot = this.endpoint.replace(/\/api\/v\d\/?$/, '')
+      const response = await fetch(`${instanceRoot}/oauth/token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -4481,18 +4496,26 @@ export class CodebergAPI extends API {
   private static instances: Map<string, CodebergAPI> = new Map()
 
   public static get(
+    endpoint: string,
     token: string,
     login: string | UnknownLogin,
     refreshToken: string,
     expiresAt: number
   ): CodebergAPI {
     if (login === UnknownLogin.InitialAuthFetch) {
-      return new CodebergAPI(token, login, refreshToken, expiresAt)
+      return new CodebergAPI(endpoint, token, login, refreshToken, expiresAt)
     }
-    const instance = this.instances.get(login)
+    const instanceKey = `${endpoint}:${login}`
+    const instance = this.instances.get(instanceKey)
     if (!instance || !instance.token) {
-      const newInstance = new CodebergAPI(token, login, refreshToken, expiresAt)
-      this.instances.set(login, newInstance)
+      const newInstance = new CodebergAPI(
+        endpoint,
+        token,
+        login,
+        refreshToken,
+        expiresAt
+      )
+      this.instances.set(instanceKey, newInstance)
       return newInstance
     }
     return instance
@@ -4502,12 +4525,13 @@ export class CodebergAPI extends API {
   private expiresAt: Date | null = null
 
   private constructor(
+    endpoint: string,
     token: string,
     login: string | UnknownLogin,
     refreshToken: string,
     expiresAt: number
   ) {
-    super(getCodebergAPIEndpoint(), token, login)
+    super(endpoint, token, login)
     this.apiRefreshToken = refreshToken
     this.expiresAt = expiresAt ? new Date(expiresAt) : null
   }
@@ -4539,21 +4563,20 @@ export class CodebergAPI extends API {
 
   protected override async refreshToken() {
     try {
-      const response = await fetch(
-        'https://codeberg.org/login/oauth/access_token',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            client_id: ClientIDCodeberg,
-            client_secret: ClientSecretCodeberg,
-            refresh_token: this.apiRefreshToken,
-            grant_type: 'refresh_token',
-          }),
-        }
-      )
+      // https://codeberg.org/api/v1 -> https://codeberg.org
+      const instanceRoot = this.endpoint.replace(/\/api\/v\d\/?$/, '')
+      const response = await fetch(`${instanceRoot}/login/oauth/access_token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          client_id: ClientIDCodeberg,
+          client_secret: ClientSecretCodeberg,
+          refresh_token: this.apiRefreshToken,
+          grant_type: 'refresh_token',
+        }),
+      })
 
       const result = await parsedResponse<ICodebergAPIAccessToken>(response)
       this.token = result.access_token
@@ -4750,8 +4773,8 @@ export class CodebergAPI extends API {
       const combined = await parsedResponse<ICodebergAPICombinedStatus>(
         response
       )
-      const statuses = (combined.statuses ?? []).map(
-        toIAPIRefStatusItemFromCodeberg
+      const statuses = (combined.statuses ?? []).map(status =>
+        toIAPIRefStatusItemFromCodeberg(status, this.endpoint)
       )
       return {
         state: mapRefStateFromCodeberg(combined.state),
@@ -4965,5 +4988,29 @@ export class CodebergAPI extends API {
 
   public override async fetchFeatureFlags(): Promise<undefined> {
     return undefined
+  }
+}
+
+function instantiateAPI(
+  apiType: AccountAPIType,
+  endpoint: string,
+  token: string,
+  login: string | UnknownLogin,
+  refreshToken: string,
+  expiresAt: number,
+  copilotEndpoint: string | undefined
+): API {
+  switch (apiType) {
+    case 'bitbucket':
+      return new BitbucketAPI(endpoint, token, login, refreshToken, expiresAt)
+    case 'gitlab':
+      return GitLabAPI.get(endpoint, token, login, refreshToken, expiresAt)
+    case 'codeberg':
+      return CodebergAPI.get(endpoint, token, login, refreshToken, expiresAt)
+    case 'dotcom':
+    case 'enterprise':
+      return new API(endpoint, token, login, copilotEndpoint)
+    default:
+      assertNever(apiType, `Unknown API type ${apiType}`)
   }
 }

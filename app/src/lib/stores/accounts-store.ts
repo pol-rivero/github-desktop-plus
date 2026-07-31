@@ -1,11 +1,25 @@
 import { IDataStore, ISecureStore } from './stores'
 import { getKeyForAccount } from '../auth'
-import { Account, isDotComAccount } from '../../models/account'
-import { fetchUser, EmailVisibility, getEnterpriseAPIURL } from '../api'
-import { fatalError } from '../fatal-error'
+import { Account, AccountAPIType, isDotComAccount } from '../../models/account'
+import {
+  fetchUser,
+  EmailVisibility,
+  getEnterpriseAPIURL,
+  getBitbucketCloudAPIEndpoint,
+  getCodebergCloudAPIEndpoint,
+  getGitLabCloudAPIEndpoint,
+  deriveApiType,
+} from '../api'
+import { assertNever, fatalError } from '../fatal-error'
 import { TypedBaseStore } from './base-store'
 import { isGHE } from '../endpoint-capabilities'
 import { compare, compareDescending } from '../compare'
+import {
+  isRegisteredApiType,
+  registerEndpointApiType,
+  RegisteredApiType,
+  unregisterHostname,
+} from '../endpoint-api-type-registry'
 
 // Ensure that GitHub.com accounts appear first followed by Enterprise
 // accounts, sorted by the order in which they were added.
@@ -62,6 +76,53 @@ interface IAccount {
   readonly id: number
   readonly name: string
   readonly plan?: string
+  readonly apiType?: AccountAPIType
+}
+
+const tryGetHostname = (url: string) => {
+  try {
+    return new URL(url).hostname
+  } catch (e) {
+    return undefined
+  }
+}
+
+const getCloudEndpointForApiType = (type: RegisteredApiType) => {
+  switch (type) {
+    case 'bitbucket':
+      return getBitbucketCloudAPIEndpoint()
+    case 'gitlab':
+      return getGitLabCloudAPIEndpoint()
+    case 'codeberg':
+      return getCodebergCloudAPIEndpoint()
+    default:
+      assertNever(type, `Unknown API type: ${type}`)
+  }
+}
+
+const registerSelfHostedAccountEndpoint = (account: Account) => {
+  const { apiType, endpoint } = account
+  if (
+    isRegisteredApiType(apiType) &&
+    endpoint !== getCloudEndpointForApiType(apiType)
+  ) {
+    registerEndpointApiType(endpoint, apiType)
+  }
+}
+
+const friendlyApiTypeName = (apiType: AccountAPIType) => {
+  switch (apiType) {
+    case 'dotcom':
+      return 'GitHub.com'
+    case 'enterprise':
+      return 'GitHub Enterprise'
+    case 'bitbucket':
+      return 'Bitbucket'
+    case 'gitlab':
+      return 'GitLab'
+    case 'codeberg':
+      return 'Codeberg'
+  }
 }
 
 /** The store for logged in accounts. */
@@ -96,6 +157,33 @@ export class AccountsStore extends TypedBaseStore<ReadonlyArray<Account>> {
    */
   public async addAccount(account: Account): Promise<Account | null> {
     await this.loadingPromise
+
+    // Reject the account if a live account on the same host has a different API type.
+    const hostname = tryGetHostname(account.endpoint)
+    if (hostname !== undefined) {
+      const conflicting = this.accounts.find(
+        a =>
+          tryGetHostname(a.endpoint) === hostname &&
+          a.apiType !== account.apiType
+      )
+      if (conflicting !== undefined) {
+        this.emitError(
+          new Error(
+            `The host ${hostname} is already associated with a ` +
+              `${friendlyApiTypeName(conflicting.apiType)} account ` +
+              `(${conflicting.login}). Remove that account before signing ` +
+              `in to ${hostname} as ${friendlyApiTypeName(account.apiType)}.`
+          )
+        )
+        return null
+      }
+
+      if (account.apiType === 'enterprise') {
+        unregisterHostname(hostname)
+      } else {
+        registerSelfHostedAccountEndpoint(account)
+      }
+    }
 
     if (!(await this.storeAccountKey(account))) {
       return null
@@ -250,11 +338,14 @@ export class AccountsStore extends TypedBaseStore<ReadonlyArray<Account>> {
     const migratedAccounts = this.getMigratedGHEAccounts(parsedAccounts)
     const rawAccounts = migratedAccounts ?? parsedAccounts
 
+    const needsApiTypeBackfill = rawAccounts.some(a => a.apiType === undefined)
+
     const accountsWithTokens = []
     for (const account of rawAccounts) {
       const accountWithoutToken = new Account(
         account.login,
         account.endpoint,
+        account.apiType ?? deriveApiType(account.endpoint),
         '',
         account.refreshToken,
         account.tokenExpiresAt,
@@ -264,6 +355,8 @@ export class AccountsStore extends TypedBaseStore<ReadonlyArray<Account>> {
         account.name,
         account.plan
       )
+
+      registerSelfHostedAccountEndpoint(accountWithoutToken)
 
       const key = getKeyForAccount(accountWithoutToken)
       try {
@@ -278,7 +371,7 @@ export class AccountsStore extends TypedBaseStore<ReadonlyArray<Account>> {
 
     this.accounts = sortAccounts(accountsWithTokens)
     // If any account was migrated, make sure to persist the new value
-    if (migratedAccounts !== null) {
+    if (migratedAccounts !== null || needsApiTypeBackfill) {
       this.save() // Save already emits an update
     } else {
       this.emitUpdate(this.accounts)
@@ -304,6 +397,7 @@ async function updatedAccount(account: Account): Promise<Account> {
 
   return fetchUser(
     account.endpoint,
+    account.apiType,
     account.token,
     account.refreshToken,
     account.tokenExpiresAt,

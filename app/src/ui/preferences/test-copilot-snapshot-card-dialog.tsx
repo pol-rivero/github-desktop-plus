@@ -208,6 +208,7 @@ export class TestCopilotSnapshotCardDialog extends React.Component<
     return new Account(
       this.state.login.trim() || 'mona',
       this.state.endpoint.trim() || 'https://api.github.com',
+      'dotcom',
       'fake-token',
       'fake-refresh-token',
       0,
