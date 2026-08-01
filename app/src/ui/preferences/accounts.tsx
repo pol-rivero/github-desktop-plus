@@ -26,7 +26,7 @@ enum SignInType {
   Enterprise,
   Bitbucket,
   GitLab,
-  Codeberg,
+  Forgejo,
 }
 
 export class Accounts extends React.Component<IAccountsProps, {}> {
@@ -46,7 +46,7 @@ export class Accounts extends React.Component<IAccountsProps, {}> {
         {this.renderMultipleGitLabAccounts()}
 
         <h2>Codeberg</h2>
-        {this.renderMultipleCodebergAccounts()}
+        {this.renderMultipleForgejoAccounts()}
       </DialogContent>
     )
   }
@@ -97,13 +97,13 @@ export class Accounts extends React.Component<IAccountsProps, {}> {
     )
   }
 
-  private renderMultipleCodebergAccounts() {
-    const codebergAccounts = this.props.accounts.filter(
+  private renderMultipleForgejoAccounts() {
+    const forgejoAccounts = this.props.accounts.filter(
       a => a.apiType === 'forgejo'
     )
     return this.renderMultipleAccounts(
-      codebergAccounts,
-      SignInType.Codeberg,
+      forgejoAccounts,
+      SignInType.Forgejo,
       'Add Codeberg account',
       this.props.onCodebergSignIn
     )
@@ -246,7 +246,7 @@ export class Accounts extends React.Component<IAccountsProps, {}> {
             </div>
           </CallToAction>
         )
-      case SignInType.Codeberg:
+      case SignInType.Forgejo:
         return (
           <CallToAction
             actionTitle={signInTitle + ' Codeberg'}

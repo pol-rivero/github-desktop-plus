@@ -9870,7 +9870,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
           encodedBaseBranch
         )
       case 'forgejo':
-        return this.getCodebergPullRequestCreationURL(
+        return this.getForgejoPullRequestCreationURL(
           gitHubRepository,
           isFork,
           encodedCompareBranch,
@@ -9932,7 +9932,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     return `${htmlURL}/-/merge_requests/new?${sourceBranch}&${targetBranch}`
   }
 
-  private getCodebergPullRequestCreationURL(
+  private getForgejoPullRequestCreationURL(
     { parent, owner, name, htmlURL }: GitHubRepository,
     isFork: boolean,
     encodedCompareBranch: string,

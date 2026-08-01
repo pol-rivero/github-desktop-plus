@@ -861,7 +861,7 @@ export interface IAPIBranch {
   readonly protected: boolean
 }
 
-interface ICodebergAPIBranch {
+interface IForgejoAPIBranch {
   readonly name: string
   readonly protected: boolean
 }
@@ -1212,7 +1212,7 @@ function toIAPIMentionableUserFromGitLab(
   }
 }
 
-interface ICodebergAPIIdentity {
+interface IForgejoAPIIdentity {
   readonly id: number
   readonly login: string
   readonly full_name: string
@@ -1220,8 +1220,8 @@ interface ICodebergAPIIdentity {
   readonly html_url: string
   readonly email: string
 }
-function toIAPIIdentityFromCodeberg(
-  identity: ICodebergAPIIdentity
+function toIAPIIdentityFromForgejo(
+  identity: IForgejoAPIIdentity
 ): IAPIIdentity {
   return {
     id: identity.id,
@@ -1231,8 +1231,8 @@ function toIAPIIdentityFromCodeberg(
     type: 'User',
   }
 }
-function toIAPIFullIdentityFromCodeberg(
-  identity: ICodebergAPIIdentity
+function toIAPIFullIdentityFromForgejo(
+  identity: IForgejoAPIIdentity
 ): IAPIFullIdentity {
   return {
     id: identity.id,
@@ -1245,12 +1245,12 @@ function toIAPIFullIdentityFromCodeberg(
   }
 }
 
-interface ICodebergAPIEmail {
+interface IForgejoAPIEmail {
   readonly email: string
   readonly verified: boolean
   readonly primary: boolean
 }
-function toIAPIEmailFromCodeberg(email: ICodebergAPIEmail): IAPIEmail {
+function toIAPIEmailFromForgejo(email: IForgejoAPIEmail): IAPIEmail {
   return {
     email: email.email,
     verified: email.verified,
@@ -1259,14 +1259,14 @@ function toIAPIEmailFromCodeberg(email: ICodebergAPIEmail): IAPIEmail {
   }
 }
 
-interface ICodebergAPIOrganization {
+interface IForgejoAPIOrganization {
   readonly id: number
   readonly name: string
   readonly username: string
   readonly avatar_url: string
 }
-function toIAPIOrganizationFromCodeberg(
-  org: ICodebergAPIOrganization
+function toIAPIOrganizationFromForgejo(
+  org: IForgejoAPIOrganization
 ): IAPIOrganization {
   return {
     id: org.id,
@@ -1276,34 +1276,34 @@ function toIAPIOrganizationFromCodeberg(
   }
 }
 
-interface ICodebergAPIRepository {
+interface IForgejoAPIRepository {
   readonly name: string
   readonly html_url: string
   readonly ssh_url: string
   readonly clone_url: string
-  readonly owner: ICodebergAPIIdentity
+  readonly owner: IForgejoAPIIdentity
   readonly private: boolean
   readonly fork: boolean
   readonly default_branch: string
   readonly updated_at: string
   readonly has_issues: boolean
   readonly archived: boolean
-  readonly parent: ICodebergAPIRepository | null
+  readonly parent: IForgejoAPIRepository | null
   readonly permissions?: {
     readonly admin: boolean
     readonly push: boolean
     readonly pull: boolean
   }
 }
-function toIAPIRepositoryFromCodeberg(
-  repo: ICodebergAPIRepository
+function toIAPIRepositoryFromForgejo(
+  repo: IForgejoAPIRepository
 ): IAPIRepository {
   return {
     clone_url: repo.clone_url,
     ssh_url: repo.ssh_url,
     html_url: repo.html_url,
     name: repo.name,
-    owner: toIAPIIdentityFromCodeberg(repo.owner),
+    owner: toIAPIIdentityFromForgejo(repo.owner),
     private: repo.private,
     fork: repo.fork,
     default_branch: repo.default_branch,
@@ -1312,66 +1312,66 @@ function toIAPIRepositoryFromCodeberg(
     archived: repo.archived,
   }
 }
-function toIAPIFullRepositoryFromCodeberg(
-  repo: ICodebergAPIRepository
+function toIAPIFullRepositoryFromForgejo(
+  repo: IForgejoAPIRepository
 ): IAPIFullRepository {
   return {
-    ...toIAPIRepositoryFromCodeberg(repo),
-    parent: repo.parent ? toIAPIRepositoryFromCodeberg(repo.parent) : undefined,
+    ...toIAPIRepositoryFromForgejo(repo),
+    parent: repo.parent ? toIAPIRepositoryFromForgejo(repo.parent) : undefined,
     permissions: repo.permissions ?? { admin: true, push: true, pull: true },
   }
 }
 
-interface ICodebergAPIPullRequestRef {
+interface IForgejoAPIPullRequestRef {
   readonly ref: string
   readonly sha: string
-  readonly repo: ICodebergAPIRepository | null
+  readonly repo: IForgejoAPIRepository | null
 }
-function toIAPIPullRequestRefFromCodeberg(
-  ref: ICodebergAPIPullRequestRef
+function toIAPIPullRequestRefFromForgejo(
+  ref: IForgejoAPIPullRequestRef
 ): IAPIPullRequestRef {
   return {
     ref: ref.ref,
     sha: ref.sha,
-    repo: ref.repo ? toIAPIRepositoryFromCodeberg(ref.repo) : null,
+    repo: ref.repo ? toIAPIRepositoryFromForgejo(ref.repo) : null,
   }
 }
-interface ICodebergAPIPullRequest {
+interface IForgejoAPIPullRequest {
   readonly number: number
   readonly title: string
   readonly body: string
   readonly state: 'open' | 'closed'
   readonly created_at: string
   readonly updated_at: string
-  readonly user: ICodebergAPIIdentity
-  readonly head: ICodebergAPIPullRequestRef
-  readonly base: ICodebergAPIPullRequestRef
+  readonly user: IForgejoAPIIdentity
+  readonly head: IForgejoAPIPullRequestRef
+  readonly base: IForgejoAPIPullRequestRef
   readonly draft: boolean
 }
-function toIAPIPullRequestFromCodeberg(
-  pr: ICodebergAPIPullRequest
+function toIAPIPullRequestFromForgejo(
+  pr: IForgejoAPIPullRequest
 ): IAPIPullRequest {
   return {
     number: pr.number,
     title: pr.title,
     created_at: pr.created_at,
     updated_at: pr.updated_at,
-    user: toIAPIIdentityFromCodeberg(pr.user),
-    head: toIAPIPullRequestRefFromCodeberg(pr.head),
-    base: toIAPIPullRequestRefFromCodeberg(pr.base),
+    user: toIAPIIdentityFromForgejo(pr.user),
+    head: toIAPIPullRequestRefFromForgejo(pr.head),
+    base: toIAPIPullRequestRefFromForgejo(pr.base),
     body: pr.body,
     state: pr.state,
     draft: pr.draft,
   }
 }
 
-interface ICodebergAPIIssue {
+interface IForgejoAPIIssue {
   readonly number: number
   readonly title: string
   readonly state: 'open' | 'closed'
   readonly updated_at: string
 }
-function toIAPIIssueFromCodeberg(issue: ICodebergAPIIssue): IAPIIssue {
+function toIAPIIssueFromForgejo(issue: IForgejoAPIIssue): IAPIIssue {
   return {
     number: issue.number,
     title: issue.title,
@@ -1380,39 +1380,39 @@ function toIAPIIssueFromCodeberg(issue: ICodebergAPIIssue): IAPIIssue {
   }
 }
 
-type CodebergAPIStatusState =
+type ForgejoAPIStatusState =
   | 'pending'
   | 'success'
   | 'error'
   | 'failure'
   | 'warning'
-interface ICodebergAPICommitStatus {
+interface IForgejoAPICommitStatus {
   readonly id: number
-  readonly status: CodebergAPIStatusState
+  readonly status: ForgejoAPIStatusState
   readonly target_url: string | null
   readonly description: string
   readonly context: string
   readonly created_at: string
   readonly updated_at: string
 }
-interface ICodebergAPICombinedStatus {
-  readonly state: CodebergAPIStatusState
+interface IForgejoAPICombinedStatus {
+  readonly state: ForgejoAPIStatusState
   readonly total_count: number
-  readonly statuses: ReadonlyArray<ICodebergAPICommitStatus> | null
+  readonly statuses: ReadonlyArray<IForgejoAPICommitStatus> | null
 }
-function toIAPIRefStatusItemFromCodeberg(
-  status: ICodebergAPICommitStatus,
+function toIAPIRefStatusItemFromForgejo(
+  status: IForgejoAPICommitStatus,
   endpoint: string
 ): IAPIRefStatusItem {
   return {
-    state: mapRefStateFromCodeberg(status.status),
-    target_url: toCodebergAbsoluteURL(status.target_url, endpoint),
+    state: mapRefStateFromForgejo(status.status),
+    target_url: toForgejoAbsoluteURL(status.target_url, endpoint),
     description: status.description,
     context: status.context,
     id: status.id,
   }
 }
-function mapRefStateFromCodeberg(state: CodebergAPIStatusState): APIRefState {
+function mapRefStateFromForgejo(state: ForgejoAPIStatusState): APIRefState {
   switch (state) {
     case 'pending':
       return 'pending'
@@ -1428,7 +1428,7 @@ function mapRefStateFromCodeberg(state: CodebergAPIStatusState): APIRefState {
       return 'pending'
   }
 }
-function toCodebergAbsoluteURL(
+function toForgejoAbsoluteURL(
   url: string | null,
   endpoint: string
 ): string | null {
@@ -1489,7 +1489,7 @@ interface IGitLabAPIAccessToken {
   readonly refresh_token: string
   readonly created_at: number
 }
-interface ICodebergAPIAccessToken {
+interface IForgejoAPIAccessToken {
   readonly access_token: string
   readonly expires_in: number
   readonly refresh_token: string
@@ -3600,7 +3600,7 @@ export async function requestOAuthTokenCodeberg(
       }
     )
 
-    const result = await parsedResponse<ICodebergAPIAccessToken>(response)
+    const result = await parsedResponse<IForgejoAPIAccessToken>(response)
     const expiresAt = toExpiresAt(result.expires_in)
     return [result.access_token, result.refresh_token, expiresAt]
   } catch (e) {
@@ -4491,12 +4491,12 @@ export class GitLabAPI extends API {
   }
 }
 
-export class CodebergAPI extends API {
+export class ForgejoAPI extends API {
   // Forgejo may invalidate the previous refresh token when refreshing the
   // access token (depending on the server's INVALIDATE_REFRESH_TOKENS
   // setting), so use a per-login singleton to guarantee a single
   // token-refresh chain per account.
-  private static instances: Map<string, CodebergAPI> = new Map()
+  private static instances: Map<string, ForgejoAPI> = new Map()
 
   public static get(
     endpoint: string,
@@ -4504,14 +4504,14 @@ export class CodebergAPI extends API {
     login: string | UnknownLogin,
     refreshToken: string,
     expiresAt: number
-  ): CodebergAPI {
+  ): ForgejoAPI {
     if (login === UnknownLogin.InitialAuthFetch) {
-      return new CodebergAPI(endpoint, token, login, refreshToken, expiresAt)
+      return new ForgejoAPI(endpoint, token, login, refreshToken, expiresAt)
     }
     const instanceKey = `${endpoint}:${login}`
     const instance = this.instances.get(instanceKey)
     if (!instance || !instance.token) {
-      const newInstance = new CodebergAPI(
+      const newInstance = new ForgejoAPI(
         endpoint,
         token,
         login,
@@ -4581,7 +4581,7 @@ export class CodebergAPI extends API {
         }),
       })
 
-      const result = await parsedResponse<ICodebergAPIAccessToken>(response)
+      const result = await parsedResponse<IForgejoAPIAccessToken>(response)
       this.token = result.access_token
       this.apiRefreshToken = result.refresh_token ?? ''
       this.expiresAt = new Date(toExpiresAt(result.expires_in))
@@ -4593,7 +4593,7 @@ export class CodebergAPI extends API {
         this.login
       )
     } catch (e) {
-      log.warn('refreshOAuthTokenCodeberg failed', e)
+      log.warn('Forgejo refreshToken failed', e)
     }
   }
 
@@ -4615,22 +4615,22 @@ export class CodebergAPI extends API {
 
   public override async fetchAccount(): Promise<IAPIFullIdentity> {
     const response = await this.request(this.endpoint, 'GET', 'user')
-    return toIAPIFullIdentityFromCodeberg(
-      await parsedResponse<ICodebergAPIIdentity>(response)
+    return toIAPIFullIdentityFromForgejo(
+      await parsedResponse<IForgejoAPIIdentity>(response)
     )
   }
 
   public override async fetchEmails(): Promise<ReadonlyArray<IAPIEmail>> {
     try {
-      const emails = await this.fetchAll<ICodebergAPIEmail>('user/emails')
-      return emails.map(toIAPIEmailFromCodeberg)
+      const emails = await this.fetchAll<IForgejoAPIEmail>('user/emails')
+      return emails.map(toIAPIEmailFromForgejo)
     } catch (e) {
       if (
         e instanceof APIError &&
         (e.responseStatus === HttpStatusCode.NotFound ||
           e.responseStatus === HttpStatusCode.Forbidden)
       ) {
-        log.warn('Codeberg user/emails unavailable, continuing without emails')
+        log.warn('Forgejo user/emails unavailable, continuing without emails')
         return []
       }
 
@@ -4643,7 +4643,7 @@ export class CodebergAPI extends API {
     name: string
   ): Promise<IAPIMentionablesResponse | null> {
     try {
-      const users = await this.fetchAll<ICodebergAPIIdentity>(
+      const users = await this.fetchAll<IForgejoAPIIdentity>(
         `repos/${owner}/${name}/assignees`
       )
       return {
@@ -4675,8 +4675,8 @@ export class CodebergAPI extends API {
         log.warn(`fetchRepository: '${owner}/${name}' returned a 404`)
         return null
       }
-      const repo = await parsedResponse<ICodebergAPIRepository>(response)
-      return toIAPIFullRepositoryFromCodeberg(repo)
+      const repo = await parsedResponse<IForgejoAPIRepository>(response)
+      return toIAPIFullRepositoryFromForgejo(repo)
     } catch (e) {
       log.warn(`fetchRepository: an error occurred for '${owner}/${name}'`, e)
       return null
@@ -4691,8 +4691,8 @@ export class CodebergAPI extends API {
       state: 'open',
     })
     try {
-      const prs = await this.fetchAll<ICodebergAPIPullRequest>(url)
-      return prs.map(toIAPIPullRequestFromCodeberg)
+      const prs = await this.fetchAll<IForgejoAPIPullRequest>(url)
+      return prs.map(toIAPIPullRequestFromForgejo)
     } catch (e) {
       log.warn(`failed fetching open PRs for repository ${owner}/${name}`, e)
       throw e
@@ -4712,7 +4712,7 @@ export class CodebergAPI extends API {
     })
 
     try {
-      const prs = await this.fetchAll<ICodebergAPIPullRequest>(url, {
+      const prs = await this.fetchAll<IForgejoAPIPullRequest>(url, {
         // See explanation for perPage=10 in API.fetchUpdatedPullRequests
         perPage: 10,
         getNextPagePath: response =>
@@ -4734,7 +4734,7 @@ export class CodebergAPI extends API {
       })
       return prs
         .filter(pr => Date.parse(pr.updated_at) >= sinceTime)
-        .map(toIAPIPullRequestFromCodeberg)
+        .map(toIAPIPullRequestFromForgejo)
     } catch (e) {
       log.warn(`failed fetching updated PRs for repository ${owner}/${name}`, e)
       throw e
@@ -4754,8 +4754,8 @@ export class CodebergAPI extends API {
 
     const url = urlWithQueryString(`repos/${owner}/${name}/issues`, params)
     try {
-      const issues = await this.fetchAll<ICodebergAPIIssue>(url)
-      return issues.map(toIAPIIssueFromCodeberg)
+      const issues = await this.fetchAll<IForgejoAPIIssue>(url)
+      return issues.map(toIAPIIssueFromForgejo)
     } catch (e) {
       log.warn(`fetchIssues: failed for repository ${owner}/${name}`, e)
       throw e
@@ -4773,14 +4773,12 @@ export class CodebergAPI extends API {
       // list) because it only returns the latest status for each context
       const path = `repos/${owner}/${name}/commits/${commitRef}/status?limit=${this.maxPerPage}`
       const response = await this.request(this.endpoint, 'GET', path)
-      const combined = await parsedResponse<ICodebergAPICombinedStatus>(
-        response
-      )
+      const combined = await parsedResponse<IForgejoAPICombinedStatus>(response)
       const statuses = (combined.statuses ?? []).map(status =>
-        toIAPIRefStatusItemFromCodeberg(status, this.endpoint)
+        toIAPIRefStatusItemFromForgejo(status, this.endpoint)
       )
       return {
-        state: mapRefStateFromCodeberg(combined.state),
+        state: mapRefStateFromForgejo(combined.state),
         total_count: statuses.length,
         statuses,
       }
@@ -4836,8 +4834,8 @@ export class CodebergAPI extends API {
       return null
     }
 
-    const codebergRepo = await parsedResponse<ICodebergAPIRepository>(response)
-    const repo = toIAPIRepositoryFromCodeberg(codebergRepo)
+    const forgejoRepo = await parsedResponse<IForgejoAPIRepository>(response)
+    const repo = toIAPIRepositoryFromForgejo(forgejoRepo)
     return {
       url: protocol === 'ssh' ? repo.ssh_url : repo.clone_url,
       defaultBranch: repo.default_branch,
@@ -4848,8 +4846,8 @@ export class CodebergAPI extends API {
     callback: (repos: ReadonlyArray<IAPIRepository>) => void
   ) {
     try {
-      const repos = await this.fetchAll<ICodebergAPIRepository>('user/repos')
-      callback(repos.map(toIAPIRepositoryFromCodeberg))
+      const repos = await this.fetchAll<IForgejoAPIRepository>('user/repos')
+      callback(repos.map(toIAPIRepositoryFromForgejo))
     } catch (error) {
       log.warn(
         `streamUserRepositories: failed with endpoint ${this.endpoint}`,
@@ -4863,7 +4861,7 @@ export class CodebergAPI extends API {
     name: string
   ): Promise<ReadonlyArray<IAPIBranch>> {
     try {
-      const branches = await this.fetchAll<ICodebergAPIBranch>(
+      const branches = await this.fetchAll<IForgejoAPIBranch>(
         `repos/${owner}/${name}/branches`
       )
       return branches.filter(branch => branch.protected)
@@ -4886,8 +4884,8 @@ export class CodebergAPI extends API {
 
   public override async fetchOrgs(): Promise<ReadonlyArray<IAPIOrganization>> {
     try {
-      const orgs = await this.fetchAll<ICodebergAPIOrganization>('user/orgs')
-      return orgs.map(toIAPIOrganizationFromCodeberg)
+      const orgs = await this.fetchAll<IForgejoAPIOrganization>('user/orgs')
+      return orgs.map(toIAPIOrganizationFromForgejo)
     } catch (e) {
       log.warn(`fetchOrgs: failed with endpoint ${this.endpoint}`, e)
       return []
@@ -4909,8 +4907,8 @@ export class CodebergAPI extends API {
           private: private_,
         },
       })
-      const repo = await parsedResponse<ICodebergAPIRepository>(response)
-      return toIAPIFullRepositoryFromCodeberg(repo)
+      const repo = await parsedResponse<IForgejoAPIRepository>(response)
+      return toIAPIFullRepositoryFromForgejo(repo)
     } catch (e) {
       if (e instanceof APIError) {
         if (org !== null) {
@@ -4940,8 +4938,8 @@ export class CodebergAPI extends API {
         // Forgejo requires a JSON body (CreateForkOption) even if empty
         { body: {} }
       )
-      const repo = await parsedResponse<ICodebergAPIRepository>(response)
-      return toIAPIFullRepositoryFromCodeberg(repo)
+      const repo = await parsedResponse<IForgejoAPIRepository>(response)
+      return toIAPIFullRepositoryFromForgejo(repo)
     } catch (e) {
       log.error(
         `forkRepository: failed to fork ${owner}/${name} at endpoint: ${this.endpoint}`,
@@ -4981,7 +4979,7 @@ export class CodebergAPI extends API {
     if (!response.ok) {
       return null
     }
-    const pr = await parsedResponse<ICodebergAPIPullRequest>(response)
+    const pr = await parsedResponse<IForgejoAPIPullRequest>(response)
     return pr.head.sha || null
   }
 
@@ -5009,7 +5007,7 @@ function instantiateAPI(
     case 'gitlab':
       return GitLabAPI.get(endpoint, token, login, refreshToken, expiresAt)
     case 'forgejo':
-      return CodebergAPI.get(endpoint, token, login, refreshToken, expiresAt)
+      return ForgejoAPI.get(endpoint, token, login, refreshToken, expiresAt)
     case 'dotcom':
     case 'enterprise':
       return new API(endpoint, token, login, copilotEndpoint)

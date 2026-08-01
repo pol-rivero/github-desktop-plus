@@ -111,7 +111,7 @@ describe('endpoint-api-type-registry', () => {
         'https://forgejo.example.com/api/v1'
       )
       // ...and stays idempotent for the endpoint itself, rather than
-      // resolving to the SaaS endpoint via the isCodeberg predicate
+      // resolving to the Cloud endpoint via the isCodebergCloud predicate
       assert.equal(
         getAPIEndpoint('https://forgejo.example.com/api/v1'),
         'https://forgejo.example.com/api/v1'
@@ -142,7 +142,7 @@ describe('endpoint-api-type-registry', () => {
       assert.equal(deduceRepositoryType(url), 'gitlab')
     })
 
-    it('keeps the SaaS hosts working without registry entries', () => {
+    it('keeps the Cloud hosts working without registry entries', () => {
       assert.equal(deduceRepositoryType('https://gitlab.com/o/r'), 'gitlab')
       assert.equal(
         deduceRepositoryType('https://bitbucket.org/o/r'),
