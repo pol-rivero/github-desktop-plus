@@ -11,6 +11,7 @@ import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { Button } from '../lib/button'
 import { Row } from '../lib/row'
 import { SnapshotCard } from './snapshot-card'
+import { deriveApiType } from '../../lib/api'
 
 interface ITestCopilotSnapshotCardDialogProps {
   readonly accounts: ReadonlyArray<Account>
@@ -208,6 +209,7 @@ export class TestCopilotSnapshotCardDialog extends React.Component<
     return new Account(
       this.state.login.trim() || 'mona',
       this.state.endpoint.trim() || 'https://api.github.com',
+      deriveApiType(this.state.endpoint.trim() || 'https://api.github.com'),
       'fake-token',
       'fake-refresh-token',
       0,

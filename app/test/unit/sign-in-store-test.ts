@@ -30,6 +30,7 @@ function createDotComAccount(login = 'octocat'): Account {
   return new Account(
     login,
     getDotComAPIEndpoint(),
+    'dotcom',
     'test-token',
     '',
     0,
@@ -48,6 +49,7 @@ function createEnterpriseAccount(
   return new Account(
     login,
     endpoint,
+    'enterprise',
     'ent-token',
     '',
     0,

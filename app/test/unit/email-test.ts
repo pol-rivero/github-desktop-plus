@@ -17,6 +17,7 @@ describe('emails', () => {
       const account = new Account(
         'shiftkey',
         getDotComAPIEndpoint(),
+        'dotcom',
         '',
         '',
         0,
@@ -37,6 +38,7 @@ describe('emails', () => {
       const account = new Account(
         'shiftkey',
         'https://github.example.com/api/v3',
+        'enterprise',
         '',
         '',
         0,
@@ -78,6 +80,7 @@ describe('emails', () => {
       const account = new Account(
         'shiftkey',
         getDotComAPIEndpoint(),
+        'dotcom',
         '',
         '',
         0,
@@ -119,6 +122,7 @@ describe('emails', () => {
       const account = new Account(
         'shiftkey',
         getDotComAPIEndpoint(),
+        'dotcom',
         '',
         '',
         0,
@@ -160,6 +164,7 @@ describe('emails', () => {
       const account = new Account(
         'shiftkey',
         getDotComAPIEndpoint(),
+        'dotcom',
         '',
         '',
         0,
@@ -201,6 +206,7 @@ describe('emails', () => {
       const account = new Account(
         'shiftkey',
         getEnterpriseAPIURL('https://github.example.com'),
+        'enterprise',
         '',
         '',
         0,
@@ -236,6 +242,7 @@ describe('emails', () => {
       const account = new Account(
         'shiftkey',
         getDotComAPIEndpoint(),
+        'dotcom',
         '',
         '',
         0,
@@ -277,6 +284,7 @@ describe('emails', () => {
       const account = new Account(
         'niik',
         endpoint,
+        'dotcom',
         '',
         '',
         0,
@@ -304,6 +312,7 @@ describe('emails', () => {
       const account = new Account(
         'niik',
         endpoint,
+        'dotcom',
         '',
         '',
         0,
@@ -329,6 +338,7 @@ describe('emails', () => {
       const account = new Account(
         'niik',
         endpoint,
+        'dotcom',
         '',
         '',
         0,
@@ -353,6 +363,7 @@ describe('emails', () => {
       const account = new Account(
         'niik',
         getDotComAPIEndpoint(),
+        'dotcom',
         '',
         '',
         0,

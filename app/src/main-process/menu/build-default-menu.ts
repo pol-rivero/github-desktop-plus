@@ -722,7 +722,7 @@ function onGithubLabel(gitHubRepositoryType: RepoType | null) {
       return 'on Bitbucket'
     case 'gitlab':
       return 'on GitLab'
-    case 'codeberg':
+    case 'forgejo':
       return 'on Codeberg'
     case null:
       return 'in your browser'

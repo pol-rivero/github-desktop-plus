@@ -3,7 +3,7 @@ export enum CloneRepositoryTab {
   Enterprise,
   Bitbucket,
   GitLab,
-  Codeberg,
+  Forgejo,
   Generic,
 }
 

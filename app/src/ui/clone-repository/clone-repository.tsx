@@ -105,9 +105,9 @@ interface ICloneRepositoryState {
 
   /**
    * The persisted state of the CloneGitHubRepository component for
-   * the Codeberg account.
+   * the Forgejo account.
    */
-  readonly codebergTabState: IGitHubTabState
+  readonly forgejoTabState: IGitHubTabState
 
   /**
    * The persisted state of the CloneGenericRepository component.
@@ -240,14 +240,14 @@ export class CloneRepository extends React.Component<
             .filter(account => account.apiType === 'gitlab')
             .at(0) || null,
       },
-      codebergTabState: {
-        kind: 'codeberg',
+      forgejoTabState: {
+        kind: 'forgejo',
         filterText: '',
         selectedItem: null,
         ...initialBaseTabState,
         selectedAccount:
           props.accounts
-            .filter(account => account.apiType === 'codeberg')
+            .filter(account => account.apiType === 'forgejo')
             .at(0) || null,
       },
       urlTabState: {
@@ -271,8 +271,8 @@ export class CloneRepository extends React.Component<
         return 'bitbucket'
       case CloneRepositoryTab.GitLab:
         return 'gitlab'
-      case CloneRepositoryTab.Codeberg:
-        return 'codeberg'
+      case CloneRepositoryTab.Forgejo:
+        return 'forgejo'
       case CloneRepositoryTab.Generic:
         return 'generic'
       default:
@@ -318,7 +318,7 @@ export class CloneRepository extends React.Component<
       enterpriseTabState: await withDefaultPath(this.state.enterpriseTabState),
       bitbucketTabState: await withDefaultPath(this.state.bitbucketTabState),
       gitlabTabState: await withDefaultPath(this.state.gitlabTabState),
-      codebergTabState: await withDefaultPath(this.state.codebergTabState),
+      forgejoTabState: await withDefaultPath(this.state.forgejoTabState),
       urlTabState: await withDefaultPath(this.state.urlTabState),
     })
 
@@ -393,7 +393,7 @@ export class CloneRepository extends React.Component<
         return 'Bitbucket'
       case CloneRepositoryTab.GitLab:
         return 'GitLab'
-      case CloneRepositoryTab.Codeberg:
+      case CloneRepositoryTab.Forgejo:
         return 'Codeberg'
       case CloneRepositoryTab.Generic:
         return 'URL'
@@ -535,8 +535,8 @@ export class CloneRepository extends React.Component<
       return this.state.bitbucketTabState
     } else if (tab === CloneRepositoryTab.GitLab) {
       return this.state.gitlabTabState
-    } else if (tab === CloneRepositoryTab.Codeberg) {
-      return this.state.codebergTabState
+    } else if (tab === CloneRepositoryTab.Forgejo) {
+      return this.state.forgejoTabState
     } else {
       return assertNever(tab, `Unknown tab: ${tab}`)
     }
@@ -616,11 +616,11 @@ export class CloneRepository extends React.Component<
         }),
         callback
       )
-    } else if (tab === CloneRepositoryTab.Codeberg) {
+    } else if (tab === CloneRepositoryTab.Forgejo) {
       this.setState(
         prevState => ({
-          codebergTabState: {
-            ...prevState.codebergTabState,
+          forgejoTabState: {
+            ...prevState.forgejoTabState,
             ...state,
           },
         }),
@@ -658,9 +658,9 @@ export class CloneRepository extends React.Component<
       this.setState(prevState => ({
         gitlabTabState: merge(prevState.gitlabTabState, tabState),
       }))
-    } else if (tab === CloneRepositoryTab.Codeberg) {
+    } else if (tab === CloneRepositoryTab.Forgejo) {
       this.setState(prevState => ({
-        codebergTabState: merge(prevState.codebergTabState, tabState),
+        forgejoTabState: merge(prevState.forgejoTabState, tabState),
       }))
     } else {
       return assertNever(tab, `Unknown tab: ${tab}`)
@@ -692,7 +692,7 @@ export class CloneRepository extends React.Component<
       return this.props.dispatcher.showBitbucketSignInDialog
     } else if (tab === CloneRepositoryTab.GitLab) {
       return this.props.dispatcher.showGitLabSignInDialog
-    } else if (tab === CloneRepositoryTab.Codeberg) {
+    } else if (tab === CloneRepositoryTab.Forgejo) {
       return this.props.dispatcher.showCodebergSignInDialog
     } else {
       return assertNever(tab, `Unknown sign in tab: ${tab}`)

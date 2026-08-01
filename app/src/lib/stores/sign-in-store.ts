@@ -1,5 +1,5 @@
 import { Disposable } from 'event-kit'
-import { Account, UnknownLogin } from '../../models/account'
+import { Account, AccountAPIType, UnknownLogin } from '../../models/account'
 import { assertNever, fatalError } from '../fatal-error'
 import {
   validateURL,
@@ -13,12 +13,12 @@ import {
   getEnterpriseAPIURL,
   requestOAuthToken,
   getOAuthAuthorizationURL,
-  getBitbucketAPIEndpoint,
+  getBitbucketCloudAPIEndpoint,
   getBitbucketOAuthAuthorizationURL,
   requestOAuthTokenBitbucket,
-  getCodebergAPIEndpoint,
+  getCodebergCloudAPIEndpoint,
   getCodebergOAuthAuthorizationURL,
-  getGitLabAPIEndpoint,
+  getGitLabCloudAPIEndpoint,
   getGitLabOAuthAuthorizationURL,
   requestOAuthTokenCodeberg,
   requestOAuthTokenGitLab,
@@ -98,6 +98,7 @@ export interface IExistingAccountWarning extends ISignInState {
    */
   readonly existingAccount: Account
   readonly endpoint: string
+  readonly apiType: AccountAPIType
 
   readonly resultCallback: (result: SignInResult) => void
 }
@@ -130,6 +131,7 @@ export interface IAuthenticationState extends ISignInState {
    * instance.
    */
   readonly endpoint: string
+  readonly apiType: AccountAPIType
 
   readonly resultCallback: (result: SignInResult) => void
 
@@ -159,6 +161,20 @@ interface IAuthenticationEvent {
 }
 
 type OAuthProvider = RepoType
+
+function apiTypeToOAuthProvider(apiType: AccountAPIType): OAuthProvider {
+  switch (apiType) {
+    case 'dotcom':
+    case 'enterprise':
+      return 'github'
+    case 'bitbucket':
+    case 'gitlab':
+    case 'forgejo':
+      return apiType
+    default:
+      return assertNever(apiType, `Unknown API type ${apiType}`)
+  }
+}
 
 export type SignInResult =
   | { kind: 'success'; account: Account }
@@ -248,6 +264,7 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
     this.setState({
       kind: SignInStep.Authentication,
       endpoint,
+      apiType: 'dotcom',
       error: null,
       loading: false,
       resultCallback: resultCallback ?? noop,
@@ -287,12 +304,13 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
     const { codeVerifier, codeChallenge } = await generatePKCEParameters()
 
     new Promise<Account>((resolve, reject) => {
-      const { endpoint, resultCallback } = currentState
+      const { endpoint, apiType, resultCallback } = currentState
       log.info('[SignInStore] initializing OAuth flow')
-      const oauthProvider = this.getOAuthProvider(endpoint)
+      const oauthProvider = apiTypeToOAuthProvider(apiType)
       this.setState({
         kind: SignInStep.Authentication,
         endpoint,
+        apiType,
         resultCallback,
         error: null,
         loading: true,
@@ -355,22 +373,10 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
         return getBitbucketOAuthAuthorizationURL(csrfToken, codeChallenge)
       case 'gitlab':
         return getGitLabOAuthAuthorizationURL(csrfToken, codeChallenge)
-      case 'codeberg':
+      case 'forgejo':
         return getCodebergOAuthAuthorizationURL(csrfToken, codeChallenge)
       default:
         assertNever(oauthProvider, 'Unexpected oauth provider')
-    }
-  }
-
-  private getOAuthProvider(endpoint: string): OAuthProvider {
-    if (endpoint === getBitbucketAPIEndpoint()) {
-      return 'bitbucket'
-    } else if (endpoint === getGitLabAPIEndpoint()) {
-      return 'gitlab'
-    } else if (endpoint === getCodebergAPIEndpoint()) {
-      return 'codeberg'
-    } else {
-      return 'github'
     }
   }
 
@@ -390,7 +396,7 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
       return
     }
 
-    const { endpoint } = this.state
+    const { endpoint, apiType } = this.state
     const tokenData = await this.getOauthTokenData(
       this.state.oauthState.oauthProvider,
       endpoint,
@@ -402,6 +408,7 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
       const [token, refreshToken, expiresAt] = tokenData
       const account = await fetchUser(
         endpoint,
+        apiType,
         token,
         refreshToken,
         expiresAt,
@@ -428,7 +435,7 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
         return await requestOAuthTokenBitbucket(code, codeVerifier)
       case 'gitlab':
         return await requestOAuthTokenGitLab(code, codeVerifier)
-      case 'codeberg':
+      case 'forgejo':
         return await requestOAuthTokenCodeberg(code, codeVerifier)
       default:
         assertNever(oauthProvider, 'Unexpected oauth provider')
@@ -460,10 +467,11 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
       this.reset()
     }
 
-    const endpoint = getBitbucketAPIEndpoint()
+    const endpoint = getBitbucketCloudAPIEndpoint()
     this.setState({
       kind: SignInStep.Authentication,
       endpoint,
+      apiType: 'bitbucket',
       error: null,
       loading: false,
       resultCallback: resultCallback ?? noop,
@@ -475,10 +483,11 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
       this.reset()
     }
 
-    const endpoint = getGitLabAPIEndpoint()
+    const endpoint = getGitLabCloudAPIEndpoint()
     this.setState({
       kind: SignInStep.Authentication,
       endpoint,
+      apiType: 'gitlab',
       error: null,
       loading: false,
       resultCallback: resultCallback ?? noop,
@@ -490,10 +499,11 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
       this.reset()
     }
 
-    const endpoint = getCodebergAPIEndpoint()
+    const endpoint = getCodebergCloudAPIEndpoint()
     this.setState({
       kind: SignInStep.Authentication,
       endpoint,
+      apiType: 'forgejo',
       error: null,
       loading: false,
       resultCallback: resultCallback ?? noop,
@@ -561,6 +571,7 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
     this.setState({
       kind: SignInStep.Authentication,
       endpoint,
+      apiType: 'enterprise',
       error: null,
       loading: false,
       resultCallback: currentState.resultCallback,

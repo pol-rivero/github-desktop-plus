@@ -1184,7 +1184,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       this.updateCopilotModelsForCurrentAccount()
       this.updateCopilotQuotaSnapshotsForCurrentAccount()
       const endpointTokens = accounts.map<EndpointToken>(
-        ({ endpoint, token }) => ({ endpoint, token })
+        ({ endpoint, token, apiType }) => ({ endpoint, token, apiType })
       )
 
       updateAccounts(endpointTokens)
@@ -9748,7 +9748,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       github: `${baseRepoUrl}/pull/${pr.pullRequestNumber}`,
       bitbucket: `${baseRepoUrl}/pull-requests/${pr.pullRequestNumber}`,
       gitlab: `${baseRepoUrl}/merge_requests/${pr.pullRequestNumber}`,
-      codeberg: `${baseRepoUrl}/pulls/${pr.pullRequestNumber}`,
+      forgejo: `${baseRepoUrl}/pulls/${pr.pullRequestNumber}`,
     }
 
     const type = pr.base.gitHubRepository.type
@@ -9869,8 +9869,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
           encodedCompareBranch,
           encodedBaseBranch
         )
-      case 'codeberg':
-        return this.getCodebergPullRequestCreationURL(
+      case 'forgejo':
+        return this.getForgejoPullRequestCreationURL(
           gitHubRepository,
           isFork,
           encodedCompareBranch,
@@ -9932,7 +9932,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     return `${htmlURL}/-/merge_requests/new?${sourceBranch}&${targetBranch}`
   }
 
-  private getCodebergPullRequestCreationURL(
+  private getForgejoPullRequestCreationURL(
     { parent, owner, name, htmlURL }: GitHubRepository,
     isFork: boolean,
     encodedCompareBranch: string,

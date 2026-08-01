@@ -40,6 +40,7 @@ describe('app-store-test-harness', () => {
       const account = new Account(
         'test-user',
         getDotComAPIEndpoint(),
+        'dotcom',
         'test-token',
         '',
         0,

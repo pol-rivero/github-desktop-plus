@@ -36,6 +36,7 @@ describe('findAccountForRemoteURL', () => {
     new Account(
       'joan',
       getDotComAPIEndpoint(),
+      'dotcom',
       'deadbeef',
       '',
       0,
@@ -48,6 +49,7 @@ describe('findAccountForRemoteURL', () => {
     new Account(
       'joel',
       getEnterpriseAPIURL('https://github.mycompany.com'),
+      'enterprise',
       'deadbeef',
       '',
       0,

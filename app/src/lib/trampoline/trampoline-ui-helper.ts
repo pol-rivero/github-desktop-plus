@@ -103,7 +103,7 @@ class TrampolineUIHelper {
         case 'gitlab':
           this.dispatcher.beginGitLabSignIn(cb)
           break
-        case 'codeberg':
+        case 'forgejo':
           this.dispatcher.beginCodebergSignIn(cb)
           break
         default:

@@ -4,7 +4,11 @@ import * as Path from 'path'
 import { Account } from '../models/account'
 import { IRemote } from '../models/remote'
 import { getHTMLURL } from './api'
-import { parseRemote, parseRepositoryIdentifier } from './remote-parsing'
+import {
+  asHost,
+  parseRemote,
+  parseRepositoryIdentifier,
+} from './remote-parsing'
 import { caseInsensitiveEquals } from './compare'
 import { GitHubRepository } from '../models/github-repository'
 
@@ -39,13 +43,20 @@ export function matchGitHubRepository(
   // If login is null, prefer the owner account, then fallback to the first account with a matching hostname.
   let hostnameMatch: IMatchedGitHubRepository | null = null
 
+  // A remote that names a web port identifies one specific instance, so the
+  // account's port has to match too. Otherwise only hostnames are compared,
+  // since an ssh remote carries no web port to compare against.
+  const remoteHost = asHost(parsedRemote)
+
   for (const account of accounts) {
     const htmlURL = getHTMLURL(account.endpoint)
-    const { hostname } = URL.parse(htmlURL)
+    const parsedURL = URL.parse(htmlURL)
+    const accountHost =
+      parsedRemote.port === null ? parsedURL.hostname : parsedURL.host
 
     if (
-      hostname !== null &&
-      parsedRemote.hostname.toLowerCase() === hostname.toLowerCase()
+      accountHost != null &&
+      remoteHost.toLowerCase() === accountHost.toLowerCase()
     ) {
       const matched: IMatchedGitHubRepository = {
         name: parsedRemote.name,

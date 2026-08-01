@@ -302,7 +302,7 @@ export class NoChanges extends React.Component<
       github: ['on Github', octicons.markGithub],
       bitbucket: ['on Bitbucket', bitbucket],
       gitlab: ['on GitLab', gitlab],
-      codeberg: ['on Codeberg', codeberg],
+      forgejo: ['on Codeberg', codeberg],
       _: ['in your browser', octicons.globe],
     }
     const repoType = this.props.repository.gitHubRepository?.type ?? '_'
@@ -641,7 +641,7 @@ export class NoChanges extends React.Component<
         return 'Bitbucket'
       case 'gitlab':
         return 'GitLab'
-      case 'codeberg':
+      case 'forgejo':
         return 'Codeberg'
       case undefined:
         return 'the remote'

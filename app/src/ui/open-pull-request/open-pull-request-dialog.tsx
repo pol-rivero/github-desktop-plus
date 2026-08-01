@@ -17,6 +17,31 @@ import { PullRequestFilesChanged } from './pull-request-files-changed'
 import { PullRequestMergeStatus } from './pull-request-merge-status'
 import { ComputedAction } from '../../models/computed-action'
 import { BranchSortOrder } from '../../models/branch-sort-order'
+import { GitHubRepository } from '../../models/github-repository'
+import { assertNever } from '../../lib/fatal-error'
+
+function getProviderLabel(gitHubRepository: GitHubRepository | null): string {
+  if (gitHubRepository === null) {
+    return 'GitHub'
+  }
+  switch (gitHubRepository.type) {
+    case 'github':
+      return gitHubRepository.endpoint !== getDotComAPIEndpoint()
+        ? 'GitHub Enterprise'
+        : 'GitHub'
+    case 'bitbucket':
+      return 'Bitbucket'
+    case 'gitlab':
+      return 'GitLab'
+    case 'forgejo':
+      return 'Codeberg'
+    default:
+      assertNever(
+        gitHubRepository.type,
+        `Unknown repo type: ${gitHubRepository.type}`
+      )
+  }
+}
 
 interface IOpenPullRequestDialogProps {
   readonly repository: Repository
@@ -262,13 +287,11 @@ export class OpenPullRequestDialog extends React.Component<IOpenPullRequestDialo
       this.props
     const { mergeStatus, commitSHAs } = pullRequestState
     const gitHubRepository = repository.gitHubRepository
-    const isEnterprise =
-      gitHubRepository && gitHubRepository.endpoint !== getDotComAPIEndpoint()
 
     const viewCreate = currentBranchHasPullRequest ? 'View' : ' Create'
-    const buttonTitle = `${viewCreate} pull request on GitHub${
-      isEnterprise ? ' Enterprise' : ''
-    }.`
+    const buttonTitle = `${viewCreate} pull request on ${getProviderLabel(
+      gitHubRepository
+    )}.`
 
     const okButton = (
       <>

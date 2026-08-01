@@ -240,7 +240,7 @@ export class ConfigureGitUser extends React.Component<
         return 'Bitbucket'
       case 'gitlab':
         return 'GitLab'
-      case 'codeberg':
+      case 'forgejo':
         return 'Codeberg'
       default:
         assertNever(account.apiType, 'Unknown account type')

@@ -1,9 +1,10 @@
+import { findRegisteredEndpointForHost } from '../lib/endpoint-api-type-registry'
 import { createEqualityHash } from './equality-hash'
 import { Owner } from './owner'
 
 export type GitHubRepositoryPermission = 'read' | 'write' | 'admin' | null
 
-export type RepoType = 'github' | 'bitbucket' | 'gitlab' | 'codeberg'
+export type RepoType = 'github' | 'bitbucket' | 'gitlab' | 'forgejo'
 
 /** A GitHub repository. */
 export class GitHubRepository {
@@ -95,13 +96,19 @@ export function hasWritePermission(
 
 export function deduceRepositoryType(url: string): RepoType {
   try {
-    const host = new URL(url).hostname
+    const parsed = new URL(url)
+    // The SSH port says nothing about the port the instance serves its web UI and API on
+    const host = parsed.protocol === 'ssh:' ? parsed.hostname : parsed.host
     if (host === 'bitbucket.org') {
       return 'bitbucket'
     } else if (host === 'gitlab.com') {
       return 'gitlab'
     } else if (host === 'codeberg.org') {
-      return 'codeberg'
+      return 'forgejo'
+    }
+    const registered = findRegisteredEndpointForHost(host)
+    if (registered !== undefined) {
+      return registered.apiType
     }
     return 'github'
   } catch (e) {

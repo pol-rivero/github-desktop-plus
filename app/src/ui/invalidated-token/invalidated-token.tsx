@@ -63,7 +63,7 @@ export class InvalidatedToken extends React.Component<IInvalidatedTokenProps> {
       case 'gitlab':
         dispatcher.showGitLabSignInDialog()
         break
-      case 'codeberg':
+      case 'forgejo':
         dispatcher.showCodebergSignInDialog()
         break
       default:

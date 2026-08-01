@@ -811,7 +811,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         tree: `${htmlURL}/tree/${urlEncodedBranchName}`,
         compare: `${htmlURL}/compare/${baseBranch}...${urlEncodedBranchName}`,
       },
-      codeberg: {
+      forgejo: {
         tree: `${htmlURL}/src/branch/${urlEncodedBranchName}`,
         compare: `${htmlURL}/compare/${baseBranch}...${urlEncodedBranchName}`,
       },

@@ -20,6 +20,7 @@ function createAccount(email: string) {
   return new Account(
     'mona',
     getDotComAPIEndpoint(),
+    'dotcom',
     '',
     '',
     0,

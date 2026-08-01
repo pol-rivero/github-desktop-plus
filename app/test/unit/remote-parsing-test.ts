@@ -51,6 +51,37 @@ describe('URL remote parsing', () => {
     assert.equal(remote.name, 'repo')
   })
 
+  it('parses HTTPS URLs with a non-default port', () => {
+    const remote = parseRemote('https://git.example.com:3000/hubot/repo.git')
+    assert(remote !== null)
+    // The port is reported separately rather than in the hostname: resolving the
+    // provider needs it, comparing two URLs of one repository must ignore it.
+    assert.equal(remote.hostname, 'git.example.com')
+    assert.equal(remote.port, '3000')
+    assert.equal(remote.owner, 'hubot')
+    assert.equal(remote.name, 'repo')
+  })
+
+  it('parses IPv6 URLs with a non-default port', () => {
+    const remote = parseRemote('https://[2001:db8::1]:3000/hubot/repo.git')
+    assert(remote !== null)
+    // The port is reported separately rather than in the hostname: resolving the
+    // provider needs it, comparing two URLs of one repository must ignore it.
+    assert.equal(remote.hostname, '[2001:db8::1]')
+    assert.equal(remote.port, '3000')
+    assert.equal(remote.owner, 'hubot')
+    assert.equal(remote.name, 'repo')
+  })
+
+  it('reports no port for HTTPS URLs on the default port', () => {
+    assert.equal(parseRemote('https://github.com/hubot/repo.git')?.port, null)
+    // An explicit :443 is the same instance as no port at all
+    assert.equal(
+      parseRemote('https://github.com:443/hubot/repo.git')?.port,
+      null
+    )
+  })
+
   it('parses SSH URLs', () => {
     const remote = parseRemote('git@github.com:hubot/repo.git')
     assert(remote !== null)
@@ -135,6 +166,17 @@ describe('URL remote parsing', () => {
     const remote = parseRemote('ssh://git@github.com/hubot/repo/')
     assert(remote !== null)
     assert.equal(remote.hostname, 'github.com')
+    assert.equal(remote.owner, 'hubot')
+    assert.equal(remote.name, 'repo')
+  })
+
+  it('parses SSH URLs with the ssh prefix and a non-default port', () => {
+    const remote = parseRemote('ssh://git@git.example.com:2222/hubot/repo.git')
+    assert(remote !== null)
+    // The SSH port says nothing about the port the instance serves its web UI
+    // and API on, so it's neither kept in the hostname nor reported as a port.
+    assert.equal(remote.hostname, 'git.example.com')
+    assert.equal(remote.port, null)
     assert.equal(remote.owner, 'hubot')
     assert.equal(remote.name, 'repo')
   })
