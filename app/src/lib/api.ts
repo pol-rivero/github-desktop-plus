@@ -1,8 +1,11 @@
 import * as URL from 'url'
 import { Account, AccountAPIType, UnknownLogin } from '../models/account'
 import {
-  findRegisteredEndpointForHostname,
+  deriveWebBaseUrl,
+  findRegisteredEndpointForHost,
   getRegisteredApiType,
+  getRegisteredEndpoint,
+  tryGetHost,
 } from './endpoint-api-type-registry'
 import {
   ICopilotCommitMessage,
@@ -17,7 +20,7 @@ import {
   urlWithQueryString,
   getUserAgent,
 } from './http'
-import { GitProtocol, parseRemote } from './remote-parsing'
+import { asHost, GitProtocol, parseRemote } from './remote-parsing'
 import {
   getEndpointVersion,
   isBitbucketCloud,
@@ -3302,11 +3305,12 @@ export function getEndpointForRepository(url: string): string | null {
   } else if (parsed.hostname === 'codeberg.org') {
     return getCodebergCloudAPIEndpoint()
   } else {
-    const registered = findRegisteredEndpointForHostname(parsed.hostname)
+    const host = asHost(parsed)
+    const registered = findRegisteredEndpointForHost(host)
     if (registered !== undefined) {
       return registered.endpoint
     }
-    return `${parsed.protocol}://${parsed.hostname}/api`
+    return `${parsed.protocol}://${host}/api`
   }
 }
 
@@ -3338,6 +3342,11 @@ export function getHTMLURL(endpoint: string): string {
   } else if (endpoint === getCodebergCloudAPIEndpoint()) {
     return 'https://codeberg.org'
   } else {
+    const registered = getRegisteredEndpoint(endpoint)
+    if (registered !== undefined) {
+      return registered.webBaseUrl
+    }
+
     if (isGHE(endpoint)) {
       const url = new window.URL(endpoint)
 
@@ -3367,12 +3376,6 @@ export function getEnterpriseAPIURL(endpoint: string): string {
 }
 
 export const getAPIEndpoint = (endpoint: string) => {
-  const registered = findRegisteredEndpointForHostname(
-    new window.URL(endpoint).hostname
-  )
-  if (registered !== undefined) {
-    return registered.endpoint
-  }
   if (isDotCom(endpoint)) {
     return getDotComAPIEndpoint()
   }
@@ -3384,6 +3387,10 @@ export const getAPIEndpoint = (endpoint: string) => {
   }
   if (isCodebergCloud(endpoint)) {
     return getCodebergCloudAPIEndpoint()
+  }
+  const registered = findRegisteredEndpointForHost(tryGetHost(endpoint))
+  if (registered !== undefined) {
+    return registered.endpoint
   }
   return getEnterpriseAPIURL(endpoint)
 }
@@ -4164,8 +4171,7 @@ export class GitLabAPI extends API {
 
   protected override async refreshToken() {
     try {
-      // https://gitlab.example.com/api/v4 -> https://gitlab.example.com
-      const instanceRoot = this.endpoint.replace(/\/api\/v\d\/?$/, '')
+      const instanceRoot = deriveWebBaseUrl(this.endpoint, 'gitlab')
       const response = await fetch(`${instanceRoot}/oauth/token`, {
         method: 'POST',
         headers: {
@@ -4566,8 +4572,7 @@ export class ForgejoAPI extends API {
 
   protected override async refreshToken() {
     try {
-      // https://codeberg.org/api/v1 -> https://codeberg.org
-      const instanceRoot = this.endpoint.replace(/\/api\/v\d\/?$/, '')
+      const instanceRoot = deriveWebBaseUrl(this.endpoint, 'forgejo')
       const response = await fetch(`${instanceRoot}/login/oauth/access_token`, {
         method: 'POST',
         headers: {

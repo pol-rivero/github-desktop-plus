@@ -7,6 +7,11 @@ interface IGitRemoteURL {
   readonly hostname: string
 
   /**
+   * Port the instance serves its web UI and API on. Null for ssh remotes.
+   */
+  readonly port: string | null
+
+  /**
    * The owner of the GitHub repository. This will be null if the URL doesn't
    * take the form of a GitHub repository URL (e.g., owner/name).
    */
@@ -28,7 +33,7 @@ const remoteRegexes: ReadonlyArray<{ protocol: GitProtocol; regex: RegExp }> = [
   {
     protocol: 'https',
     regex: new RegExp(
-      '^https?://(?:.+@)?([^/]+)/(.+)/([^/]+?)(?:/|\\.git/?)?$'
+      '^https?://(?:.+@)?(\\[[^\\]]+\\]|[^/:]+)(?::\\d+)?/(.+)/([^/]+?)(?:/|\\.git/?)?$'
     ),
   },
   {
@@ -46,21 +51,50 @@ const remoteRegexes: ReadonlyArray<{ protocol: GitProtocol; regex: RegExp }> = [
     regex: new RegExp('^git:(.+)/([^/]+)/([^/]+?)(?:/|\\.git)?$'),
   },
   {
+    // Self-hosted SSH URLs like ssh://git@git.example.com:2222/owner/name.git
+    // The port is matched but not captured: it's the SSH port, which
+    // says nothing about the port the instance serves its web UI and API on.
+    protocol: 'ssh',
+    regex: new RegExp(
+      '^ssh://git@(\\[[^\\]]+\\]|[^/:]+):\\d+/(.+)/(.+?)(?:/|\\.git)?$'
+    ),
+  },
+  {
     protocol: 'ssh',
     regex: new RegExp('^ssh://git@(.+)/(.+)/(.+?)(?:/|\\.git)?$'),
   },
 ]
+
+function parseWebPort(url: string): string | null {
+  try {
+    return new URL(url).port || null
+  } catch (e) {
+    return null
+  }
+}
 
 /** Parse the remote information from URL. */
 export function parseRemote(url: string): IGitRemoteURL | null {
   for (const { protocol, regex } of remoteRegexes) {
     const match = regex.exec(url)
     if (match !== null && match.length >= 4) {
-      return { protocol, hostname: match[1], owner: match[2], name: match[3] }
+      return {
+        protocol,
+        hostname: match[1],
+        port: protocol === 'https' ? parseWebPort(url) : null,
+        owner: match[2],
+        name: match[3],
+      }
     }
   }
 
   return null
+}
+
+export function asHost(remote: IGitRemoteURL): string {
+  return remote.port === null
+    ? remote.hostname
+    : `${remote.hostname}:${remote.port}`
 }
 
 export interface IRepositoryIdentifier {

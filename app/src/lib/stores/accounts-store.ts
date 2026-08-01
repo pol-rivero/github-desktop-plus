@@ -18,7 +18,8 @@ import {
   isRegisteredApiType,
   registerEndpointApiType,
   RegisteredApiType,
-  unregisterHostname,
+  tryGetHost,
+  unregisterHost,
 } from '../endpoint-api-type-registry'
 
 // Ensure that GitHub.com accounts appear first followed by Enterprise
@@ -77,14 +78,6 @@ interface IAccount {
   readonly name: string
   readonly plan?: string
   readonly apiType?: AccountAPIType
-}
-
-const tryGetHostname = (url: string) => {
-  try {
-    return new URL(url).hostname
-  } catch (e) {
-    return undefined
-  }
 }
 
 const getCloudEndpointForApiType = (type: RegisteredApiType) => {
@@ -159,27 +152,25 @@ export class AccountsStore extends TypedBaseStore<ReadonlyArray<Account>> {
     await this.loadingPromise
 
     // Reject the account if a live account on the same host has a different API type.
-    const hostname = tryGetHostname(account.endpoint)
-    if (hostname !== undefined) {
+    const host = tryGetHost(account.endpoint)
+    if (host !== undefined) {
       const conflicting = this.accounts.find(
-        a =>
-          tryGetHostname(a.endpoint) === hostname &&
-          a.apiType !== account.apiType
+        a => tryGetHost(a.endpoint) === host && a.apiType !== account.apiType
       )
       if (conflicting !== undefined) {
         this.emitError(
           new Error(
-            `The host ${hostname} is already associated with a ` +
+            `The host ${host} is already associated with a ` +
               `${friendlyApiTypeName(conflicting.apiType)} account ` +
               `(${conflicting.login}). Remove that account before signing ` +
-              `in to ${hostname} as ${friendlyApiTypeName(account.apiType)}.`
+              `in to ${host} as ${friendlyApiTypeName(account.apiType)}.`
           )
         )
         return null
       }
 
       if (account.apiType === 'enterprise') {
-        unregisterHostname(hostname)
+        unregisterHost(host)
       } else {
         registerSelfHostedAccountEndpoint(account)
       }

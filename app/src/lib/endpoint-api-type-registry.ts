@@ -1,29 +1,84 @@
 /**
- * Mapps API endpoints of self-hosted third-party instances to their API type.
+ * Maps API endpoints of self-hosted third-party instances to their API type and
+ * web root.
  *
  * The cloud endpoints and GitHub (dotcom/GHE/GHES) endpoints are not stored here,
  * only self-hosted endpoints. Unknown hosts continue to fall back to
  * GitHub Enterprise. Entries outlive account removal, because Owner records in the DB
  * may still reference the endpoint after the account is gone).
+ *
+ * Entries are keyed by the full API endpoint and carry the instance's web root
+ * (`webBaseUrl`), so instances installed under a subpath
+ * (`https://example.com/forgejo`) resolve back to their web URL instead of just
+ * the origin.
  */
 
 const StorageKey = 'api-endpoint-types'
 
 export type RegisteredApiType = 'bitbucket' | 'gitlab' | 'forgejo'
 
+export type RegisteredEndpoint = {
+  readonly apiType: RegisteredApiType
+  /** The instance's web root, without a trailing slash. */
+  readonly webBaseUrl: string
+}
+
+export type RegisteredEndpointMatch = RegisteredEndpoint & {
+  readonly endpoint: string
+}
+
 export function isRegisteredApiType(type: string): type is RegisteredApiType {
   return type === 'bitbucket' || type === 'gitlab' || type === 'forgejo'
 }
 
-let cache: Map<string, RegisteredApiType> | null = null
+/** The path each provider roots its REST API at, relative to the web root. */
+const apiPathSuffixes: Record<RegisteredApiType, RegExp> = {
+  bitbucket: /\/rest\/api\/[\d.]+$/,
+  gitlab: /\/api\/v\d+$/,
+  forgejo: /\/api\/v\d+$/,
+}
+
+const trimTrailingSlashes = (url: string) => url.replace(/\/+$/, '')
+
+/**
+ * Derive an instance's web root from its API endpoint by stripping the
+ * provider's API path, e.g. https://example.com/forgejo/api/v1 ->
+ * https://example.com/forgejo
+ */
+export function deriveWebBaseUrl(
+  endpoint: string,
+  apiType: RegisteredApiType
+): string {
+  const trimmed = trimTrailingSlashes(endpoint)
+  const webBaseUrl = trimmed.replace(apiPathSuffixes[apiType], '')
+  return webBaseUrl.length > 0 ? webBaseUrl : trimmed
+}
+
+let cache: Map<string, RegisteredEndpoint> | null = null
 let cachedRaw: string | null = null
 
-function parse(raw: string | null): Map<string, RegisteredApiType> {
-  const map = new Map<string, RegisteredApiType>()
+function parseEntry(value: unknown): RegisteredEndpoint | undefined {
+  if (typeof value !== 'object' || value === null) {
+    return undefined
+  }
+
+  const { apiType, webBaseUrl } = value as Record<string, unknown>
+
+  return typeof apiType === 'string' &&
+    isRegisteredApiType(apiType) &&
+    typeof webBaseUrl === 'string' &&
+    webBaseUrl.length > 0
+    ? { apiType, webBaseUrl: trimTrailingSlashes(webBaseUrl) }
+    : undefined
+}
+
+function parse(raw: string | null): Map<string, RegisteredEndpoint> {
+  const map = new Map<string, RegisteredEndpoint>()
   try {
-    for (const [endpoint, type] of Object.entries(JSON.parse(raw ?? '{}'))) {
-      if (typeof type === 'string' && isRegisteredApiType(type)) {
-        map.set(endpoint, type)
+    for (const [endpoint, value] of Object.entries(JSON.parse(raw ?? '{}'))) {
+      const entry = parseEntry(value)
+      if (entry !== undefined) {
+        map.set(endpoint, entry)
       }
     }
   } catch (e) {
@@ -37,7 +92,7 @@ function parse(raw: string | null): Map<string, RegisteredApiType> {
  * cached indefinitely because it can be modified by other windows.
  * Reads the raw string back on each lookup keeps windows in sync.
  */
-function getCache(): Map<string, RegisteredApiType> {
+function getCache(): Map<string, RegisteredEndpoint> {
   let raw: string | null
 
   try {
@@ -55,7 +110,7 @@ function getCache(): Map<string, RegisteredApiType> {
   return cache
 }
 
-function persist(map: Map<string, RegisteredApiType>) {
+function persist(map: Map<string, RegisteredEndpoint>) {
   const raw = JSON.stringify(Object.fromEntries(map))
   try {
     localStorage.setItem(StorageKey, raw)
@@ -72,12 +127,23 @@ function invalidateCache() {
   cachedRaw = null
 }
 
-function tryGetHostname(url: string): string | undefined {
+/** The host (hostname and any explicit port) of a URL, if it can be parsed. */
+export function tryGetHost(url: string): string | undefined {
   try {
-    return new URL(url).hostname
+    return new URL(url).host
   } catch (e) {
     return undefined
   }
+}
+
+/**
+ * Strip the port from a host. Operates on a host rather than a URL so that bare
+ * hosts (such as the ones `parseRemote` returns) can be compared too.
+ */
+function hostnameOf(host: string): string {
+  const colon = host.lastIndexOf(':')
+  // For IPv6 literals:
+  return colon > host.lastIndexOf(']') ? host.slice(0, colon) : host
 }
 
 /** Discard the in-memory cache. For testing purposes only. */
@@ -85,36 +151,60 @@ export function resetEndpointApiTypeRegistryForTesting() {
   invalidateCache()
 }
 
+/** Get the registry entry for an endpoint, if any (exact match). */
+export function getRegisteredEndpoint(
+  endpoint: string
+): RegisteredEndpoint | undefined {
+  return getCache().get(endpoint)
+}
+
 /** Get the registered API type for an endpoint, if any (exact match). */
 export function getRegisteredApiType(
   endpoint: string
 ): RegisteredApiType | undefined {
-  return getCache().get(endpoint)
+  return getRegisteredEndpoint(endpoint)?.apiType
 }
 
 /**
  * Register the API type for a self-hosted third-party endpoint.
  *
- * Any existing entry for the same hostname is replaced (host may have
- * installed a different git server).
+ * `webBaseUrl` is the instance's web root; when omitted it's derived from the
+ * endpoint by stripping the provider's API path.
+ *
+ * Any existing entry for the same host is replaced (the host may have installed
+ * a different git server, or moved to a different API version). Entries for the
+ * same hostname on a different port are left alone, since those are separate
+ * instances.
  */
 export function registerEndpointApiType(
   endpoint: string,
-  type: RegisteredApiType
+  apiType: RegisteredApiType,
+  webBaseUrl?: string
 ): void {
   const map = getCache()
-  const hostname = tryGetHostname(endpoint)
+  const host = tryGetHost(endpoint)
+  const entry: RegisteredEndpoint = {
+    apiType,
+    webBaseUrl:
+      webBaseUrl !== undefined
+        ? trimTrailingSlashes(webBaseUrl)
+        : deriveWebBaseUrl(endpoint, apiType),
+  }
   let changed = false
 
   for (const existing of [...map.keys()]) {
-    if (existing !== endpoint && tryGetHostname(existing) === hostname) {
+    if (existing !== endpoint && tryGetHost(existing) === host) {
       map.delete(existing)
       changed = true
     }
   }
 
-  if (map.get(endpoint) !== type) {
-    map.set(endpoint, type)
+  const current = map.get(endpoint)
+  if (
+    current?.apiType !== entry.apiType ||
+    current?.webBaseUrl !== entry.webBaseUrl
+  ) {
+    map.set(endpoint, entry)
     changed = true
   }
 
@@ -124,14 +214,15 @@ export function registerEndpointApiType(
 }
 
 /**
- * Remove any registered entries for the given hostname.
+ * Remove any registered entries for the given host (hostname and any explicit
+ * port).
  */
-export function unregisterHostname(hostname: string): void {
+export function unregisterHost(host: string): void {
   const map = getCache()
   let changed = false
 
   for (const endpoint of [...map.keys()]) {
-    if (tryGetHostname(endpoint) === hostname) {
+    if (tryGetHost(endpoint) === host) {
       map.delete(endpoint)
       changed = true
     }
@@ -143,17 +234,41 @@ export function unregisterHostname(hostname: string): void {
 }
 
 /**
- * Reverse lookup: find the registered endpoint (+ its type) served from
- * the given hostname. Only root-installed instances are supported, so a
- * hostname-level match is unambiguous.
+ * Reverse lookup: find the registered endpoint served from the given host.
+ *
+ * An exact host (hostname and port) match wins. A host without a port also
+ * matches an instance registered on a non-default port, because a remote SSH URL
+ * doesn't necessarily carry the instance's web port.
  */
-export function findRegisteredEndpointForHostname(
-  hostname: string
-): { endpoint: string; type: RegisteredApiType } | undefined {
-  for (const [endpoint, type] of getCache()) {
-    if (tryGetHostname(endpoint) === hostname) {
-      return { endpoint, type }
+export function findRegisteredEndpointForHost(
+  host: string | undefined
+): RegisteredEndpointMatch | undefined {
+  if (host === undefined) {
+    return undefined
+  }
+
+  const hostname = hostnameOf(host)
+  const hasPort = hostname !== host
+  let hostnameMatch: RegisteredEndpointMatch | undefined = undefined
+
+  for (const [endpoint, entry] of getCache()) {
+    const endpointHost = tryGetHost(endpoint)
+    if (endpointHost === undefined) {
+      continue
+    }
+
+    if (endpointHost === host) {
+      return { endpoint, ...entry }
+    }
+
+    if (
+      !hasPort &&
+      hostnameMatch === undefined &&
+      hostnameOf(endpointHost) === hostname
+    ) {
+      hostnameMatch = { endpoint, ...entry }
     }
   }
-  return undefined
+
+  return hostnameMatch
 }

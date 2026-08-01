@@ -8,6 +8,10 @@ import {
 import { Account } from '../../src/models/account'
 import { GitHubRepository } from '../../src/models/github-repository'
 import { gitHubRepoFixture } from '../helpers/github-repo-builder'
+import {
+  registerEndpointApiType,
+  resetEndpointApiTypeRegistryForTesting,
+} from '../../src/lib/endpoint-api-type-registry'
 
 describe('repository-matching', () => {
   describe('matchGitHubRepository', () => {
@@ -214,6 +218,96 @@ describe('repository-matching', () => {
       )
       assert(repo === null)
     })
+  })
+
+  it('picks the account whose port matches the remote', () => {
+    const accounts = [
+      new Account(
+        'gl-user',
+        'https://git.example.com:8443/api/v4',
+        'gitlab',
+        '',
+        '',
+        0,
+        [],
+        '',
+        1,
+        '',
+        'free'
+      ),
+      new Account(
+        'fj-user',
+        'https://git.example.com:3000/api/v1',
+        'forgejo',
+        '',
+        '',
+        0,
+        [],
+        '',
+        2,
+        '',
+        'free'
+      ),
+    ]
+    registerEndpointApiType('https://git.example.com:8443/api/v4', 'gitlab')
+    registerEndpointApiType('https://git.example.com:3000/api/v1', 'forgejo')
+
+    try {
+      assert.equal(
+        matchGitHubRepository(
+          accounts,
+          'https://git.example.com:3000/someuser/somerepo.git',
+          null
+        )?.account.login,
+        'fj-user'
+      )
+      assert.equal(
+        matchGitHubRepository(
+          accounts,
+          'https://git.example.com:8443/someuser/somerepo.git',
+          null
+        )?.account.login,
+        'gl-user'
+      )
+    } finally {
+      localStorage.removeItem('api-endpoint-types')
+      resetEndpointApiTypeRegistryForTesting()
+    }
+  })
+
+  it('matches an ssh remote to a ported instance, ignoring the ssh port', () => {
+    const accounts = [
+      new Account(
+        'fj-user',
+        'https://git.example.com:3000/api/v1',
+        'forgejo',
+        '',
+        '',
+        0,
+        [],
+        '',
+        1,
+        '',
+        'free'
+      ),
+    ]
+    registerEndpointApiType('https://git.example.com:3000/api/v1', 'forgejo')
+
+    try {
+      // The ssh port (2222) is unrelated to the instance's web port (3000)
+      const repo = matchGitHubRepository(
+        accounts,
+        'ssh://git@git.example.com:2222/someuser/somerepo.git',
+        null
+      )
+      assert(repo !== null)
+      assert.equal(repo.account.login, 'fj-user')
+      assert.equal(repo.owner, 'someuser')
+      assert.equal(repo.name, 'somerepo')
+    } finally {
+      localStorage.removeItem('api-endpoint-types')
+      resetEndpointApiTypeRegistryForTesting()
+    }
   })
 
   describe('urlMatchesRemote', () => {
