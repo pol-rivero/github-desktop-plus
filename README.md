@@ -88,7 +88,7 @@ For this reason, I recommend using Homebrew instead of the manual download.
 
 </details>
 
-### Debian / Ubuntu / Linux Mint / Pop!_OS / Zorin OS (APT)
+### Debian · Ubuntu · Mint · Pop!_OS · Zorin · elementary OS (APT)
 
 <details>
 
@@ -113,11 +113,12 @@ sudo apt install desktop-plus
 </details>
 
 
-### Fedora / RHEL / CentOS (RPM)
+### Fedora · RHEL · CentOS Stream · Rocky Linux · AlmaLinux (RPM)
 
 <details>
 <summary>Click to expand</summary>
-<br>
+
+#### Using the official repository (Recommended)
 
 Create the repository file:
 
@@ -132,6 +133,16 @@ Update the package list and install:
 sudo dnf check-update --refresh
 sudo dnf install desktop-plus
 ```
+
+#### Using [Terra](https://terrapkg.com/)
+
+Make sure you have [installed](https://docs.terrapkg.com/usage/installing/) or enabled the Terra repository. Then, run:
+```bash
+sudo dnf install desktop-plus-bin
+```
+
+> **Note:** The Terra package is unofficial. Use at your own risk.
+
 
 ---
 
@@ -162,7 +173,7 @@ sudo zypper install desktop-plus
 </details>
 
 
-### Arch Linux / Manjaro (AUR)
+### Arch Linux · EndeavourOS · Garuda Linux · Manjaro (AUR)
 
 <details>
 <summary>Click to expand</summary>
@@ -224,6 +235,8 @@ am install github-desktop-plus
 # If using "AppMan":
 appman install github-desktop-plus
 ```
+
+> **Note:** The AM/AppMan package is unofficial. Use at your own risk.
 
 #### Manual download (Not recommended)
 
