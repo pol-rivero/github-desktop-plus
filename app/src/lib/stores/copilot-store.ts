@@ -37,6 +37,7 @@ import {
   getCopilotInMemorySessionFsConfig,
 } from '../copilot-in-memory-session-fs-provider'
 import * as ipcRenderer from '../ipc-renderer'
+import { getPath } from '../../ui/main-process-proxy'
 import { startTimer } from '../../ui/lib/timing'
 import { join } from 'path'
 import { pathToFileURL } from 'url'
@@ -241,6 +242,10 @@ export async function getCopilotCLIPath(): Promise<string> {
 
 function getCopilotCLIDir(): string {
   return join(__dirname, 'copilot')
+}
+
+async function getCopilotBaseDirectory(): Promise<string> {
+  return join(await getPath('userData'), 'copilot')
 }
 
 /**
@@ -854,6 +859,7 @@ export class CopilotStore extends BaseStore {
       : indexPath
 
     return new CopilotClient({
+      baseDirectory: await getCopilotBaseDirectory(),
       connection: RuntimeConnection.forStdio({
         path: await getCopilotCLIPath(),
         args: ['--eval', `import '${importSpecifier}'`, '--'],
