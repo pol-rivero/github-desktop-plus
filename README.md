@@ -33,7 +33,7 @@ This is an **up-to-date** fork of [GitHub Desktop](https://desktop.github.com) w
 <details>
 <summary>Click to expand</summary>
 
-#### Using Winget (Recommended)
+#### Option 1: Using Winget (Recommended)
 
 ```powershell
 winget install DesktopPlus.DesktopPlus
@@ -41,7 +41,7 @@ winget install DesktopPlus.DesktopPlus
 
 To update, run `winget upgrade DesktopPlus.DesktopPlus` or `winget upgrade --all` to update all your winget packages. Make sure to update regularly to get the latest features and fixes.
 
-#### Manual download (Not recommended)
+#### Option 2: Manual download (Not recommended)
 
 Download and execute the installer from the [releases page](https://github.com/desktop-plus/desktop-plus/releases/latest).
 
@@ -64,7 +64,7 @@ For this reason, **I recommend using Winget instead of the manual download**.
 <details>
 <summary>Click to expand</summary>
 
-#### Using Homebrew (Recommended)
+#### Option 1: Using Homebrew (Recommended)
 
 ```bash
 brew install desktop-plus/tap/desktop-plus
@@ -72,7 +72,7 @@ brew install desktop-plus/tap/desktop-plus
 
 Make sure to run `brew update` + `brew upgrade` regularly to get the latest updates for Desktop Plus.
 
-#### Manual download (Not recommended)
+#### Option 2: Manual download (Not recommended)
 
 Download and extract the ZIP file from the [releases page](https://github.com/desktop-plus/desktop-plus/releases/latest). Click the app file to run it.  
 If you encounter the error "Apple could not verify this app is free of malware", go to "System Settings" > "Privacy & Security", scroll down to "Security" and click "Open Anyway" on "Desktop Plus".
@@ -118,7 +118,7 @@ sudo apt install desktop-plus
 <details>
 <summary>Click to expand</summary>
 
-#### Using the official repository (Recommended)
+#### Option 1: Using the official repository (Recommended)
 
 Create the repository file:
 
@@ -134,7 +134,7 @@ sudo dnf check-update --refresh
 sudo dnf install desktop-plus
 ```
 
-#### Using [Terra](https://terrapkg.com/)
+#### Option 2: Using [Terra](https://terrapkg.com/)
 
 Make sure you have [installed](https://docs.terrapkg.com/usage/installing/) or enabled the Terra repository. Then, run:
 ```bash
@@ -227,7 +227,7 @@ If you need to use the AppImage, follow these steps:
    xdg-mime default desktop-plus.desktop x-scheme-handler/x-github-desktop-auth
    ```
 
-#### Using ["AM"/"AppMan"](https://github.com/ivan-hc/AM)
+#### Option 1: Using ["AM"/"AppMan"](https://github.com/ivan-hc/AM)
 
 ```bash
 # If using "AM":
@@ -238,7 +238,7 @@ appman install github-desktop-plus
 
 > **Note:** The AM/AppMan package is unofficial. Use at your own risk.
 
-#### Manual download (Not recommended)
+#### Option 2: Manual download (Not recommended)
 
 Download the AppImage from the [releases page](https://github.com/desktop-plus/desktop-plus/releases/latest):
 
