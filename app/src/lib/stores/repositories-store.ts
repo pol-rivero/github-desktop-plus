@@ -38,12 +38,14 @@ type AddRepositoryOptions = {
   missing?: boolean
 }
 
-function repoTypeFromEndpoint(endpoint: string): RepoType {
-  const apiType = deriveApiType(endpoint)
+function repoTypeFromEndpoint(endpoint: string): RepoType | undefined {
+  const apiType = deriveApiType(endpoint, 'unknown')
   switch (apiType) {
     case 'dotcom':
     case 'enterprise':
       return 'github'
+    case 'unknown':
+      return undefined
     default:
       return apiType
   }
@@ -142,7 +144,8 @@ export class RepositoriesStore extends TypedBaseStore<
       )
     }
 
-    const repoType = owner.apiType ?? repoTypeFromEndpoint(owner.endpoint)
+    const repoType =
+      owner.apiType ?? repoTypeFromEndpoint(owner.endpoint) ?? 'github'
     const ghRepo = new GitHubRepository(
       repo.name,
       repoType,

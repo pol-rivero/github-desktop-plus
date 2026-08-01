@@ -226,7 +226,7 @@ describe('AccountsStore', () => {
       const ghesAccount = new Account(
         'joan',
         'https://git.example.com/api/v3',
-        'dotcom',
+        'enterprise',
         't',
         '',
         0,

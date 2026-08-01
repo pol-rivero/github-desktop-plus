@@ -30,6 +30,7 @@ import {
 import { Account } from '../../../src/models/account'
 import type { Model } from '@github/copilot-sdk/dist/generated/rpc'
 import { setNumberFormatPreference } from '../../../src/models/formatting-preferences'
+import { deriveApiType } from '../../../src/lib/api'
 
 interface IAccountOptions {
   readonly isCopilotDesktopEnabled?: boolean
@@ -55,7 +56,7 @@ function makeAccount(options: IAccountOptions = {}): Account {
   return new Account(
     options.login ?? 'mona',
     options.endpoint ?? 'https://api.github.com',
-    'dotcom',
+    deriveApiType(options.endpoint ?? 'https://api.github.com'),
     'token',
     'refreshToken',
     0,

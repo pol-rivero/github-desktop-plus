@@ -5,7 +5,7 @@ import type {
 } from '@github/copilot-sdk/dist/generated/rpc'
 import assert from 'node:assert'
 import { after, before, describe, it } from 'node:test'
-import { getDotComAPIEndpoint } from '../../../src/lib/api'
+import { deriveApiType, getDotComAPIEndpoint } from '../../../src/lib/api'
 import { AccountsStore } from '../../../src/lib/stores/accounts-store'
 import {
   CommitMessageGenerationCancelledError,
@@ -67,7 +67,7 @@ function makeAccount(overrides: IAccountOverrides = {}): Account {
   return new Account(
     login,
     overrides.endpoint ?? getDotComAPIEndpoint(),
-    'dotcom',
+    deriveApiType(overrides.endpoint ?? getDotComAPIEndpoint()),
     overrides.token ?? 'token',
     'refreshToken',
     0,

@@ -3414,7 +3414,10 @@ export function getCodebergCloudAPIEndpoint(): string {
   return 'https://codeberg.org/api/v1'
 }
 
-export function deriveApiType(endpoint: string): AccountAPIType {
+export function deriveApiType<T>(
+  endpoint: string,
+  defaultValue?: T
+): AccountAPIType | T {
   if (endpoint === getDotComAPIEndpoint()) {
     return 'dotcom'
   } else if (endpoint === getBitbucketCloudAPIEndpoint()) {
@@ -3424,7 +3427,7 @@ export function deriveApiType(endpoint: string): AccountAPIType {
   } else if (endpoint === getCodebergCloudAPIEndpoint()) {
     return 'codeberg'
   } else {
-    return getRegisteredApiType(endpoint) ?? 'enterprise'
+    return getRegisteredApiType(endpoint) ?? defaultValue ?? 'enterprise'
   }
 }
 
