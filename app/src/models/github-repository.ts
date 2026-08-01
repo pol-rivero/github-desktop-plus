@@ -4,7 +4,7 @@ import { Owner } from './owner'
 
 export type GitHubRepositoryPermission = 'read' | 'write' | 'admin' | null
 
-export type RepoType = 'github' | 'bitbucket' | 'gitlab' | 'codeberg' // TODO: Rename to 'forgejo'
+export type RepoType = 'github' | 'bitbucket' | 'gitlab' | 'forgejo'
 
 /** A GitHub repository. */
 export class GitHubRepository {
@@ -102,7 +102,7 @@ export function deduceRepositoryType(url: string): RepoType {
     } else if (host === 'gitlab.com') {
       return 'gitlab'
     } else if (host === 'codeberg.org') {
-      return 'codeberg'
+      return 'forgejo'
     }
     const registered = findRegisteredEndpointForHostname(host)
     if (registered !== undefined) {

@@ -49,10 +49,10 @@ describe('endpoint-api-type-registry', () => {
   })
 
   it('finds registered endpoints by hostname', () => {
-    registerEndpointApiType('https://forgejo.example.com/api/v1', 'codeberg')
+    registerEndpointApiType('https://forgejo.example.com/api/v1', 'forgejo')
     assert.deepStrictEqual(
       findRegisteredEndpointForHostname('forgejo.example.com'),
-      { endpoint: 'https://forgejo.example.com/api/v1', type: 'codeberg' }
+      { endpoint: 'https://forgejo.example.com/api/v1', type: 'forgejo' }
     )
   })
 
@@ -66,7 +66,7 @@ describe('endpoint-api-type-registry', () => {
 
   it('replaces entries when a hostname is re-registered', () => {
     registerEndpointApiType('https://git.example.com/api/v4', 'gitlab')
-    registerEndpointApiType('https://git.example.com/api/v1', 'codeberg')
+    registerEndpointApiType('https://git.example.com/api/v1', 'forgejo')
 
     assert.equal(
       getRegisteredApiType('https://git.example.com/api/v4'),
@@ -74,7 +74,7 @@ describe('endpoint-api-type-registry', () => {
     )
     assert.deepStrictEqual(
       findRegisteredEndpointForHostname('git.example.com'),
-      { endpoint: 'https://git.example.com/api/v1', type: 'codeberg' }
+      { endpoint: 'https://git.example.com/api/v1', type: 'forgejo' }
     )
   })
 
@@ -105,7 +105,7 @@ describe('endpoint-api-type-registry', () => {
     })
 
     it('getAPIEndpoint returns the registered endpoint for its host', () => {
-      registerEndpointApiType('https://forgejo.example.com/api/v1', 'codeberg')
+      registerEndpointApiType('https://forgejo.example.com/api/v1', 'forgejo')
       assert.equal(
         getAPIEndpoint('https://forgejo.example.com'),
         'https://forgejo.example.com/api/v1'
@@ -148,7 +148,7 @@ describe('endpoint-api-type-registry', () => {
         deduceRepositoryType('https://bitbucket.org/o/r'),
         'bitbucket'
       )
-      assert.equal(deduceRepositoryType('https://codeberg.org/o/r'), 'codeberg')
+      assert.equal(deduceRepositoryType('https://codeberg.org/o/r'), 'forgejo')
       assert.equal(deduceRepositoryType('https://github.com/o/r'), 'github')
     })
   })

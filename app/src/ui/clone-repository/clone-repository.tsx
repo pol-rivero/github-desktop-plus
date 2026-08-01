@@ -241,13 +241,13 @@ export class CloneRepository extends React.Component<
             .at(0) || null,
       },
       codebergTabState: {
-        kind: 'codeberg',
+        kind: 'forgejo',
         filterText: '',
         selectedItem: null,
         ...initialBaseTabState,
         selectedAccount:
           props.accounts
-            .filter(account => account.apiType === 'codeberg')
+            .filter(account => account.apiType === 'forgejo')
             .at(0) || null,
       },
       urlTabState: {
@@ -272,7 +272,7 @@ export class CloneRepository extends React.Component<
       case CloneRepositoryTab.GitLab:
         return 'gitlab'
       case CloneRepositoryTab.Codeberg:
-        return 'codeberg'
+        return 'forgejo'
       case CloneRepositoryTab.Generic:
         return 'generic'
       default:

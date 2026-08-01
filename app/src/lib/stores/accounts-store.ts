@@ -93,7 +93,7 @@ const getCloudEndpointForApiType = (type: RegisteredApiType) => {
       return getBitbucketCloudAPIEndpoint()
     case 'gitlab':
       return getGitLabCloudAPIEndpoint()
-    case 'codeberg':
+    case 'forgejo':
       return getCodebergCloudAPIEndpoint()
     default:
       assertNever(type, `Unknown API type: ${type}`)
@@ -120,7 +120,7 @@ const friendlyApiTypeName = (apiType: AccountAPIType) => {
       return 'Bitbucket'
     case 'gitlab':
       return 'GitLab'
-    case 'codeberg':
+    case 'forgejo':
       return 'Codeberg'
   }
 }

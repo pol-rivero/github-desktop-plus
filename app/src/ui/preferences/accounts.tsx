@@ -99,7 +99,7 @@ export class Accounts extends React.Component<IAccountsProps, {}> {
 
   private renderMultipleCodebergAccounts() {
     const codebergAccounts = this.props.accounts.filter(
-      a => a.apiType === 'codeberg'
+      a => a.apiType === 'forgejo'
     )
     return this.renderMultipleAccounts(
       codebergAccounts,

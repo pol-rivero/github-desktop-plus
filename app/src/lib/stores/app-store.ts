@@ -9748,7 +9748,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       github: `${baseRepoUrl}/pull/${pr.pullRequestNumber}`,
       bitbucket: `${baseRepoUrl}/pull-requests/${pr.pullRequestNumber}`,
       gitlab: `${baseRepoUrl}/merge_requests/${pr.pullRequestNumber}`,
-      codeberg: `${baseRepoUrl}/pulls/${pr.pullRequestNumber}`,
+      forgejo: `${baseRepoUrl}/pulls/${pr.pullRequestNumber}`,
     }
 
     const type = pr.base.gitHubRepository.type
@@ -9869,7 +9869,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
           encodedCompareBranch,
           encodedBaseBranch
         )
-      case 'codeberg':
+      case 'forgejo':
         return this.getCodebergPullRequestCreationURL(
           gitHubRepository,
           isFork,

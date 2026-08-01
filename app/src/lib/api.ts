@@ -3425,7 +3425,7 @@ export function deriveApiType<T>(
   } else if (endpoint === getGitLabCloudAPIEndpoint()) {
     return 'gitlab'
   } else if (endpoint === getCodebergCloudAPIEndpoint()) {
-    return 'codeberg'
+    return 'forgejo'
   } else {
     return getRegisteredApiType(endpoint) ?? defaultValue ?? 'enterprise'
   }
@@ -5008,7 +5008,7 @@ function instantiateAPI(
       return new BitbucketAPI(endpoint, token, login, refreshToken, expiresAt)
     case 'gitlab':
       return GitLabAPI.get(endpoint, token, login, refreshToken, expiresAt)
-    case 'codeberg':
+    case 'forgejo':
       return CodebergAPI.get(endpoint, token, login, refreshToken, expiresAt)
     case 'dotcom':
     case 'enterprise':

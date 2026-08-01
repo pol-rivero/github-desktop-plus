@@ -33,7 +33,7 @@ function getProviderLabel(gitHubRepository: GitHubRepository | null): string {
       return 'Bitbucket'
     case 'gitlab':
       return 'GitLab'
-    case 'codeberg':
+    case 'forgejo':
       return 'Codeberg'
     default:
       assertNever(

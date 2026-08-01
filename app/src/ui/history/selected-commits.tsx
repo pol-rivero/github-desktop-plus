@@ -557,7 +557,7 @@ function getViewOnGitHubLabel(gitHubRepository: GitHubRepository) {
       return 'View on Bitbucket'
     case 'gitlab':
       return 'View on GitLab'
-    case 'codeberg':
+    case 'forgejo':
       return 'View on Codeberg'
     default:
       assertNever(

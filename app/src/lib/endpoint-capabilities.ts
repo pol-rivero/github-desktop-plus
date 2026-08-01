@@ -77,7 +77,7 @@ export const isCodebergCloud = (ep: string) => {
 }
 
 export const isCodebergCloudOrForgejo = (ep: string) => {
-  return isCodebergCloud(ep) || getRegisteredApiType(ep) === 'codeberg'
+  return isCodebergCloud(ep) || getRegisteredApiType(ep) === 'forgejo'
 }
 
 /** Whether or not the given endpoint URI is under the ghe.com domain */

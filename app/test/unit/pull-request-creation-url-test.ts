@@ -22,7 +22,7 @@ const hosts: Record<RepoType, string> = {
   github: 'https://github.com',
   bitbucket: 'https://bitbucket.org',
   gitlab: 'https://gitlab.com',
-  codeberg: 'https://codeberg.org',
+  forgejo: 'https://codeberg.org',
 }
 
 let nextId = 1
@@ -372,10 +372,10 @@ describe('AppStore._getPullRequestCreationURL', () => {
     })
   })
 
-  describe('codeberg', () => {
+  describe('forgejo', () => {
     it('builds a compare URL without a base branch', () => {
       const repository = createRepository(
-        createGitHubRepository('codeberg', 'me', 'repo')
+        createGitHubRepository('forgejo', 'me', 'repo')
       )
 
       const url = appStore._getPullRequestCreationURL(
@@ -388,7 +388,7 @@ describe('AppStore._getPullRequestCreationURL', () => {
 
     it('builds a compare URL with a base branch', () => {
       const repository = createRepository(
-        createGitHubRepository('codeberg', 'me', 'repo')
+        createGitHubRepository('forgejo', 'me', 'repo')
       )
 
       const url = appStore._getPullRequestCreationURL(
@@ -401,13 +401,9 @@ describe('AppStore._getPullRequestCreationURL', () => {
     })
 
     it('targets the parent repository with an owner/name: head for a fork contributing to its parent', () => {
-      const parent = createGitHubRepository(
-        'codeberg',
-        'upstream-owner',
-        'repo'
-      )
+      const parent = createGitHubRepository('forgejo', 'upstream-owner', 'repo')
       const repository = createRepository(
-        createGitHubRepository('codeberg', 'me', 'fork-repo', { parent })
+        createGitHubRepository('forgejo', 'me', 'fork-repo', { parent })
       )
 
       const url = appStore._getPullRequestCreationURL(
@@ -423,13 +419,9 @@ describe('AppStore._getPullRequestCreationURL', () => {
     })
 
     it('targets the parent repository with only the head when a fork contributing to its parent has no base branch', () => {
-      const parent = createGitHubRepository(
-        'codeberg',
-        'upstream-owner',
-        'repo'
-      )
+      const parent = createGitHubRepository('forgejo', 'upstream-owner', 'repo')
       const repository = createRepository(
-        createGitHubRepository('codeberg', 'me', 'fork-repo', { parent })
+        createGitHubRepository('forgejo', 'me', 'fork-repo', { parent })
       )
 
       const url = appStore._getPullRequestCreationURL(
@@ -445,13 +437,13 @@ describe('AppStore._getPullRequestCreationURL', () => {
 
     it('falls back to the fork URL when the parent has no html URL', () => {
       const parent = createGitHubRepository(
-        'codeberg',
+        'forgejo',
         'upstream-owner',
         'repo',
         { htmlURL: null }
       )
       const repository = createRepository(
-        createGitHubRepository('codeberg', 'me', 'fork-repo', { parent })
+        createGitHubRepository('forgejo', 'me', 'fork-repo', { parent })
       )
 
       const url = appStore._getPullRequestCreationURL(
@@ -467,13 +459,9 @@ describe('AppStore._getPullRequestCreationURL', () => {
     })
 
     it('targets the fork itself when it contributes to itself', () => {
-      const parent = createGitHubRepository(
-        'codeberg',
-        'upstream-owner',
-        'repo'
-      )
+      const parent = createGitHubRepository('forgejo', 'upstream-owner', 'repo')
       const repository = createRepository(
-        createGitHubRepository('codeberg', 'me', 'fork-repo', { parent }),
+        createGitHubRepository('forgejo', 'me', 'fork-repo', { parent }),
         { forkContributionTarget: ForkContributionTarget.Self }
       )
 

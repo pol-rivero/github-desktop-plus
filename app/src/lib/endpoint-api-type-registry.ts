@@ -9,10 +9,10 @@
 
 const StorageKey = 'api-endpoint-types'
 
-export type RegisteredApiType = 'bitbucket' | 'gitlab' | 'codeberg'
+export type RegisteredApiType = 'bitbucket' | 'gitlab' | 'forgejo'
 
 export function isRegisteredApiType(type: string): type is RegisteredApiType {
-  return type === 'bitbucket' || type === 'gitlab' || type === 'codeberg'
+  return type === 'bitbucket' || type === 'gitlab' || type === 'forgejo'
 }
 
 let cache: Map<string, RegisteredApiType> | null = null

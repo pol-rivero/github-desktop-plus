@@ -169,7 +169,7 @@ function apiTypeToOAuthProvider(apiType: AccountAPIType): OAuthProvider {
       return 'github'
     case 'bitbucket':
     case 'gitlab':
-    case 'codeberg':
+    case 'forgejo':
       return apiType
     default:
       return assertNever(apiType, `Unknown API type ${apiType}`)
@@ -373,7 +373,7 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
         return getBitbucketOAuthAuthorizationURL(csrfToken, codeChallenge)
       case 'gitlab':
         return getGitLabOAuthAuthorizationURL(csrfToken, codeChallenge)
-      case 'codeberg':
+      case 'forgejo':
         return getCodebergOAuthAuthorizationURL(csrfToken, codeChallenge)
       default:
         assertNever(oauthProvider, 'Unexpected oauth provider')
@@ -435,7 +435,7 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
         return await requestOAuthTokenBitbucket(code, codeVerifier)
       case 'gitlab':
         return await requestOAuthTokenGitLab(code, codeVerifier)
-      case 'codeberg':
+      case 'forgejo':
         return await requestOAuthTokenCodeberg(code, codeVerifier)
       default:
         assertNever(oauthProvider, 'Unexpected oauth provider')
@@ -503,7 +503,7 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
     this.setState({
       kind: SignInStep.Authentication,
       endpoint,
-      apiType: 'codeberg',
+      apiType: 'forgejo',
       error: null,
       loading: false,
       resultCallback: resultCallback ?? noop,
