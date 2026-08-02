@@ -7,7 +7,7 @@ import {
   getRegisteredApiType,
   resetEndpointApiTypeRegistryForTesting,
 } from '../../src/lib/endpoint-api-type-registry'
-import { getGitLabCloudAPIEndpoint } from '../../src/lib/api'
+import { GitLabCloudAPIEndpoint } from '../../src/lib/api'
 
 describe('AccountsStore', () => {
   let accountsStore: AccountsStore
@@ -152,7 +152,7 @@ describe('AccountsStore', () => {
       dataStore.setItem(
         'users',
         JSON.stringify([
-          persistedAccount(getGitLabCloudAPIEndpoint()),
+          persistedAccount(GitLabCloudAPIEndpoint),
           { ...persistedAccount('https://my-company-repos.com/api/v3'), id: 2 },
         ])
       )
@@ -207,7 +207,7 @@ describe('AccountsStore', () => {
       await accountsStore.addAccount(
         new Account(
           'joan',
-          getGitLabCloudAPIEndpoint(),
+          GitLabCloudAPIEndpoint,
           'dotcom',
           't',
           '',
@@ -219,7 +219,7 @@ describe('AccountsStore', () => {
         )
       )
 
-      assert.equal(getRegisteredApiType(getGitLabCloudAPIEndpoint()), undefined)
+      assert.equal(getRegisteredApiType(GitLabCloudAPIEndpoint), undefined)
     })
 
     it('rejects an account whose hostname is used by another provider', async () => {

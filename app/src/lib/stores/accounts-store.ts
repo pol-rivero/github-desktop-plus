@@ -5,9 +5,9 @@ import {
   fetchUser,
   EmailVisibility,
   getEnterpriseAPIURL,
-  getBitbucketCloudAPIEndpoint,
-  getCodebergCloudAPIEndpoint,
-  getGitLabCloudAPIEndpoint,
+  BitbucketCloudAPIEndpoint,
+  CodebergCloudAPIEndpoint,
+  GitLabCloudAPIEndpoint,
   deriveApiType,
 } from '../api'
 import { assertNever, fatalError } from '../fatal-error'
@@ -83,11 +83,11 @@ interface IAccount {
 const getCloudEndpointForApiType = (type: RegisteredApiType) => {
   switch (type) {
     case 'bitbucket':
-      return getBitbucketCloudAPIEndpoint()
+      return BitbucketCloudAPIEndpoint
     case 'gitlab':
-      return getGitLabCloudAPIEndpoint()
+      return GitLabCloudAPIEndpoint
     case 'forgejo':
-      return getCodebergCloudAPIEndpoint()
+      return CodebergCloudAPIEndpoint
     default:
       assertNever(type, `Unknown API type: ${type}`)
   }

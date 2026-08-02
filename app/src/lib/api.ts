@@ -166,32 +166,17 @@ if (!ClientID || !ClientID.length || !ClientSecret || !ClientSecret.length) {
     `DESKTOP_OAUTH_CLIENT_ID and/or DESKTOP_OAUTH_CLIENT_SECRET is undefined. You won't be able to authenticate new users.`
   )
 }
-if (
-  !ClientIDBitbucket ||
-  !ClientIDBitbucket.length ||
-  !ClientSecretBitbucket ||
-  !ClientSecretBitbucket.length
-) {
+if (!ClientIDBitbucket?.length || !ClientSecretBitbucket?.length) {
   log.warn(
     `DESKTOP_OAUTH_CLIENT_ID_BITBUCKET and/or DESKTOP_OAUTH_CLIENT_SECRET_BITBUCKET is undefined. You won't be able to authenticate new users.`
   )
 }
-if (
-  !ClientIDGitLab ||
-  !ClientIDGitLab.length ||
-  !ClientSecretGitLab ||
-  !ClientSecretGitLab.length
-) {
+if (!ClientIDGitLab?.length || !ClientSecretGitLab?.length) {
   log.warn(
     `DESKTOP_OAUTH_CLIENT_ID_GITLAB and/or DESKTOP_OAUTH_CLIENT_SECRET_GITLAB is undefined. You won't be able to authenticate new GitLab users.`
   )
 }
-if (
-  !ClientIDCodeberg ||
-  !ClientIDCodeberg.length ||
-  !ClientSecretCodeberg ||
-  !ClientSecretCodeberg.length
-) {
+if (!ClientIDCodeberg?.length || !ClientSecretCodeberg?.length) {
   log.warn(
     `DESKTOP_OAUTH_CLIENT_ID_CODEBERG and/or DESKTOP_OAUTH_CLIENT_SECRET_CODEBERG is undefined. You won't be able to authenticate new Codeberg users.`
   )
@@ -329,7 +314,7 @@ function toIAPIRepository(repo: IBitbucketAPIRepository): IAPIRepository {
   const sshUrl =
     repo.links.clone.filter(c => c.name === 'ssh')[0]?.href ||
     `git@bitbucket.org:${repo.full_name}.git`
-  const httpsLink = repo.links.clone.filter(c => c.name === 'https')[0]?.href
+  const httpsLink = repo.links.clone.find(c => c.name === 'https')?.href
   const httpsUrl = httpsLink
     ? urlWithoutCredentials(httpsLink)
     : `https://bitbucket.org/${repo.full_name}.git`
@@ -3299,11 +3284,11 @@ export function getEndpointForRepository(url: string): string | null {
   if (parsed.hostname === 'github.com') {
     return getDotComAPIEndpoint()
   } else if (parsed.hostname === 'bitbucket.org') {
-    return getBitbucketCloudAPIEndpoint()
+    return BitbucketCloudAPIEndpoint
   } else if (parsed.hostname === 'gitlab.com') {
-    return getGitLabCloudAPIEndpoint()
+    return GitLabCloudAPIEndpoint
   } else if (parsed.hostname === 'codeberg.org') {
-    return getCodebergCloudAPIEndpoint()
+    return CodebergCloudAPIEndpoint
   } else {
     const host = asHost(parsed)
     const registered = findRegisteredEndpointForHost(host)
@@ -3335,11 +3320,11 @@ export function getHTMLURL(endpoint: string): string {
   // We need to normalize them.
   if (endpoint === getDotComAPIEndpoint() && !envEndpoint) {
     return 'https://github.com'
-  } else if (endpoint === getBitbucketCloudAPIEndpoint()) {
+  } else if (endpoint === BitbucketCloudAPIEndpoint) {
     return 'https://bitbucket.org'
-  } else if (endpoint === getGitLabCloudAPIEndpoint()) {
+  } else if (endpoint === GitLabCloudAPIEndpoint) {
     return 'https://gitlab.com'
-  } else if (endpoint === getCodebergCloudAPIEndpoint()) {
+  } else if (endpoint === CodebergCloudAPIEndpoint) {
     return 'https://codeberg.org'
   } else {
     const registered = getRegisteredEndpoint(endpoint)
@@ -3380,13 +3365,13 @@ export const getAPIEndpoint = (endpoint: string) => {
     return getDotComAPIEndpoint()
   }
   if (isBitbucketCloud(endpoint)) {
-    return getBitbucketCloudAPIEndpoint()
+    return BitbucketCloudAPIEndpoint
   }
   if (isGitLabCloud(endpoint)) {
-    return getGitLabCloudAPIEndpoint()
+    return GitLabCloudAPIEndpoint
   }
   if (isCodebergCloud(endpoint)) {
-    return getCodebergCloudAPIEndpoint()
+    return CodebergCloudAPIEndpoint
   }
   const registered = findRegisteredEndpointForHost(tryGetHost(endpoint))
   if (registered !== undefined) {
@@ -3409,29 +3394,25 @@ export function getDotComAPIEndpoint(): string {
   return 'https://api.github.com'
 }
 
-export function getBitbucketCloudAPIEndpoint(): string {
-  return 'https://api.bitbucket.org/2.0'
-}
+export const BitbucketCloudAPIEndpoint = 'https://api.bitbucket.org/2.0'
 
-export function getGitLabCloudAPIEndpoint(): string {
-  return 'https://gitlab.com' + getGitLabApiPath()
-}
-export function getGitLabApiPath(): string {
-  return '/api/v4'
-}
-export function getGitLabRequiredScopes(): string[] {
-  return ['read_user', 'read_api', 'read_repository', 'write_repository']
-}
+export const GitLabApiPath = '/api/v4'
+export const GitLabCloudAPIEndpoint = 'https://gitlab.com' + GitLabApiPath
+export const GitLabRequiredScopes = [
+  'read_user',
+  'read_api',
+  'read_repository',
+  'write_repository',
+]
 
-export function getCodebergCloudAPIEndpoint(): string {
-  return 'https://codeberg.org' + getForgejoApiPath()
-}
-export function getForgejoApiPath(): string {
-  return '/api/v1'
-}
-export function getForgejoRequiredScopes(): string[] {
-  return ['read:user', 'read:repository', 'write:repository', 'read:issue']
-}
+export const ForgejoApiPath = '/api/v1'
+export const CodebergCloudAPIEndpoint = 'https://codeberg.org' + ForgejoApiPath
+export const ForgejoRequiredScopes = [
+  'read:user',
+  'read:repository',
+  'write:repository',
+  'read:issue',
+]
 
 export function deriveApiType<T>(
   endpoint: string,
@@ -3439,11 +3420,11 @@ export function deriveApiType<T>(
 ): AccountAPIType | T {
   if (endpoint === getDotComAPIEndpoint()) {
     return 'dotcom'
-  } else if (endpoint === getBitbucketCloudAPIEndpoint()) {
+  } else if (endpoint === BitbucketCloudAPIEndpoint) {
     return 'bitbucket'
-  } else if (endpoint === getGitLabCloudAPIEndpoint()) {
+  } else if (endpoint === GitLabCloudAPIEndpoint) {
     return 'gitlab'
-  } else if (endpoint === getCodebergCloudAPIEndpoint()) {
+  } else if (endpoint === CodebergCloudAPIEndpoint) {
     return 'forgejo'
   } else {
     return getRegisteredApiType(endpoint) ?? defaultValue ?? 'enterprise'
@@ -3495,7 +3476,7 @@ export function getGitLabOAuthAuthorizationURL(
   state: string,
   codeChallenge: string
 ): string {
-  const scope = encodeURIComponent(getGitLabRequiredScopes().join(' '))
+  const scope = encodeURIComponent(GitLabRequiredScopes.join(' '))
   const encodedRedirectUri = encodeURIComponent(oauthRedirectUri)
   const pkceParams = pkceChallengeParams(codeChallenge)
   return `https://gitlab.com/oauth/authorize?client_id=${ClientIDGitLab}&redirect_uri=${encodedRedirectUri}&response_type=code&scope=${scope}&state=${state}&${pkceParams}`
@@ -4116,7 +4097,7 @@ export class BitbucketAPI extends API {
 export class GitLabAPI extends API {
   // Refreshing the token also invalidates both the old token and the old refresh token.
   // We need to make GitLabAPI a per-login singleton to ensure there are no race conditions when refreshing the token
-  private static instances: Map<string, GitLabAPI> = new Map()
+  private static readonly instances: Map<string, GitLabAPI> = new Map()
 
   public static get(
     endpoint: string,
@@ -4520,7 +4501,7 @@ export class ForgejoAPI extends API {
   // access token (depending on the server's INVALIDATE_REFRESH_TOKENS
   // setting), so use a per-login singleton to guarantee a single
   // token-refresh chain per account.
-  private static instances: Map<string, ForgejoAPI> = new Map()
+  private static readonly instances: Map<string, ForgejoAPI> = new Map()
 
   public static get(
     endpoint: string,
@@ -4534,7 +4515,7 @@ export class ForgejoAPI extends API {
     }
     const instanceKey = `${endpoint}:${login}`
     const instance = this.instances.get(instanceKey)
-    if (!instance || !instance.token) {
+    if (!instance?.token) {
       const newInstance = new ForgejoAPI(
         endpoint,
         token,
@@ -4775,7 +4756,7 @@ export class ForgejoAPI extends API {
     since: Date | null
   ): Promise<ReadonlyArray<IAPIIssue>> {
     const params: { [key: string]: string } = { state, type: 'issues' }
-    if (since && !isNaN(since.getTime())) {
+    if (since && !Number.isNaN(since.getTime())) {
       params.since = toGitHubIsoDateString(since)
     }
 
@@ -4832,7 +4813,7 @@ export class ForgejoAPI extends API {
     // refs/pull/{n}/head ref produced by getRefForPullRequest, which
     // Forgejo's commit status endpoint can't resolve. Look up the pull
     // request's head SHA in that case.
-    const prMatch = ref.match(/^refs\/pull\/(\d+)\/head$/)
+    const prMatch = /^refs\/pull\/(\d+)\/head$/.exec(ref)
     if (!prMatch) {
       return ref
     }

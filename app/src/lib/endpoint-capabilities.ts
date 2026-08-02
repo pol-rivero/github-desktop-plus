@@ -1,9 +1,9 @@
 import * as semver from 'semver'
 import {
-  getBitbucketCloudAPIEndpoint,
-  getCodebergCloudAPIEndpoint,
+  BitbucketCloudAPIEndpoint,
+  CodebergCloudAPIEndpoint,
   getDotComAPIEndpoint,
-  getGitLabCloudAPIEndpoint,
+  GitLabCloudAPIEndpoint,
 } from './api'
 import { assertNonNullable } from './fatal-error'
 import { getRegisteredApiType } from './endpoint-api-type-registry'
@@ -65,15 +65,15 @@ export const isGist = (ep: string) => {
 }
 
 export const isBitbucketCloud = (ep: string) => {
-  return ep === getBitbucketCloudAPIEndpoint()
+  return ep === BitbucketCloudAPIEndpoint
 }
 
 export const isGitLabCloud = (ep: string) => {
-  return ep === getGitLabCloudAPIEndpoint()
+  return ep === GitLabCloudAPIEndpoint
 }
 
 export const isCodebergCloud = (ep: string) => {
-  return ep === getCodebergCloudAPIEndpoint()
+  return ep === CodebergCloudAPIEndpoint
 }
 
 export const isCodebergCloudOrForgejo = (ep: string) => {

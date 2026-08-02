@@ -4,7 +4,7 @@ import {
   BitbucketAPI,
   ForgejoAPI,
   GitLabAPI,
-  getBitbucketCloudAPIEndpoint,
+  BitbucketCloudAPIEndpoint,
 } from '../../src/lib/api'
 import { UnknownLogin } from '../../src/models/account'
 
@@ -37,7 +37,7 @@ const refreshToken = (api: unknown) =>
 describe('token refresh', () => {
   it('does not try to refresh a Bitbucket account without a refresh token', async () => {
     const api = new BitbucketAPI(
-      getBitbucketCloudAPIEndpoint(),
+      BitbucketCloudAPIEndpoint,
       'pat',
       UnknownLogin.InitialAuthFetch,
       '',

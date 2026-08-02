@@ -13,19 +13,19 @@ import {
   getEnterpriseAPIURL,
   requestOAuthToken,
   getOAuthAuthorizationURL,
-  getBitbucketCloudAPIEndpoint,
+  BitbucketCloudAPIEndpoint,
   getBitbucketOAuthAuthorizationURL,
   requestOAuthTokenBitbucket,
-  getCodebergCloudAPIEndpoint,
+  CodebergCloudAPIEndpoint,
   getCodebergOAuthAuthorizationURL,
-  getGitLabCloudAPIEndpoint,
+  GitLabCloudAPIEndpoint,
   getGitLabOAuthAuthorizationURL,
   requestOAuthTokenCodeberg,
   requestOAuthTokenGitLab,
-  getGitLabApiPath,
-  getForgejoApiPath,
-  getGitLabRequiredScopes,
-  getForgejoRequiredScopes,
+  GitLabApiPath,
+  ForgejoApiPath,
+  GitLabRequiredScopes,
+  ForgejoRequiredScopes,
 } from '../../lib/api'
 
 import { APIError } from '../http'
@@ -198,8 +198,8 @@ export const isSelfHostedApiType = (
 
 /** The path each provider serves its REST API at, relative to the web root. */
 const selfHostedApiPaths: Record<SelfHostedApiType, string> = {
-  gitlab: getGitLabApiPath(),
-  forgejo: getForgejoApiPath(),
+  gitlab: GitLabApiPath,
+  forgejo: ForgejoApiPath,
 }
 
 /** The name we show users for a self-hosted provider. */
@@ -216,8 +216,8 @@ export function friendlySelfHostedName(apiType: SelfHostedApiType) {
 
 /** The scopes a personal access token needs, per provider. */
 export const selfHostedTokenScopes: Record<SelfHostedApiType, string[]> = {
-  gitlab: getGitLabRequiredScopes(),
-  forgejo: getForgejoRequiredScopes(),
+  gitlab: GitLabRequiredScopes,
+  forgejo: ForgejoRequiredScopes,
 }
 
 /** The page where the user creates a personal access token on their instance. */
@@ -271,7 +271,7 @@ function parseSelfHostedInstanceURL(
   let parsed: URL
   try {
     parsed = new URL(validUrl)
-  } catch (e) {
+  } catch {
     throw new Error(
       `The ${name} instance address doesn't appear to be a valid URL. We're expecting something like https://git.example.com.`
     )
@@ -322,11 +322,12 @@ function toTokenSignInError(
         return new Error(
           `The personal access token was rejected by ${webBaseUrl}. Make sure it hasn't expired and that you copied it correctly.`
         )
-      case 403:
+      case 403: {
         const scopes = selfHostedTokenScopes[apiType].join(', ')
         return new Error(
           `The personal access token doesn't grant enough access. Create one with the scopes ${scopes}.`
         )
+      }
       case 404:
         return new Error(
           `Couldn't find a ${name} API at ${endpoint}. Make sure the address points to a ${name} instance.`
@@ -669,10 +670,9 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
       this.reset()
     }
 
-    const endpoint = getBitbucketCloudAPIEndpoint()
     this.setState({
       kind: SignInStep.Authentication,
-      endpoint,
+      endpoint: BitbucketCloudAPIEndpoint,
       apiType: 'bitbucket',
       error: null,
       loading: false,
@@ -685,10 +685,9 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
       this.reset()
     }
 
-    const endpoint = getGitLabCloudAPIEndpoint()
     this.setState({
       kind: SignInStep.Authentication,
-      endpoint,
+      endpoint: GitLabCloudAPIEndpoint,
       apiType: 'gitlab',
       error: null,
       loading: false,
@@ -701,10 +700,9 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
       this.reset()
     }
 
-    const endpoint = getCodebergCloudAPIEndpoint()
     this.setState({
       kind: SignInStep.Authentication,
-      endpoint,
+      endpoint: CodebergCloudAPIEndpoint,
       apiType: 'forgejo',
       error: null,
       loading: false,
