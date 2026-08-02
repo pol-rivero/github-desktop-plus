@@ -3414,11 +3414,23 @@ export function getBitbucketCloudAPIEndpoint(): string {
 }
 
 export function getGitLabCloudAPIEndpoint(): string {
-  return 'https://gitlab.com/api/v4'
+  return 'https://gitlab.com' + getGitLabApiPath()
+}
+export function getGitLabApiPath(): string {
+  return '/api/v4'
+}
+export function getGitLabRequiredScopes(): string[] {
+  return ['read_user', 'read_api', 'read_repository', 'write_repository']
 }
 
 export function getCodebergCloudAPIEndpoint(): string {
-  return 'https://codeberg.org/api/v1'
+  return 'https://codeberg.org' + getForgejoApiPath()
+}
+export function getForgejoApiPath(): string {
+  return '/api/v1'
+}
+export function getForgejoRequiredScopes(): string[] {
+  return ['read:user', 'read:repository', 'write:repository', 'read:issue']
 }
 
 export function deriveApiType<T>(
@@ -3483,9 +3495,7 @@ export function getGitLabOAuthAuthorizationURL(
   state: string,
   codeChallenge: string
 ): string {
-  const scope = encodeURIComponent(
-    'read_user read_api read_repository write_repository'
-  )
+  const scope = encodeURIComponent(getGitLabRequiredScopes().join(' '))
   const encodedRedirectUri = encodeURIComponent(oauthRedirectUri)
   const pkceParams = pkceChallengeParams(codeChallenge)
   return `https://gitlab.com/oauth/authorize?client_id=${ClientIDGitLab}&redirect_uri=${encodedRedirectUri}&response_type=code&scope=${scope}&state=${state}&${pkceParams}`
@@ -3799,6 +3809,10 @@ export class BitbucketAPI extends API {
   }
 
   protected override async refreshToken() {
+    if (!this.apiRefreshToken) {
+      return
+    }
+
     try {
       // This API won't work for Bitbucket Server anyways, so it's fine to hardcode the oauth endpoint here
       const response = await fetch(
@@ -4170,6 +4184,10 @@ export class GitLabAPI extends API {
   }
 
   protected override async refreshToken() {
+    if (!this.apiRefreshToken) {
+      return
+    }
+
     try {
       const instanceRoot = deriveWebBaseUrl(this.endpoint, 'gitlab')
       const response = await fetch(`${instanceRoot}/oauth/token`, {
@@ -4571,6 +4589,10 @@ export class ForgejoAPI extends API {
   }
 
   protected override async refreshToken() {
+    if (!this.apiRefreshToken) {
+      return
+    }
+
     try {
       const instanceRoot = deriveWebBaseUrl(this.endpoint, 'forgejo')
       const response = await fetch(`${instanceRoot}/login/oauth/access_token`, {

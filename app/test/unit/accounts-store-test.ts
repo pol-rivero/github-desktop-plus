@@ -255,5 +255,103 @@ describe('AccountsStore', () => {
       assert.equal(users.length, 1)
       assert.equal(users[0].apiType, 'enterprise')
     })
+
+    it('keeps accounts for two providers on the same hostname but different ports', async () => {
+      const gitlabAccount = new Account(
+        'joan',
+        'https://git.example.com:8443/api/v4',
+        'gitlab',
+        't',
+        '',
+        0,
+        [],
+        '',
+        1,
+        ''
+      )
+      const forgejoAccount = new Account(
+        'joan',
+        'https://git.example.com:3000/api/v1',
+        'forgejo',
+        't',
+        '',
+        0,
+        [],
+        '',
+        2,
+        ''
+      )
+
+      assert.notEqual(await accountsStore.addAccount(gitlabAccount), null)
+      assert.notEqual(await accountsStore.addAccount(forgejoAccount), null)
+
+      const users = await accountsStore.getAll()
+      assert.equal(users.length, 2)
+      assert.equal(
+        getRegisteredApiType('https://git.example.com:8443/api/v4'),
+        'gitlab'
+      )
+      assert.equal(
+        getRegisteredApiType('https://git.example.com:3000/api/v1'),
+        'forgejo'
+      )
+    })
+  })
+
+  describe('findApiTypeConflict', () => {
+    beforeEach(async () => {
+      await accountsStore.addAccount(
+        new Account(
+          'joan',
+          'https://git.example.com/api/v3',
+          'enterprise',
+          't',
+          '',
+          0,
+          [],
+          '',
+          1,
+          ''
+        )
+      )
+    })
+
+    it('describes the conflict when the host runs another provider', async () => {
+      const conflict = await accountsStore.findApiTypeConflict(
+        'https://git.example.com/api/v4',
+        'gitlab'
+      )
+
+      assert.notEqual(conflict, null)
+      assert.match(conflict?.message ?? '', /git.example.com/)
+      assert.match(conflict?.message ?? '', /GitHub Enterprise/)
+    })
+
+    it('returns null for the same provider on the same host', async () => {
+      assert.equal(
+        await accountsStore.findApiTypeConflict(
+          'https://git.example.com/api/v3',
+          'enterprise'
+        ),
+        null
+      )
+    })
+
+    it('returns null for the same hostname on a different port', async () => {
+      assert.equal(
+        await accountsStore.findApiTypeConflict(
+          'https://git.example.com:8443/api/v4',
+          'gitlab'
+        ),
+        null
+      )
+    })
+
+    it('returns null for an unparseable endpoint', async () => {
+      assert.equal(
+        await accountsStore.findApiTypeConflict('not a url', 'gitlab'),
+        null
+      )
+    })
   })
 })

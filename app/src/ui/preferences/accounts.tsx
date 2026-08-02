@@ -8,7 +8,10 @@ import { Row } from '../lib/row'
 import { DialogContent, DialogPreferredFocusClassName } from '../dialog'
 import { Avatar } from '../lib/avatar'
 import { CallToAction } from '../lib/call-to-action'
+import { LinkButton } from '../lib/link-button'
 import { getHTMLURL } from '../../lib/api'
+import { isCodebergCloud, isGitLabCloud } from '../../lib/endpoint-capabilities'
+import { SelfHostedApiType } from '../../lib/stores/sign-in-store'
 
 interface IAccountsProps {
   readonly accounts: ReadonlyArray<Account>
@@ -18,6 +21,7 @@ interface IAccountsProps {
   readonly onBitbucketSignIn: () => void
   readonly onGitLabSignIn: () => void
   readonly onCodebergSignIn: () => void
+  readonly onSelfHostedSignIn: (apiType: SelfHostedApiType) => void
   readonly onLogout: (account: Account) => void
 }
 
@@ -27,6 +31,24 @@ enum SignInType {
   Bitbucket,
   GitLab,
   Forgejo,
+}
+
+const isSelfHostedAccount = (account: Account) =>
+  (account.apiType === 'gitlab' && !isGitLabCloud(account.endpoint)) ||
+  (account.apiType === 'forgejo' && !isCodebergCloud(account.endpoint))
+
+/** The provider a section can add a self-hosted instance of, if any. */
+const selfHostedApiTypeFor = (
+  type: SignInType
+): SelfHostedApiType | undefined => {
+  switch (type) {
+    case SignInType.GitLab:
+      return 'gitlab'
+    case SignInType.Forgejo:
+      return 'forgejo'
+    default:
+      return undefined
+  }
 }
 
 export class Accounts extends React.Component<IAccountsProps, {}> {
@@ -125,8 +147,27 @@ export class Accounts extends React.Component<IAccountsProps, {}> {
         ) : (
           <Button onClick={onSignIn}>{buttonText}</Button>
         )}
+        {this.renderSelfHostedSignIn(type)}
       </>
     )
+  }
+
+  private renderSelfHostedSignIn(type: SignInType) {
+    const apiType = selfHostedApiTypeFor(type)
+
+    return apiType === undefined ? null : (
+      <Row>
+        <LinkButton onClick={this.getOnSelfHostedSignIn(apiType)}>
+          Add self-hosted instance…
+        </LinkButton>
+      </Row>
+    )
+  }
+
+  private getOnSelfHostedSignIn = (apiType: SelfHostedApiType) => {
+    return () => {
+      this.props.onSelfHostedSignIn(apiType)
+    }
   }
 
   private renderAccount(account: Account, type: SignInType) {
@@ -150,7 +191,8 @@ export class Accounts extends React.Component<IAccountsProps, {}> {
         <div className="user-info-container">
           <Avatar accounts={this.props.accounts} user={avatarUser} />
           <div className="user-info">
-            {account.apiType === 'enterprise' ? (
+            {account.apiType === 'enterprise' ||
+            isSelfHostedAccount(account) ? (
               <>
                 <div className="account-title">
                   {account.name === account.login

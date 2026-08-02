@@ -150,7 +150,7 @@ export class Account {
   public get friendlyEndpoint(): string {
     return (this._friendlyEndpoint ??= isDotComAccount(this)
       ? 'GitHub.com'
-      : new URL(getHTMLURL(this.endpoint)).hostname)
+      : new URL(getHTMLURL(this.endpoint)).host)
   }
 
   public get isAnonymous() {

@@ -135,6 +135,7 @@ import { ValidNotificationPullRequestReviewState } from '../../lib/valid-notific
 import { UnreachableCommitsTab } from '../history/unreachable-commits-dialog'
 import { sendNonFatalException } from '../../lib/helpers/non-fatal-exception'
 import { SignInResult } from '../../lib/stores/sign-in-store'
+import { SelfHostedApiType } from '../../lib/stores/sign-in-store'
 import { ICustomIntegration } from '../../lib/custom-integration'
 import { isAbsolute } from 'path'
 import { CLIAction } from '../../lib/cli-action'
@@ -1961,6 +1962,22 @@ export class Dispatcher {
     this.appStore._beginCodebergSignIn(resultCallback)
   }
 
+  public beginSelfHostedSignIn(
+    apiType: SelfHostedApiType,
+    resultCallback?: (result: SignInResult) => void
+  ) {
+    this.appStore._beginSelfHostedSignIn(apiType, resultCallback)
+  }
+
+  /**
+   * Attempt to complete a self-hosted sign in with the given personal access
+   * token. This method must only be called when the sign in store is in the
+   * token entry step.
+   */
+  public setSignInToken(token: string): Promise<void> {
+    return this.appStore._setSignInToken(token)
+  }
+
   public beginBrowserBasedSignIn(
     endpoint: string,
     resultCallback?: (result: SignInResult) => void
@@ -2062,6 +2079,25 @@ export class Dispatcher {
     resultCallback?: (result: SignInResult) => void
   ): Promise<void> {
     this.appStore._beginCodebergSignIn(resultCallback)
+    this.appStore._showPopup({ type: PopupType.SignIn })
+  }
+
+  /**
+   * Show the sign in dialog for a self-hosted instance of a third-party
+   * provider, optionally skipping the address entry step when the instance is
+   * already known.
+   */
+  public async showSelfHostedSignInDialog(
+    apiType: SelfHostedApiType,
+    webBaseUrl?: string,
+    resultCallback?: (result: SignInResult) => void
+  ): Promise<void> {
+    this.appStore._beginSelfHostedSignIn(apiType, resultCallback)
+
+    if (webBaseUrl !== undefined) {
+      this.appStore._setSignInEndpoint(webBaseUrl)
+    }
+
     this.appStore._showPopup({ type: PopupType.SignIn })
   }
 

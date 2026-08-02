@@ -4,6 +4,7 @@ import { Dispatcher } from '../dispatcher'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { Account } from '../../models/account'
 import { getHTMLURL } from '../../lib/api'
+import { isCodebergCloud, isGitLabCloud } from '../../lib/endpoint-capabilities'
 import { Ref } from '../lib/ref'
 import { assertNever } from '../../lib/fatal-error'
 
@@ -61,10 +62,24 @@ export class InvalidatedToken extends React.Component<IInvalidatedTokenProps> {
         dispatcher.showBitbucketSignInDialog()
         break
       case 'gitlab':
-        dispatcher.showGitLabSignInDialog()
+        if (isGitLabCloud(account.endpoint)) {
+          dispatcher.showGitLabSignInDialog()
+        } else {
+          dispatcher.showSelfHostedSignInDialog(
+            'gitlab',
+            getHTMLURL(account.endpoint)
+          )
+        }
         break
       case 'forgejo':
-        dispatcher.showCodebergSignInDialog()
+        if (isCodebergCloud(account.endpoint)) {
+          dispatcher.showCodebergSignInDialog()
+        } else {
+          dispatcher.showSelfHostedSignInDialog(
+            'forgejo',
+            getHTMLURL(account.endpoint)
+          )
+        }
         break
       default:
         console.error('Unknown sign-in dialog for account:', account)

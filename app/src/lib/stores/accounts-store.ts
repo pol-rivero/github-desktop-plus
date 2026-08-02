@@ -146,6 +146,41 @@ export class AccountsStore extends TypedBaseStore<ReadonlyArray<Account>> {
   }
 
   /**
+   * Look for a live account on the same host as the given endpoint but with a
+   * different API type, and describe the conflict if there is one.
+   */
+  public async findApiTypeConflict(
+    endpoint: string,
+    apiType: AccountAPIType
+  ): Promise<Error | null> {
+    await this.loadingPromise
+    return this.apiTypeConflictFor(endpoint, apiType)
+  }
+
+  private apiTypeConflictFor(
+    endpoint: string,
+    apiType: AccountAPIType
+  ): Error | null {
+    const host = tryGetHost(endpoint)
+    if (host === undefined) {
+      return null
+    }
+
+    const conflicting = this.accounts.find(
+      a => tryGetHost(a.endpoint) === host && a.apiType !== apiType
+    )
+
+    return conflicting === undefined
+      ? null
+      : new Error(
+          `The host ${host} is already associated with a ` +
+            `${friendlyApiTypeName(conflicting.apiType)} account ` +
+            `(${conflicting.login}). Remove that account before signing ` +
+            `in to ${host} as ${friendlyApiTypeName(apiType)}.`
+        )
+  }
+
+  /**
    * Add the account to the store.
    */
   public async addAccount(account: Account): Promise<Account | null> {
@@ -154,18 +189,12 @@ export class AccountsStore extends TypedBaseStore<ReadonlyArray<Account>> {
     // Reject the account if a live account on the same host has a different API type.
     const host = tryGetHost(account.endpoint)
     if (host !== undefined) {
-      const conflicting = this.accounts.find(
-        a => tryGetHost(a.endpoint) === host && a.apiType !== account.apiType
+      const conflict = this.apiTypeConflictFor(
+        account.endpoint,
+        account.apiType
       )
-      if (conflicting !== undefined) {
-        this.emitError(
-          new Error(
-            `The host ${host} is already associated with a ` +
-              `${friendlyApiTypeName(conflicting.apiType)} account ` +
-              `(${conflicting.login}). Remove that account before signing ` +
-              `in to ${host} as ${friendlyApiTypeName(account.apiType)}.`
-          )
-        )
+      if (conflict !== null) {
+        this.emitError(conflict)
         return null
       }
 

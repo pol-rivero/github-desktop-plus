@@ -3,6 +3,10 @@ import { IGitAccount } from '../../models/git-account'
 import { deduceRepositoryType } from '../../models/github-repository'
 import { PopupType } from '../../models/popup'
 import { Dispatcher } from '../../ui/dispatcher'
+import {
+  findRegisteredEndpointForHost,
+  tryGetHost,
+} from '../endpoint-api-type-registry'
 import { assertNever } from '../fatal-error'
 import { SignInResult } from '../stores'
 
@@ -101,11 +105,20 @@ class TrampolineUIHelper {
           this.dispatcher.beginBitbucketSignIn(cb)
           break
         case 'gitlab':
-          this.dispatcher.beginGitLabSignIn(cb)
+        case 'forgejo': {
+          // A registered host is a self-hosted instance, so sign in to that
+          // instance rather than to the provider's cloud offering.
+          const registered = findRegisteredEndpointForHost(tryGetHost(endpoint))
+          if (registered?.apiType === repositoryType) {
+            this.dispatcher.beginSelfHostedSignIn(repositoryType, cb)
+            await this.dispatcher.setSignInEndpoint(registered.webBaseUrl)
+          } else if (repositoryType === 'gitlab') {
+            this.dispatcher.beginGitLabSignIn(cb)
+          } else {
+            this.dispatcher.beginCodebergSignIn(cb)
+          }
           break
-        case 'forgejo':
-          this.dispatcher.beginCodebergSignIn(cb)
-          break
+        }
         default:
           assertNever(repositoryType, `Unexpected repo type: ${repositoryType}`)
       }

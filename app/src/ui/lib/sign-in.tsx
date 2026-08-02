@@ -84,6 +84,10 @@ export class SignIn extends React.Component<ISignInProps, {}> {
         return this.renderExistingAccountWarningStep(state)
       case SignInStep.Authentication:
         return this.renderAuthenticationStep(state)
+      case SignInStep.TokenEntry:
+        // Self-hosted instances are only signed in to from the sign-in dialog,
+        // never from the welcome flow.
+        return null
       case SignInStep.Success:
         return null
       default:

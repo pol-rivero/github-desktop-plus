@@ -4,6 +4,7 @@ import { PreferencesTab } from '../../models/preferences'
 import { Dispatcher } from '../dispatcher'
 import { TabBar, TabBarType } from '../tab-bar'
 import { Accounts } from './accounts'
+import { SelfHostedApiType } from '../../lib/stores/sign-in-store'
 import { Advanced } from './advanced'
 import { Git } from './git'
 import { assertNever } from '../../lib/fatal-error'
@@ -568,6 +569,11 @@ export class Preferences extends React.Component<
     this.props.dispatcher.showCodebergSignInDialog()
   }
 
+  private onSelfHostedSignIn = (apiType: SelfHostedApiType) => {
+    this.props.onDismissed()
+    this.props.dispatcher.showSelfHostedSignInDialog(apiType)
+  }
+
   private onCopilotSignIn = () => {
     this.setState({ selectedIndex: PreferencesTab.Accounts })
   }
@@ -629,6 +635,7 @@ export class Preferences extends React.Component<
             onBitbucketSignIn={this.onBitbucketSignIn}
             onGitLabSignIn={this.onGitLabSignIn}
             onCodebergSignIn={this.onCodebergSignIn}
+            onSelfHostedSignIn={this.onSelfHostedSignIn}
             onLogout={this.onLogout}
           />
         )

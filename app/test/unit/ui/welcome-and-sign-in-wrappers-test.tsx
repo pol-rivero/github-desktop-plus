@@ -37,6 +37,7 @@ function toDispatcher(dispatcher: TestDispatcher): Dispatcher {
 function createEndpointState(): IEndpointEntryState {
   return {
     kind: SignInStep.EndpointEntry,
+    apiType: 'enterprise',
     error: null,
     loading: false,
     resultCallback: noopResultCallback,

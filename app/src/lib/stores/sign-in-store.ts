@@ -22,8 +22,13 @@ import {
   getGitLabOAuthAuthorizationURL,
   requestOAuthTokenCodeberg,
   requestOAuthTokenGitLab,
+  getGitLabApiPath,
+  getForgejoApiPath,
+  getGitLabRequiredScopes,
+  getForgejoRequiredScopes,
 } from '../../lib/api'
 
+import { APIError } from '../http'
 import { TypedBaseStore } from './base-store'
 import { generatePKCEParameters } from '../pkce'
 import { IOAuthAction } from '../parse-app-url'
@@ -40,6 +45,7 @@ export enum SignInStep {
   EndpointEntry = 'EndpointEntry',
   ExistingAccountWarning = 'ExistingAccountWarning',
   Authentication = 'Authentication',
+  TokenEntry = 'TokenEntry',
   TwoFactorAuthentication = 'TwoFactorAuthentication',
   Success = 'Success',
 }
@@ -52,6 +58,7 @@ export type SignInState =
   | IEndpointEntryState
   | IExistingAccountWarning
   | IAuthenticationState
+  | ITokenEntryState
   | ISuccessState
 
 /**
@@ -110,6 +117,28 @@ export interface IExistingAccountWarning extends ISignInState {
  */
 export interface IEndpointEntryState extends ISignInState {
   readonly kind: SignInStep.EndpointEntry
+
+  readonly apiType: 'enterprise' | SelfHostedApiType
+
+  readonly resultCallback: (result: SignInResult) => void
+}
+
+/**
+ * State interface representing the personal access token entry step, the
+ * second step when signing in to a self-hosted instance.
+ */
+export interface ITokenEntryState extends ISignInState {
+  readonly kind: SignInStep.TokenEntry
+
+  /** The API endpoint of the instance, e.g. https://git.example.com/api/v4 */
+  readonly endpoint: string
+
+  /** The web root of the instance, e.g. https://git.example.com */
+  readonly webBaseUrl: string
+
+  /** The provider the instance is running. */
+  readonly apiType: SelfHostedApiType
+
   readonly resultCallback: (result: SignInResult) => void
 }
 
@@ -158,6 +187,156 @@ export interface ISuccessState {
 
 interface IAuthenticationEvent {
   readonly account: Account
+}
+
+/** The third-party providers that users can host on their own instance. */
+export type SelfHostedApiType = 'gitlab' | 'forgejo'
+
+export const isSelfHostedApiType = (
+  apiType: AccountAPIType
+): apiType is SelfHostedApiType => apiType === 'gitlab' || apiType === 'forgejo'
+
+/** The path each provider serves its REST API at, relative to the web root. */
+const selfHostedApiPaths: Record<SelfHostedApiType, string> = {
+  gitlab: getGitLabApiPath(),
+  forgejo: getForgejoApiPath(),
+}
+
+/** The name we show users for a self-hosted provider. */
+export function friendlySelfHostedName(apiType: SelfHostedApiType) {
+  switch (apiType) {
+    case 'gitlab':
+      return 'GitLab'
+    case 'forgejo':
+      return 'Forgejo'
+    default:
+      assertNever(apiType, `Unknown self-hosted API type ${apiType}`)
+  }
+}
+
+/** The scopes a personal access token needs, per provider. */
+export const selfHostedTokenScopes: Record<SelfHostedApiType, string[]> = {
+  gitlab: getGitLabRequiredScopes(),
+  forgejo: getForgejoRequiredScopes(),
+}
+
+/** The page where the user creates a personal access token on their instance. */
+export function getSelfHostedTokenSettingsURL(
+  webBaseUrl: string,
+  apiType: SelfHostedApiType
+) {
+  switch (apiType) {
+    case 'gitlab':
+      return `${webBaseUrl}/-/user_settings/personal_access_tokens`
+    case 'forgejo':
+      return `${webBaseUrl}/user/settings/applications`
+    default:
+      assertNever(apiType, `Unknown self-hosted API type ${apiType}`)
+  }
+}
+
+/**
+ * Validate and normalize the address of a self-hosted instance, returning its
+ * web root (protocol, host and any explicit port, without a trailing slash).
+ */
+function parseSelfHostedInstanceURL(
+  url: string,
+  apiType: SelfHostedApiType
+): string {
+  const name = friendlySelfHostedName(apiType)
+
+  // Assume https when the address doesn't name a scheme
+  const trimmed = url.trim()
+  const address =
+    trimmed === '' || /^[a-zA-Z][a-zA-Z\d+.-]*:\/\//.test(trimmed)
+      ? trimmed
+      : `https://${trimmed}`
+
+  let validUrl: string
+  try {
+    validUrl = validateURL(address)
+  } catch (e) {
+    if (e.name === InvalidURLErrorName) {
+      throw new Error(
+        `The ${name} instance address doesn't appear to be a valid URL. We're expecting something like https://git.example.com.`
+      )
+    } else if (e.name === InvalidProtocolErrorName) {
+      throw new Error(
+        `Unsupported protocol. Only https is supported when signing in to a self-hosted ${name} instance.`
+      )
+    }
+    throw e
+  }
+
+  let parsed: URL
+  try {
+    parsed = new URL(validUrl)
+  } catch (e) {
+    throw new Error(
+      `The ${name} instance address doesn't appear to be a valid URL. We're expecting something like https://git.example.com.`
+    )
+  }
+
+  if (parsed.username !== '' || parsed.password !== '') {
+    throw new Error(
+      `The ${name} instance address must not contain a username or a password.`
+    )
+  }
+
+  if (parsed.search !== '' || parsed.hash !== '') {
+    throw new Error(
+      `The ${name} instance address must not contain a query string or a fragment.`
+    )
+  }
+
+  if (parsed.pathname.replace(/\/+/g, '') !== '') {
+    throw new Error(
+      `Only ${name} instances installed at the root of a host are supported, so the address can't contain a path. We're expecting something like https://git.example.com.`
+    )
+  }
+
+  if (isGitHubHostname(parsed.hostname)) {
+    throw new Error(
+      `${parsed.hostname} is a GitHub address. Sign in to GitHub.com or to a GitHub Enterprise instance instead.`
+    )
+  }
+
+  return `${parsed.protocol}//${parsed.host}`
+}
+
+const isGitHubHostname = (hostname: string) =>
+  hostname === 'github.com' || hostname === 'api.github.com'
+
+/** Turn an API failure from the token step into a user-facing message. */
+function toTokenSignInError(
+  e: any,
+  apiType: SelfHostedApiType,
+  endpoint: string,
+  webBaseUrl: string
+): Error {
+  const name = friendlySelfHostedName(apiType)
+
+  if (e instanceof APIError) {
+    switch (e.responseStatus) {
+      case 401:
+        return new Error(
+          `The personal access token was rejected by ${webBaseUrl}. Make sure it hasn't expired and that you copied it correctly.`
+        )
+      case 403:
+        const scopes = selfHostedTokenScopes[apiType].join(', ')
+        return new Error(
+          `The personal access token doesn't grant enough access. Create one with the scopes ${scopes}.`
+        )
+      case 404:
+        return new Error(
+          `Couldn't find a ${name} API at ${endpoint}. Make sure the address points to a ${name} instance.`
+        )
+      default:
+        return e
+    }
+  }
+
+  return new Error(`Could not sign in to ${webBaseUrl}. ${e.message}`)
 }
 
 type OAuthProvider = RepoType
@@ -456,6 +635,29 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
 
     this.setState({
       kind: SignInStep.EndpointEntry,
+      apiType: 'enterprise',
+      error: null,
+      loading: false,
+      resultCallback: resultCallback ?? noop,
+    })
+  }
+
+  /**
+   * Initiate a sign in flow for a self-hosted instance of a third-party
+   * provider. This will put the store in the EndpointEntry step ready to
+   * receive the address of the instance.
+   */
+  public beginSelfHostedSignIn(
+    apiType: SelfHostedApiType,
+    resultCallback?: (result: SignInResult) => void
+  ) {
+    if (this.state !== null) {
+      this.reset()
+    }
+
+    this.setState({
+      kind: SignInStep.EndpointEntry,
+      apiType,
       error: null,
       loading: false,
       resultCallback: resultCallback ?? noop,
@@ -536,6 +738,10 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
       )
     }
 
+    if (isSelfHostedApiType(currentState.apiType)) {
+      return this.setSelfHostedEndpoint(url, currentState.apiType, currentState)
+    }
+
     /**
      * If the user enters a github.com url in the GitHub Enterprise sign-in
      * flow we'll redirect them to the GitHub.com sign-in flow.
@@ -576,5 +782,108 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
       loading: false,
       resultCallback: currentState.resultCallback,
     })
+  }
+
+  /**
+   * Advance from the EndpointEntry step to the TokenEntry step for a
+   * self-hosted instance, deriving the API endpoint from the address the user
+   * entered and rejecting hosts that are already used by another provider.
+   */
+  private async setSelfHostedEndpoint(
+    url: string,
+    apiType: SelfHostedApiType,
+    currentState: IEndpointEntryState | IExistingAccountWarning
+  ): Promise<void> {
+    this.setState({ ...currentState, loading: true, error: null })
+    const loadingState = this.state
+
+    let webBaseUrl: string
+    try {
+      webBaseUrl = parseSelfHostedInstanceURL(url, apiType)
+    } catch (e) {
+      this.setState({ ...currentState, loading: false, error: e })
+      return
+    }
+
+    const endpoint = `${webBaseUrl}${selfHostedApiPaths[apiType]}`
+
+    // Surface a host conflict here rather than after the user has gone and
+    // created a token for us.
+    const conflict = await this.accountStore.findApiTypeConflict(
+      endpoint,
+      apiType
+    )
+
+    if (this.state !== loadingState) {
+      log.warn('[SignInStore] endpoint resolved but session has changed')
+      return
+    }
+
+    if (conflict !== null) {
+      this.setState({ ...currentState, loading: false, error: conflict })
+      return
+    }
+
+    this.setState({
+      kind: SignInStep.TokenEntry,
+      endpoint,
+      webBaseUrl,
+      apiType,
+      error: null,
+      loading: false,
+      resultCallback: currentState.resultCallback,
+    })
+  }
+
+  /**
+   * Attempt to complete a self-hosted sign in using the given personal access
+   * token. This method must only be called when the store is in the token
+   * entry step or an error will be thrown.
+   */
+  public async setToken(token: string): Promise<void> {
+    const currentState = this.state
+
+    if (currentState?.kind !== SignInStep.TokenEntry) {
+      const stepText = currentState ? currentState.kind : 'null'
+      return fatalError(
+        `Sign in step '${stepText}' not compatible with token entry`
+      )
+    }
+
+    const { endpoint, webBaseUrl, apiType, resultCallback } = currentState
+
+    this.setState({ ...currentState, loading: true, error: null })
+    const loadingState = this.state
+
+    let account: Account
+    try {
+      account = await fetchUser(
+        endpoint,
+        apiType,
+        token,
+        '',
+        0,
+        UnknownLogin.InitialAuthFetch
+      )
+    } catch (e) {
+      log.info('[SignInStore] personal access token sign in failed', e)
+
+      if (this.state === loadingState) {
+        this.setState({
+          ...currentState,
+          loading: false,
+          error: toTokenSignInError(e, apiType, endpoint, webBaseUrl),
+        })
+      }
+      return
+    }
+
+    if (this.state !== loadingState) {
+      log.warn('[SignInStore] account resolved but session has changed')
+      return
+    }
+
+    this.emitAuthenticate(account)
+    this.setState({ kind: SignInStep.Success, resultCallback })
   }
 }

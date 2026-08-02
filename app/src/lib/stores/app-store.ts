@@ -33,6 +33,7 @@ import {
   IssuesStore,
   PullRequestCoordinator,
   RepositoriesStore,
+  SelfHostedApiType,
   SignInResult,
   SignInStore,
   UpstreamRemoteName,
@@ -9204,8 +9205,19 @@ export class AppStore extends TypedBaseStore<IAppState> {
     return this.signInStore.beginCodebergSignIn(resultCallback)
   }
 
+  public _beginSelfHostedSignIn(
+    apiType: SelfHostedApiType,
+    resultCallback?: (result: SignInResult) => void
+  ) {
+    return this.signInStore.beginSelfHostedSignIn(apiType, resultCallback)
+  }
+
   public _setSignInEndpoint(url: string): Promise<void> {
     return this.signInStore.setEndpoint(url)
+  }
+
+  public _setSignInToken(token: string): Promise<void> {
+    return this.signInStore.setToken(token)
   }
 
   public _requestBrowserAuthentication() {

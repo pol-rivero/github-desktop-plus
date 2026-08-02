@@ -6,10 +6,20 @@ import {
   IEndpointEntryState,
   IAuthenticationState,
   IExistingAccountWarning,
+  ITokenEntryState,
 } from '../../lib/stores'
+import {
+  friendlySelfHostedName,
+  getSelfHostedTokenSettingsURL,
+  isSelfHostedApiType,
+  SelfHostedApiType,
+  selfHostedTokenScopes,
+} from '../../lib/stores/sign-in-store'
 import { assertNever } from '../../lib/fatal-error'
 import { Row } from '../lib/row'
 import { TextBox } from '../lib/text-box'
+import { PasswordTextBox } from '../lib/password-text-box'
+import { LinkButton } from '../lib/link-button'
 import { Dialog, DialogError, DialogContent, DialogFooter } from '../dialog'
 
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
@@ -26,6 +36,7 @@ interface ISignInProps {
 
 interface ISignInState {
   readonly endpoint: string
+  readonly token: string
 }
 
 const SignInWithBrowserTitle = __DARWIN__
@@ -50,6 +61,7 @@ export class SignIn extends React.Component<ISignInProps, ISignInState> {
 
     this.state = {
       endpoint: '',
+      token: '',
     }
   }
 
@@ -97,6 +109,9 @@ export class SignIn extends React.Component<ISignInProps, ISignInState> {
       case SignInStep.Authentication:
         this.props.dispatcher.requestBrowserAuthentication()
         break
+      case SignInStep.TokenEntry:
+        this.props.dispatcher.setSignInToken(this.state.token)
+        break
       case SignInStep.Success:
         this.onDismissed()
         break
@@ -107,6 +122,10 @@ export class SignIn extends React.Component<ISignInProps, ISignInState> {
 
   private onEndpointChanged = (endpoint: string) => {
     this.setState({ endpoint })
+  }
+
+  private onTokenChanged = (token: string) => {
+    this.setState({ token })
   }
 
   private renderFooter(): JSX.Element | null {
@@ -134,6 +153,10 @@ export class SignIn extends React.Component<ISignInProps, ISignInState> {
         break
       case SignInStep.Authentication:
         primaryButtonText = continueWithBrowserLabel
+        break
+      case SignInStep.TokenEntry:
+        disableSubmit = this.state.token.length === 0
+        primaryButtonText = __DARWIN__ ? 'Sign In' : 'Sign in'
         break
       default:
         return assertNever(state, `Unknown sign in step ${stepKind}`)
@@ -180,6 +203,54 @@ export class SignIn extends React.Component<ISignInProps, ISignInState> {
     )
   }
 
+  private renderSelfHostedEndpointEntryStep(apiType: SelfHostedApiType) {
+    return (
+      <DialogContent>
+        <Row>
+          <TextBox
+            label={`${friendlySelfHostedName(apiType)} address`}
+            value={this.state.endpoint}
+            onValueChanged={this.onEndpointChanged}
+            placeholder="https://git.example.com"
+          />
+        </Row>
+      </DialogContent>
+    )
+  }
+
+  private renderTokenEntryStep(state: ITokenEntryState) {
+    const { apiType, webBaseUrl } = state
+
+    return (
+      <DialogContent>
+        {this.renderCredentialHelperInfo()}
+        <p>
+          Signing in to <Ref>{webBaseUrl}</Ref> with a personal access token.
+        </p>
+        <Row>
+          <PasswordTextBox
+            label="Personal access token"
+            value={this.state.token}
+            onValueChanged={this.onTokenChanged}
+            ariaDescribedBy="sign-in-token-description"
+          />
+        </Row>
+        <Row>
+          <div id="sign-in-token-description">
+            Create a token with the scopes{' '}
+            <Ref>{selfHostedTokenScopes[apiType].join(', ')}</Ref> in your{' '}
+            <LinkButton
+              uri={getSelfHostedTokenSettingsURL(webBaseUrl, apiType)}
+            >
+              {friendlySelfHostedName(apiType)} settings
+            </LinkButton>
+            .
+          </div>
+        </Row>
+      </DialogContent>
+    )
+  }
+
   private renderAuthenticationStep(state: IAuthenticationState) {
     const credentialHelperInfo =
       this.props.isCredentialHelperSignIn && this.props.credentialHelperUrl ? (
@@ -197,11 +268,29 @@ export class SignIn extends React.Component<ISignInProps, ISignInState> {
     )
   }
 
+  /** Explains that git, rather than the user, asked for these credentials. */
+  private renderCredentialHelperInfo() {
+    return this.props.isCredentialHelperSignIn &&
+      this.props.credentialHelperUrl ? (
+      <p>
+        Git requesting credentials to access{' '}
+        <Ref>{this.props.credentialHelperUrl}</Ref>.
+      </p>
+    ) : undefined
+  }
+
   private renderStep(): JSX.Element | null {
     const state = this.props.signInState
 
     if (!state) {
       return null
+    }
+
+    if (
+      state.kind === SignInStep.EndpointEntry &&
+      isSelfHostedApiType(state.apiType)
+    ) {
+      return this.renderSelfHostedEndpointEntryStep(state.apiType)
     }
 
     const stepKind = state.kind
@@ -213,6 +302,8 @@ export class SignIn extends React.Component<ISignInProps, ISignInState> {
         return this.renderExistingAccountWarningStep(state)
       case SignInStep.Authentication:
         return this.renderAuthenticationStep(state)
+      case SignInStep.TokenEntry:
+        return this.renderTokenEntryStep(state)
       case SignInStep.Success:
         return null
       default:
