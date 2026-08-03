@@ -19,6 +19,7 @@ import { ComputedAction } from '../../models/computed-action'
 import { BranchSortOrder } from '../../models/branch-sort-order'
 import { GitHubRepository } from '../../models/github-repository'
 import { assertNever } from '../../lib/fatal-error'
+import { getForgejoName } from '../../lib/forgejo-name'
 
 function getProviderLabel(gitHubRepository: GitHubRepository | null): string {
   if (gitHubRepository === null) {
@@ -34,7 +35,7 @@ function getProviderLabel(gitHubRepository: GitHubRepository | null): string {
     case 'gitlab':
       return 'GitLab'
     case 'forgejo':
-      return 'Codeberg'
+      return getForgejoName(gitHubRepository.endpoint)
     default:
       assertNever(
         gitHubRepository.type,

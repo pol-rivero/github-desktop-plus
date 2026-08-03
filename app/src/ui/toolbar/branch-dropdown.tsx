@@ -323,7 +323,7 @@ export class BranchDropdown extends React.Component<IBranchDropdownProps> {
 
     const items = generateBranchContextMenuItems({
       branch,
-      repoType: this.props.repository.gitHubRepository?.type,
+      gitHubRepository: this.props.repository.gitHubRepository,
       onRenameBranch: this.onRenameBranch,
       onViewBranchOnGitHub:
         isRepositoryWithGitHubRepository(this.props.repository) &&

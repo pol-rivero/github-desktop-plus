@@ -40,6 +40,7 @@ import { DiffHeader } from '../diff/diff-header'
 import { Account } from '../../models/account'
 import { Emoji } from '../../lib/emoji'
 import { assertNever } from '../../lib/fatal-error'
+import { getForgejoName } from '../../lib/forgejo-name'
 import { GitHubRepository } from '../../models/github-repository'
 import {
   DiffPresentationStateComponent,
@@ -558,7 +559,7 @@ function getViewOnGitHubLabel(gitHubRepository: GitHubRepository) {
     case 'gitlab':
       return 'View on GitLab'
     case 'forgejo':
-      return 'View on Codeberg'
+      return `View on ${getForgejoName(gitHubRepository.endpoint)}`
     default:
       assertNever(
         gitHubRepository.type,

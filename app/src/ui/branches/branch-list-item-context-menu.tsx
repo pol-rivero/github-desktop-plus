@@ -1,12 +1,13 @@
 import { IMenuItem } from '../../lib/menu-item'
 import { clipboard } from 'electron'
 import { Branch, BranchType } from '../../models/branch'
-import { RepoType } from '../../models/github-repository'
+import { GitHubRepository } from '../../models/github-repository'
+import { getForgejoName } from '../../lib/forgejo-name'
 import { assertNever } from '../../lib/fatal-error'
 
 interface IBranchContextMenuConfig {
   branch: Branch
-  repoType: RepoType | undefined
+  gitHubRepository: GitHubRepository | null
   onRenameBranch?: (branchName: string) => void
   onViewBranchOnGitHub?: () => void
   onViewPullRequestOnGitHub?: () => void
@@ -22,7 +23,7 @@ export function generateBranchContextMenuItems(
 ): IMenuItem[] {
   const {
     branch,
-    repoType,
+    gitHubRepository,
     onRenameBranch,
     onViewBranchOnGitHub,
     onViewPullRequestOnGitHub,
@@ -47,16 +48,16 @@ export function generateBranchContextMenuItems(
     action: () => clipboard.writeText(branch.name),
   })
 
-  if (onViewBranchOnGitHub !== undefined && repoType !== undefined) {
+  if (onViewBranchOnGitHub !== undefined && gitHubRepository !== null) {
     items.push({
-      label: getViewBranchLabel(repoType),
+      label: getViewBranchLabel(gitHubRepository),
       action: () => onViewBranchOnGitHub(),
     })
   }
 
-  if (onViewPullRequestOnGitHub !== undefined && repoType !== undefined) {
+  if (onViewPullRequestOnGitHub !== undefined && gitHubRepository !== null) {
     items.push({
-      label: getViewPullRequestLabel(repoType),
+      label: getViewPullRequestLabel(gitHubRepository),
       action: () => onViewPullRequestOnGitHub(),
     })
   }
@@ -106,9 +107,9 @@ export function generateBranchContextMenuItems(
   return items
 }
 
-function getViewBranchLabel(repoType: RepoType): string {
+function getViewBranchLabel(gitHubRepository: GitHubRepository): string {
   const branch = __DARWIN__ ? 'Branch' : 'branch'
-  switch (repoType) {
+  switch (gitHubRepository.type) {
     case 'github':
       return `View ${branch} on GitHub`
     case 'bitbucket':
@@ -116,14 +117,17 @@ function getViewBranchLabel(repoType: RepoType): string {
     case 'gitlab':
       return `View ${branch} on GitLab`
     case 'forgejo':
-      return `View ${branch} on Codeberg`
+      return `View ${branch} on ${getForgejoName(gitHubRepository.endpoint)}`
     default:
-      return assertNever(repoType, `Unknown repo type: ${repoType}`)
+      return assertNever(
+        gitHubRepository.type,
+        `Unknown repo type: ${gitHubRepository.type}`
+      )
   }
 }
 
-function getViewPullRequestLabel(repoType: RepoType): string {
-  switch (repoType) {
+function getViewPullRequestLabel(gitHubRepository: GitHubRepository): string {
+  switch (gitHubRepository.type) {
     case 'github':
       return 'View Pull Request on GitHub'
     case 'bitbucket':
@@ -131,8 +135,11 @@ function getViewPullRequestLabel(repoType: RepoType): string {
     case 'gitlab':
       return 'View Merge Request on GitLab'
     case 'forgejo':
-      return 'View Pull Request on Codeberg'
+      return `View Pull Request on ${getForgejoName(gitHubRepository.endpoint)}`
     default:
-      return assertNever(repoType, `Unknown repo type: ${repoType}`)
+      return assertNever(
+        gitHubRepository.type,
+        `Unknown repo type: ${gitHubRepository.type}`
+      )
   }
 }

@@ -68,6 +68,11 @@ export type MenuLabelsEvent = {
   readonly gitHubRepositoryType: RepoType | null
 
   /**
+   * API endpoint of the instance hosting the repository.
+   */
+  readonly gitHubRepositoryEndpoint: string | null
+
+  /**
    * Whether or not the changes filter is visible in the current view.
    * This is used to determine whether the toggle changes filter menu item
    * says "Show changes filter" or "Hide changes filter".

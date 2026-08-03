@@ -488,6 +488,7 @@ app.on('ready', () => {
       askForConfirmationOnRepositoryRemoval: false,
       askForConfirmationOnForcePush: false,
       gitHubRepositoryType: null,
+      gitHubRepositoryEndpoint: null,
     })
   )
 

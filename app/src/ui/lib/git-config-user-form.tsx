@@ -7,6 +7,7 @@ import { GitEmailNotFoundWarning } from './git-email-not-found-warning'
 import { getStealthEmailForAccount } from '../../lib/email'
 import memoizeOne from 'memoize-one'
 import { assertNever } from '../../lib/fatal-error'
+import { getForgejoName } from '../../lib/forgejo-name'
 
 const OtherEmailSelectValue = 'Other'
 
@@ -185,7 +186,7 @@ export class GitConfigUserForm extends React.Component<
         case 'gitlab':
           return '(GitLab)'
         case 'forgejo':
-          return '(Codeberg)'
+          return `(${getForgejoName(account.endpoint)})`
         default:
           assertNever(account.apiType, 'Unknown account apiType')
       }

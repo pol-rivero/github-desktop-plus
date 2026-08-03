@@ -114,7 +114,7 @@ const friendlyApiTypeName = (apiType: AccountAPIType) => {
     case 'gitlab':
       return 'GitLab'
     case 'forgejo':
-      return 'Codeberg'
+      return 'Forgejo'
   }
 }
 

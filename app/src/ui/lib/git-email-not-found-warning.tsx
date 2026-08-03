@@ -6,6 +6,7 @@ import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { AriaLiveContainer } from '../accessibility/aria-live-container'
 import { assertNever } from '../../lib/fatal-error'
+import { getForgejoName } from '../../lib/forgejo-name'
 
 interface IGitEmailNotFoundWarningProps {
   /** The account the commit should be attributed to. */
@@ -104,7 +105,7 @@ export class GitEmailNotFoundWarning extends React.Component<IGitEmailNotFoundWa
       case 'gitlab':
         return 'GitLab'
       case 'forgejo':
-        return 'Codeberg'
+        return getForgejoName(account.endpoint)
       default:
         assertNever(account.apiType, 'Unknown account apiType')
     }

@@ -14,6 +14,7 @@ import {
 } from '../../lib/remote-parsing'
 import { findAccountForRemoteURL } from '../../lib/find-account'
 import { API, IAPIRepository, IAPIRepositoryCloneInfo } from '../../lib/api'
+import { getForgejoNameForAccounts } from '../../lib/forgejo-name'
 import { Dialog, DialogError, DialogFooter, DialogContent } from '../dialog'
 import { TabBar } from '../tab-bar'
 import {
@@ -394,7 +395,9 @@ export class CloneRepository extends React.Component<
       case CloneRepositoryTab.GitLab:
         return 'GitLab'
       case CloneRepositoryTab.Forgejo:
-        return 'Codeberg'
+        return getForgejoNameForAccounts(
+          this.getAccountsForTab(tab, this.props.accounts)
+        )
       case CloneRepositoryTab.Generic:
         return 'URL'
       default:

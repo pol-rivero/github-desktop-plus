@@ -179,6 +179,7 @@ describe('main-process menu', () => {
       askForConfirmationOnForcePush: false,
       askForConfirmationOnRepositoryRemoval: false,
       gitHubRepositoryType: null,
+      gitHubRepositoryEndpoint: null,
     }
 
     it('has no duplicate access keys for any combination of label-affecting parameters', () => {

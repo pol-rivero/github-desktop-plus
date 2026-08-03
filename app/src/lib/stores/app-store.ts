@@ -3484,6 +3484,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
       gitHubRepositoryType: isGitHub
         ? selectedRepository.gitHubRepository.type
         : null,
+      gitHubRepositoryEndpoint: isGitHub
+        ? selectedRepository.gitHubRepository.endpoint
+        : null,
     }
 
     if (state === null) {

@@ -1,11 +1,12 @@
 import { assertNever } from '../../lib/fatal-error'
 import { IMenuItem } from '../../lib/menu-item'
-import { RepoType } from '../../models/github-repository'
+import { GitHubRepository } from '../../models/github-repository'
+import { getForgejoName } from '../../lib/forgejo-name'
 
 interface IPullRequestContextMenuConfig {
   onViewPullRequestOnGitHub?: () => void
   onCheckoutInNewWorktree?: () => void
-  repoType: RepoType
+  gitHubRepository: GitHubRepository
 }
 
 export function generatePullRequestContextMenuItems(
@@ -16,7 +17,7 @@ export function generatePullRequestContextMenuItems(
 
   if (onViewPullRequestOnGitHub !== undefined) {
     items.push({
-      label: getViewPullRequestLabel(config.repoType),
+      label: getViewPullRequestLabel(config.gitHubRepository),
       action: () => onViewPullRequestOnGitHub(),
     })
   }
@@ -33,8 +34,8 @@ export function generatePullRequestContextMenuItems(
   return items
 }
 
-function getViewPullRequestLabel(repoType: RepoType): string {
-  switch (repoType) {
+function getViewPullRequestLabel(gitHubRepository: GitHubRepository): string {
+  switch (gitHubRepository.type) {
     case 'github':
       return 'View Pull Request on GitHub'
     case 'bitbucket':
@@ -42,8 +43,11 @@ function getViewPullRequestLabel(repoType: RepoType): string {
     case 'gitlab':
       return 'View Merge Request on GitLab'
     case 'forgejo':
-      return 'View Pull Request on Codeberg'
+      return `View Pull Request on ${getForgejoName(gitHubRepository.endpoint)}`
     default:
-      assertNever(repoType, `Unknown repo type: ${repoType}`)
+      assertNever(
+        gitHubRepository.type,
+        `Unknown repo type: ${gitHubRepository.type}`
+      )
   }
 }

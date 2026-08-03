@@ -5,7 +5,8 @@ import {
   hasDefaultRemoteUrl,
   Repository,
 } from '../../models/repository'
-import { RepoType } from '../../models/github-repository'
+import { GitHubRepository } from '../../models/github-repository'
+import { getForgejoName } from '../../lib/forgejo-name'
 import { IMenuItem } from '../../lib/menu-item'
 import { Repositoryish } from './group-repositories'
 import { WorktreeEntry } from '../../models/worktree'
@@ -81,7 +82,7 @@ export const generateRepositoryListContextMenu = (
     { type: 'separator' },
     {
       label: getViewOnBrowserLabel(
-        isGitHub ? repository.gitHubRepository.type : null
+        isGitHub ? repository.gitHubRepository : null
       ),
       action: () => config.onViewOnGitHub(repository),
       enabled: isGitHub || hasOriginUrl,
@@ -177,7 +178,7 @@ export const generateWorktreeListItemContextMenu = (
     { type: 'separator' },
     {
       label: getViewOnBrowserLabel(
-        isGitHub ? repository.gitHubRepository.type : null
+        isGitHub ? repository.gitHubRepository : null
       ),
       action: () => config.onViewOnGitHub(repository),
       enabled: isGitHub || hasOriginUrl,
@@ -209,8 +210,8 @@ export const generateWorktreeListItemContextMenu = (
   ]
 }
 
-function getViewOnBrowserLabel(repoType: RepoType | null) {
-  switch (repoType) {
+function getViewOnBrowserLabel(gitHubRepository: GitHubRepository | null) {
+  switch (gitHubRepository?.type) {
     case 'github':
       return 'View on GitHub'
     case 'bitbucket':
@@ -218,7 +219,7 @@ function getViewOnBrowserLabel(repoType: RepoType | null) {
     case 'gitlab':
       return 'View on GitLab'
     case 'forgejo':
-      return 'View on Codeberg'
+      return `View on ${getForgejoName(gitHubRepository.endpoint)}`
     default:
       return 'View in your browser'
   }

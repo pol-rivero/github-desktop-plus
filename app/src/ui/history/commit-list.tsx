@@ -14,6 +14,7 @@ import { getDotComAPIEndpoint } from '../../lib/api'
 import { clipboard } from 'electron'
 import { RowIndexPath } from '../lib/list/list-row-index-path'
 import { assertNever } from '../../lib/fatal-error'
+import { getForgejoName } from '../../lib/forgejo-name'
 import { CommitDragElement } from '../drag-elements/commit-drag-element'
 import { AriaLiveContainer } from '../accessibility/aria-live-container'
 import debounce from 'lodash/debounce'
@@ -1001,7 +1002,7 @@ export class CommitList extends React.Component<
       case 'gitlab':
         return 'View on GitLab'
       case 'forgejo':
-        return 'View on Codeberg'
+        return `View on ${getForgejoName(gitHubRepository.endpoint)}`
       default:
         assertNever(
           gitHubRepository.type,

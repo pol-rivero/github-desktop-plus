@@ -6,7 +6,7 @@ import {
   isRepositoryWithGitHubRepository,
   Repository,
 } from '../../models/repository'
-import { RepoType } from '../../models/github-repository'
+import { GitHubRepository } from '../../models/github-repository'
 import { LinkButton } from '../lib/link-button'
 import { MenuIDs } from '../../models/menu-ids'
 import { IMenu, MenuItem } from '../../models/app-menu'
@@ -38,9 +38,11 @@ import {
 import { KeyboardShortcut } from '../keyboard-shortcut/keyboard-shortcut'
 import * as octicons from '../octicons/octicons.generated'
 import { OcticonSymbol } from '../octicons/octicons.generated'
-import { stash, bitbucket, gitlab, codeberg } from '../octicons'
+import { stash, bitbucket, gitlab, codeberg, forgejo } from '../octicons'
 import { assertNever } from '../../lib/fatal-error'
 import { formatNumber } from '../../lib/format-number'
+import { isCodebergCloud } from '../../lib/endpoint-capabilities'
+import { getForgejoName } from '../../lib/forgejo-name'
 
 function formatMenuItemLabel(text: string) {
   if (__WIN32__ || __LINUX__) {
@@ -298,15 +300,9 @@ export class NoChanges extends React.Component<
       return null
     }
 
-    const BROWSER_TARGETS: Record<RepoType | '_', [string, OcticonSymbol]> = {
-      github: ['on Github', octicons.markGithub],
-      bitbucket: ['on Bitbucket', bitbucket],
-      gitlab: ['on GitLab', gitlab],
-      forgejo: ['on Codeberg', codeberg],
-      _: ['in your browser', octicons.globe],
-    }
-    const repoType = this.props.repository.gitHubRepository?.type ?? '_'
-    const [browserTarget, icon] = BROWSER_TARGETS[repoType]
+    const [browserTarget, icon] = this.openInBrowserLabel(
+      this.props.repository.gitHubRepository
+    )
 
     return this.renderMenuBackedAction(
       'view-repository-on-github',
@@ -315,6 +311,32 @@ export class NoChanges extends React.Component<
       undefined,
       this.onViewOnGitHubClicked
     )
+  }
+
+  private openInBrowserLabel(
+    gitHubRepository: GitHubRepository | null
+  ): [string, OcticonSymbol] {
+    if (gitHubRepository === null) {
+      return ['in your browser', octicons.globe]
+    }
+
+    switch (gitHubRepository.type) {
+      case 'github':
+        return ['on GitHub', octicons.markGithub]
+      case 'bitbucket':
+        return ['on Bitbucket', bitbucket]
+      case 'gitlab':
+        return ['on GitLab', gitlab]
+      case 'forgejo':
+        return isCodebergCloud(gitHubRepository.endpoint)
+          ? ['on Codeberg', codeberg]
+          : ['on Forgejo', forgejo]
+      default:
+        assertNever(
+          gitHubRepository.type,
+          `Unknown remote type: ${gitHubRepository.type}`
+        )
+    }
   }
 
   private onViewOnGitHubClicked = () =>
@@ -507,7 +529,7 @@ export class NoChanges extends React.Component<
     )
 
     const remoteName = this.getRemoteName(
-      this.props.repository.gitHubRepository?.type
+      this.props.repository.gitHubRepository
     )
 
     return (
@@ -544,7 +566,7 @@ export class NoChanges extends React.Component<
 
     const isGitHub = this.props.repository.gitHubRepository !== null
     const toRemoteName =
-      'to ' + this.getRemoteName(this.props.repository.gitHubRepository?.type)
+      'to ' + this.getRemoteName(this.props.repository.gitHubRepository)
 
     const description = (
       <>
@@ -599,7 +621,7 @@ export class NoChanges extends React.Component<
       <>
         The current branch (<Ref>{tip.branch.name}</Ref>) has{' '}
         {aheadBehind.behind === 1 ? 'a commit' : 'commits'} on{' '}
-        {this.getRemoteName(this.props.repository.gitHubRepository?.type)} that{' '}
+        {this.getRemoteName(this.props.repository.gitHubRepository)} that{' '}
         {aheadBehind.behind === 1 ? 'does not' : 'do not'} exist on your
         machine.
       </>
@@ -633,8 +655,12 @@ export class NoChanges extends React.Component<
     )
   }
 
-  private getRemoteName(remoteType: RepoType | undefined) {
-    switch (remoteType) {
+  private getRemoteName(gitHubRepository: GitHubRepository | null) {
+    if (gitHubRepository === null) {
+      return 'the remote'
+    }
+
+    switch (gitHubRepository.type) {
       case 'github':
         return 'GitHub'
       case 'bitbucket':
@@ -642,11 +668,12 @@ export class NoChanges extends React.Component<
       case 'gitlab':
         return 'GitLab'
       case 'forgejo':
-        return 'Codeberg'
-      case undefined:
-        return 'the remote'
+        return getForgejoName(gitHubRepository.endpoint)
       default:
-        assertNever(remoteType, `Unknown remote type: ${remoteType}`)
+        assertNever(
+          gitHubRepository.type,
+          `Unknown remote type: ${gitHubRepository.type}`
+        )
     }
   }
 
@@ -688,7 +715,7 @@ export class NoChanges extends React.Component<
     const description = `You have ${itemsToPushDescriptions.join(
       ' and '
     )} waiting to be pushed to ${this.getRemoteName(
-      this.props.repository.gitHubRepository?.type
+      this.props.repository.gitHubRepository
     )}.`
 
     const discoverabilityContent = (
@@ -735,8 +762,8 @@ export class NoChanges extends React.Component<
     const description = (
       <>
         The current branch (<Ref>{tip.branch.name}</Ref>) is already published
-        to {this.getRemoteName(this.props.repository.gitHubRepository?.type)}.
-        Create a pull request to propose and collaborate on your changes.
+        to {this.getRemoteName(this.props.repository.gitHubRepository)}. Create
+        a pull request to propose and collaborate on your changes.
       </>
     )
 
@@ -768,7 +795,7 @@ export class NoChanges extends React.Component<
       description: (
         <>
           The current branch (<Ref>{tip.branch.name}</Ref>) is already published
-          to {this.getRemoteName(this.props.repository.gitHubRepository?.type)}.
+          to {this.getRemoteName(this.props.repository.gitHubRepository)}.
           Preview the changes this pull request will have before proposing your
           changes.
         </>

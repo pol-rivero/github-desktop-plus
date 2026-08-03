@@ -272,7 +272,7 @@ export class BranchList extends React.Component<IBranchListProps> {
 
     const items = generateBranchContextMenuItems({
       branch,
-      repoType: this.props.repository.gitHubRepository?.type,
+      gitHubRepository: this.props.repository.gitHubRepository,
       onRenameBranch,
       onSetAsDefaultBranch:
         branch.nameWithoutRemote === this.props.defaultBranch?.name

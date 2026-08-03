@@ -9,7 +9,8 @@ import { Octicon } from './octicons'
 import * as octicons from './octicons/octicons.generated'
 import classNames from 'classnames'
 import { Emoji } from '../lib/emoji'
-import { RepoType } from '../models/github-repository'
+import { GitHubRepository } from '../models/github-repository'
+import { getForgejoName } from '../lib/forgejo-name'
 import { assertNever } from '../lib/fatal-error'
 
 /**
@@ -174,7 +175,7 @@ export class PullRequestQuickView extends React.Component<
           role="link"
         >
           {this.getViewOnGitHubLabel(
-            this.props.pullRequest.base.gitHubRepository.type
+            this.props.pullRequest.base.gitHubRepository
           )}
           <Octicon symbol={octicons.linkExternal} className="ml" />
         </Button>
@@ -182,8 +183,8 @@ export class PullRequestQuickView extends React.Component<
     )
   }
 
-  private getViewOnGitHubLabel(repoType: RepoType): string {
-    switch (repoType) {
+  private getViewOnGitHubLabel(gitHubRepository: GitHubRepository): string {
+    switch (gitHubRepository.type) {
       case 'github':
         return 'View on GitHub'
       case 'bitbucket':
@@ -191,9 +192,12 @@ export class PullRequestQuickView extends React.Component<
       case 'gitlab':
         return 'View on GitLab'
       case 'forgejo':
-        return 'View on Codeberg'
+        return `View on ${getForgejoName(gitHubRepository.endpoint)}`
       default:
-        assertNever(repoType, `Unknown repo type: ${repoType}`)
+        assertNever(
+          gitHubRepository.type,
+          `Unknown repo type: ${gitHubRepository.type}`
+        )
     }
   }
 

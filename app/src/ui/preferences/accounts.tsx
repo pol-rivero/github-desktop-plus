@@ -67,7 +67,7 @@ export class Accounts extends React.Component<IAccountsProps, {}> {
         <h2>GitLab</h2>
         {this.renderMultipleGitLabAccounts()}
 
-        <h2>Codeberg</h2>
+        <h2>Codeberg / Forgejo</h2>
         {this.renderMultipleForgejoAccounts()}
       </DialogContent>
     )

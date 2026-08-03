@@ -11,6 +11,7 @@ import * as ipcWebContents from '../ipc-webcontents'
 import { mkdir } from 'fs/promises'
 import { buildTestMenu } from './build-test-menu'
 import { assertNever } from '../../lib/fatal-error'
+import { getForgejoName } from '../../lib/forgejo-name'
 
 const createPullRequestLabel = __DARWIN__
   ? 'Create Pull Request'
@@ -50,6 +51,7 @@ export function buildDefaultMenuTemplate({
   isStashedChangesVisible = false,
   askForConfirmationWhenStashingAllChanges = true,
   gitHubRepositoryType,
+  gitHubRepositoryEndpoint,
   isChangesFilterVisible = true,
 }: MenuLabelsEvent): Electron.MenuItemConstructorOptions[] {
   contributionTargetDefaultBranch = truncateWithEllipsis(
@@ -63,7 +65,7 @@ export function buildDefaultMenuTemplate({
 
   const showPullRequestLabel =
     (__DARWIN__ ? 'View Pull Request ' : 'View &pull request ') +
-    onGithubLabel(gitHubRepositoryType)
+    onGithubLabel(gitHubRepositoryType, gitHubRepositoryEndpoint)
 
   const pullRequestLabel = hasCurrentPullRequest
     ? showPullRequestLabel
@@ -372,7 +374,7 @@ export function buildDefaultMenuTemplate({
         id: 'view-repository-on-github',
         label:
           (__DARWIN__ ? 'View ' : '&View ') +
-          onGithubLabel(gitHubRepositoryType),
+          onGithubLabel(gitHubRepositoryType, gitHubRepositoryEndpoint),
         accelerator: 'CmdOrCtrl+Shift+G',
         click: emit('view-repository-on-github'),
       },
@@ -413,7 +415,7 @@ export function buildDefaultMenuTemplate({
         id: 'create-issue-in-repository-on-github',
         label:
           (__DARWIN__ ? 'Create Issue ' : 'Create &issue ') +
-          onGithubLabel(gitHubRepositoryType),
+          onGithubLabel(gitHubRepositoryType, gitHubRepositoryEndpoint),
         accelerator: 'CmdOrCtrl+I',
         click: emit('create-issue-in-repository-on-github'),
       },
@@ -519,7 +521,9 @@ export function buildDefaultMenuTemplate({
     },
     separator,
     {
-      label: 'Compare ' + onGithubLabel(gitHubRepositoryType),
+      label:
+        'Compare ' +
+        onGithubLabel(gitHubRepositoryType, gitHubRepositoryEndpoint),
       id: 'compare-on-github',
       accelerator: 'CmdOrCtrl+Shift+C',
       click: emit('compare-on-github'),
@@ -527,7 +531,7 @@ export function buildDefaultMenuTemplate({
     {
       label:
         (__DARWIN__ ? 'View Branch ' : 'View branch ') +
-        onGithubLabel(gitHubRepositoryType),
+        onGithubLabel(gitHubRepositoryType, gitHubRepositoryEndpoint),
       id: 'branch-on-github',
       accelerator: 'CmdOrCtrl+Alt+B',
       click: emit('branch-on-github'),
@@ -714,7 +718,10 @@ function findClosestValue(arr: Array<number>, value: number) {
   })
 }
 
-function onGithubLabel(gitHubRepositoryType: RepoType | null) {
+function onGithubLabel(
+  gitHubRepositoryType: RepoType | null,
+  endpoint: string | null
+): string {
   switch (gitHubRepositoryType) {
     case 'github':
       return 'on GitHub'
@@ -723,7 +730,7 @@ function onGithubLabel(gitHubRepositoryType: RepoType | null) {
     case 'gitlab':
       return 'on GitLab'
     case 'forgejo':
-      return 'on Codeberg'
+      return `on ${getForgejoName(endpoint)}`
     case null:
       return 'in your browser'
     default:

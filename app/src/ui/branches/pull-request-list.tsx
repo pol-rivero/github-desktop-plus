@@ -229,7 +229,7 @@ export class PullRequestList extends React.Component<
         onCheckoutInNewWorktree !== undefined
           ? () => onCheckoutInNewWorktree(pullRequest)
           : undefined,
-      repoType: this.props.repository.gitHubRepository.type,
+      gitHubRepository: this.props.repository.gitHubRepository,
     })
 
     showContextualMenu(items)
