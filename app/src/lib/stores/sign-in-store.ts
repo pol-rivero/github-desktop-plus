@@ -338,7 +338,9 @@ function toTokenSignInError(
   }
 
   if (e instanceof SyntaxError) {
-    return new Error(`Could not sign in to ${webBaseUrl}. We received an invalid response from the API. Make sure the address is correct and the API is not protected by Anubis, Cloudflare, or similar security mechanisms.`)
+    return new Error(
+      `Could not sign in to ${webBaseUrl}. We received an invalid response from the API. Make sure the address is correct and the API is not protected by Anubis, Cloudflare, or similar security mechanisms.`
+    )
   }
 
   return new Error(`Could not sign in to ${webBaseUrl}. ${e.message}`)

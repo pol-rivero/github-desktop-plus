@@ -1,3 +1,8 @@
+import {
+  BitbucketCloudDomain,
+  CodebergCloudDomain,
+  GitLabCloudDomain,
+} from '../lib/api'
 import { findRegisteredEndpointForHost } from '../lib/endpoint-api-type-registry'
 import { createEqualityHash } from './equality-hash'
 import { Owner } from './owner'
@@ -99,11 +104,11 @@ export function deduceRepositoryType(url: string): RepoType {
     const parsed = new URL(url)
     // The SSH port says nothing about the port the instance serves its web UI and API on
     const host = parsed.protocol === 'ssh:' ? parsed.hostname : parsed.host
-    if (host === 'bitbucket.org') {
+    if (host === BitbucketCloudDomain) {
       return 'bitbucket'
-    } else if (host === 'gitlab.com') {
+    } else if (host === GitLabCloudDomain) {
       return 'gitlab'
-    } else if (host === 'codeberg.org') {
+    } else if (host === CodebergCloudDomain) {
       return 'forgejo'
     }
     const registered = findRegisteredEndpointForHost(host)

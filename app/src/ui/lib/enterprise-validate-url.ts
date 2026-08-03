@@ -35,7 +35,8 @@ export function validateURL(address: string): string {
     throw error
   }
 
-  const isLocalhost = url.hostname === 'localhost' || url.hostname === '127.0.0.1'
+  const isLocalhost =
+    url.hostname === 'localhost' || url.hostname === '127.0.0.1'
   if (url.protocol !== 'https:' && !isLocalhost) {
     const error = new Error('Invalid protocol')
     error.name = InvalidProtocolErrorName

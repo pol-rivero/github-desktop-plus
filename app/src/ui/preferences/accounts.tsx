@@ -145,7 +145,7 @@ export class Accounts extends React.Component<IAccountsProps, {}> {
         {accounts.length === 0 ? (
           this.renderSignIn(type)
         ) : (
-          <div className='add-account-button-row'>
+          <div className="add-account-button-row">
             <Button onClick={onSignIn}>{buttonText}</Button>
           </div>
         )}

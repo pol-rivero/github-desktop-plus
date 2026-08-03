@@ -12,6 +12,12 @@ import {
   ForkContributionTarget,
   WorkflowPreferences,
 } from '../../src/models/workflow-preferences'
+import {
+  BitbucketCloudURL,
+  CodebergCloudURL,
+  GitHubDotComURL,
+  GitLabCloudURL,
+} from '../../src/lib/api'
 
 // _getPullRequestCreationURL derives the URL exclusively from its arguments,
 // so we can invoke it on a bare prototype instance and skip the AppStore
@@ -19,10 +25,10 @@ import {
 const appStore = Object.create(AppStore.prototype) as AppStore
 
 const hosts: Record<RepoType, string> = {
-  github: 'https://github.com',
-  bitbucket: 'https://bitbucket.org',
-  gitlab: 'https://gitlab.com',
-  forgejo: 'https://codeberg.org',
+  github: GitHubDotComURL,
+  bitbucket: BitbucketCloudURL,
+  gitlab: GitLabCloudURL,
+  forgejo: CodebergCloudURL,
 }
 
 let nextId = 1

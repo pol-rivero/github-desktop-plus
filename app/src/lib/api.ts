@@ -3281,13 +3281,13 @@ export function getEndpointForRepository(url: string): string | null {
     log.warn(`getEndpointForRepository: failed to parse url ${url}`)
     return null
   }
-  if (parsed.hostname === 'github.com') {
+  if (parsed.hostname === GitHubDotComDomain) {
     return getDotComAPIEndpoint()
-  } else if (parsed.hostname === 'bitbucket.org') {
+  } else if (parsed.hostname === BitbucketCloudDomain) {
     return BitbucketCloudAPIEndpoint
-  } else if (parsed.hostname === 'gitlab.com') {
+  } else if (parsed.hostname === GitLabCloudDomain) {
     return GitLabCloudAPIEndpoint
-  } else if (parsed.hostname === 'codeberg.org') {
+  } else if (parsed.hostname === CodebergCloudDomain) {
     return CodebergCloudAPIEndpoint
   } else {
     const host = asHost(parsed)
@@ -3319,13 +3319,13 @@ export function getHTMLURL(endpoint: string): string {
   //
   // We need to normalize them.
   if (endpoint === getDotComAPIEndpoint() && !envEndpoint) {
-    return 'https://github.com'
+    return GitHubDotComURL
   } else if (endpoint === BitbucketCloudAPIEndpoint) {
-    return 'https://bitbucket.org'
+    return BitbucketCloudURL
   } else if (endpoint === GitLabCloudAPIEndpoint) {
-    return 'https://gitlab.com'
+    return GitLabCloudURL
   } else if (endpoint === CodebergCloudAPIEndpoint) {
-    return 'https://codeberg.org'
+    return CodebergCloudURL
   } else {
     const registered = getRegisteredEndpoint(endpoint)
     if (registered !== undefined) {
@@ -3394,18 +3394,27 @@ export function getDotComAPIEndpoint(): string {
   return 'https://api.github.com'
 }
 
-export const BitbucketCloudAPIEndpoint = 'https://api.bitbucket.org/2.0'
+export const GitHubDotComDomain = 'github.com'
+export const GitHubDotComURL = `https://${GitHubDotComDomain}`
 
+export const BitbucketCloudDomain = 'bitbucket.org'
+export const BitbucketCloudURL = `https://${BitbucketCloudDomain}`
+export const BitbucketCloudAPIEndpoint = `https://api.${BitbucketCloudDomain}/2.0`
+
+export const GitLabCloudDomain = 'gitlab.com'
+export const GitLabCloudURL = `https://${GitLabCloudDomain}`
 export const GitLabApiPath = '/api/v4'
-export const GitLabCloudAPIEndpoint = 'https://gitlab.com' + GitLabApiPath
+export const GitLabCloudAPIEndpoint = GitLabCloudURL + GitLabApiPath
 export const GitLabRequiredScopes = [
   'read_user',
   'read_api',
   'write_repository',
 ]
 
+export const CodebergCloudDomain = 'codeberg.org'
+export const CodebergCloudURL = `https://${CodebergCloudDomain}`
 export const ForgejoApiPath = '/api/v1'
-export const CodebergCloudAPIEndpoint = 'https://codeberg.org' + ForgejoApiPath
+export const CodebergCloudAPIEndpoint = CodebergCloudURL + ForgejoApiPath
 export const ForgejoRequiredScopes = [
   'read:user',
   'write:repository',
@@ -3467,7 +3476,7 @@ export function getBitbucketOAuthAuthorizationURL(
   codeChallenge: string
 ): string {
   const pkceParams = pkceChallengeParams(codeChallenge)
-  return `https://bitbucket.org/site/oauth2/authorize?client_id=${ClientIDBitbucket}&response_type=code&state=${state}&${pkceParams}`
+  return `${BitbucketCloudURL}/site/oauth2/authorize?client_id=${ClientIDBitbucket}&response_type=code&state=${state}&${pkceParams}`
 }
 
 export function getGitLabOAuthAuthorizationURL(
@@ -3477,7 +3486,7 @@ export function getGitLabOAuthAuthorizationURL(
   const scope = encodeURIComponent(GitLabRequiredScopes.join(' '))
   const encodedRedirectUri = encodeURIComponent(oauthRedirectUri)
   const pkceParams = pkceChallengeParams(codeChallenge)
-  return `https://gitlab.com/oauth/authorize?client_id=${ClientIDGitLab}&redirect_uri=${encodedRedirectUri}&response_type=code&scope=${scope}&state=${state}&${pkceParams}`
+  return `${GitLabCloudURL}/oauth/authorize?client_id=${ClientIDGitLab}&redirect_uri=${encodedRedirectUri}&response_type=code&scope=${scope}&state=${state}&${pkceParams}`
 }
 
 export function getCodebergOAuthAuthorizationURL(
@@ -3486,7 +3495,7 @@ export function getCodebergOAuthAuthorizationURL(
 ): string {
   const encodedRedirectUri = encodeURIComponent(oauthRedirectUri)
   const pkceParams = pkceChallengeParams(codeChallenge)
-  return `https://codeberg.org/login/oauth/authorize?client_id=${ClientIDCodeberg}&redirect_uri=${encodedRedirectUri}&response_type=code&state=${state}&${pkceParams}`
+  return `${CodebergCloudURL}/login/oauth/authorize?client_id=${ClientIDCodeberg}&redirect_uri=${encodedRedirectUri}&response_type=code&state=${state}&${pkceParams}`
 }
 
 export async function requestOAuthToken(
@@ -3579,7 +3588,7 @@ export async function requestOAuthTokenCodeberg(
 ): Promise<[string, string, number] | null> {
   try {
     const response = await fetch(
-      'https://codeberg.org/login/oauth/access_token',
+      `${CodebergCloudURL}/login/oauth/access_token`,
       {
         method: 'POST',
         headers: {
