@@ -101,6 +101,10 @@
       }
     }
 
+    .add-account-button-row {
+      margin-bottom: var(--spacing);
+    }
+
     @media (max-width: 600px) {
       .account-info {
         flex-direction: column;

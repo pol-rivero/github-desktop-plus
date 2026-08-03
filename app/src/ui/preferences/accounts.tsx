@@ -145,7 +145,9 @@ export class Accounts extends React.Component<IAccountsProps, {}> {
         {accounts.length === 0 ? (
           this.renderSignIn(type)
         ) : (
-          <Button onClick={onSignIn}>{buttonText}</Button>
+          <div className='add-account-button-row'>
+            <Button onClick={onSignIn}>{buttonText}</Button>
+          </div>
         )}
         {this.renderSelfHostedSignIn(type)}
       </>

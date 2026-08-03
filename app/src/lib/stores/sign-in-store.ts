@@ -227,9 +227,9 @@ export function getSelfHostedTokenSettingsURL(
 ) {
   switch (apiType) {
     case 'gitlab':
-      return `${webBaseUrl}/-/user_settings/personal_access_tokens`
+      return `${webBaseUrl}/-/user_settings/personal_access_tokens/legacy/new`
     case 'forgejo':
-      return `${webBaseUrl}/user/settings/applications`
+      return `${webBaseUrl}/user/settings/applications/tokens/new`
     default:
       assertNever(apiType, `Unknown self-hosted API type ${apiType}`)
   }
@@ -335,6 +335,10 @@ function toTokenSignInError(
       default:
         return e
     }
+  }
+
+  if (e instanceof SyntaxError) {
+    return new Error(`Could not sign in to ${webBaseUrl}. We received an invalid response from the API. Make sure the address is correct and the API is not protected by Anubis, Cloudflare, or similar security mechanisms.`)
   }
 
   return new Error(`Could not sign in to ${webBaseUrl}. ${e.message}`)

@@ -3401,7 +3401,6 @@ export const GitLabCloudAPIEndpoint = 'https://gitlab.com' + GitLabApiPath
 export const GitLabRequiredScopes = [
   'read_user',
   'read_api',
-  'read_repository',
   'write_repository',
 ]
 
@@ -3409,7 +3408,6 @@ export const ForgejoApiPath = '/api/v1'
 export const CodebergCloudAPIEndpoint = 'https://codeberg.org' + ForgejoApiPath
 export const ForgejoRequiredScopes = [
   'read:user',
-  'read:repository',
   'write:repository',
   'read:issue',
 ]
