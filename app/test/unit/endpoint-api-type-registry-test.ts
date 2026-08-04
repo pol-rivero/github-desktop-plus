@@ -10,9 +10,13 @@ import {
   unregisterHost,
 } from '../../src/lib/endpoint-api-type-registry'
 import {
+  BitbucketCloudAPIEndpoint,
+  CodebergCloudAPIEndpoint,
   getAPIEndpoint,
   getEndpointForRepository,
   getHTMLURL,
+  GiteaCloudAPIEndpoint,
+  GitLabCloudAPIEndpoint,
 } from '../../src/lib/api'
 import { deduceRepositoryType } from '../../src/models/github-repository'
 
@@ -269,6 +273,51 @@ describe('endpoint-api-type-registry', () => {
         getAPIEndpoint('https://git.example.com:8443'),
         'https://git.example.com:8443/api/v4'
       )
+    })
+
+    it('getAPIEndpoint maps third-party cloud web URLs to their API endpoint', () => {
+      const cases: ReadonlyArray<[string, string]> = [
+        ['https://bitbucket.org/user/repo', BitbucketCloudAPIEndpoint],
+        ['https://gitlab.com/user/repo', GitLabCloudAPIEndpoint],
+        ['https://codeberg.org/user/repo', CodebergCloudAPIEndpoint],
+        ['https://gitea.com/user/repo', GiteaCloudAPIEndpoint],
+      ]
+
+      for (const [webUrl, apiEndpoint] of cases) {
+        assert.equal(getAPIEndpoint(webUrl), apiEndpoint)
+        // The credential helper hands us the remote URL, path and all
+        assert.equal(getAPIEndpoint(`${webUrl}/owner/repo.git`), apiEndpoint)
+        // ...and an API endpoint maps to itself, even for Bitbucket, whose API
+        // is served from a different host than its web UI
+        assert.equal(getAPIEndpoint(apiEndpoint), apiEndpoint)
+      }
+    })
+
+    it('getAPIEndpoint ignores the port of an ssh remote', () => {
+      registerEndpointApiType('https://git.example.com:8443/api/v4', 'gitlab')
+
+      assert.equal(
+        getAPIEndpoint('ssh://git@gitea.com/owner/repo.git'),
+        GiteaCloudAPIEndpoint
+      )
+      assert.equal(
+        getAPIEndpoint('ssh://git@gitea.com:22/owner/repo.git'),
+        GiteaCloudAPIEndpoint
+      )
+      assert.equal(
+        getAPIEndpoint('ssh://git@git.example.com:2222/owner/repo.git'),
+        'https://git.example.com:8443/api/v4'
+      )
+    })
+
+    it('getAPIEndpoint tells a self-hosted instance apart from the cloud one on the same hostname', () => {
+      registerEndpointApiType('https://gitea.com:3000/api/v1', 'gitea')
+
+      assert.equal(
+        getAPIEndpoint('https://gitea.com:3000'),
+        'https://gitea.com:3000/api/v1'
+      )
+      assert.equal(getAPIEndpoint('https://gitea.com'), GiteaCloudAPIEndpoint)
     })
 
     it('getEndpointForRepository maps remote URLs to registered endpoints', () => {

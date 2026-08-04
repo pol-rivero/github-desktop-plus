@@ -24,12 +24,8 @@ import {
 import { asHost, GitProtocol, parseRemote } from './remote-parsing'
 import {
   getEndpointVersion,
-  isBitbucketCloud,
-  isCodebergCloud,
   isDotCom,
   isGHE,
-  isGiteaCloud,
-  isGitLabCloud,
   updateEndpointVersion,
 } from './endpoint-capabilities'
 import {
@@ -3373,27 +3369,41 @@ export function getEnterpriseAPIURL(endpoint: string): string {
   return isGHE(endpoint) ? `https://api.${host}/` : `https://${host}/api/v3`
 }
 
-export const getAPIEndpoint = (endpoint: string) => {
-  if (isDotCom(endpoint)) {
+/**
+ * The API endpoint of the third-party cloud instance served from the given
+ * host, if any.
+ */
+const getThirdPartyCloudAPIEndpointForHost = (host: string | undefined) => {
+  switch (host) {
+    case BitbucketCloudDomain:
+    case BitbucketCloudAPIDomain:
+      return BitbucketCloudAPIEndpoint
+    case GitLabCloudDomain:
+      return GitLabCloudAPIEndpoint
+    case CodebergCloudDomain:
+      return CodebergCloudAPIEndpoint
+    case GiteaCloudDomain:
+      return GiteaCloudAPIEndpoint
+    default:
+      return undefined
+  }
+}
+
+/**
+ * Get the API endpoint of the instance a URL points at. The URL can be the
+ * instance's web URL, one of its remote URLs, or its API endpoint.
+ **/
+export const getAPIEndpoint = (url: string) => {
+  if (isDotCom(url)) {
     return getDotComAPIEndpoint()
   }
-  if (isBitbucketCloud(endpoint)) {
-    return BitbucketCloudAPIEndpoint
-  }
-  if (isGitLabCloud(endpoint)) {
-    return GitLabCloudAPIEndpoint
-  }
-  if (isCodebergCloud(endpoint)) {
-    return CodebergCloudAPIEndpoint
-  }
-  if (isGiteaCloud(endpoint)) {
-    return GiteaCloudAPIEndpoint
-  }
-  const registered = findRegisteredEndpointForHost(tryGetHost(endpoint))
-  if (registered !== undefined) {
-    return registered.endpoint
-  }
-  return getEnterpriseAPIURL(endpoint)
+  const parsed = parseRemote(url)
+  const host = parsed !== null ? asHost(parsed) : tryGetHost(url)
+  return (
+    getThirdPartyCloudAPIEndpointForHost(host) ??
+    findRegisteredEndpointForHost(host)?.endpoint ??
+    getEnterpriseAPIURL(url)
+  )
 }
 
 /** Get github.com's API endpoint. */
@@ -3415,7 +3425,8 @@ export const GitHubDotComURL = `https://${GitHubDotComDomain}`
 
 export const BitbucketCloudDomain = 'bitbucket.org'
 export const BitbucketCloudURL = `https://${BitbucketCloudDomain}`
-export const BitbucketCloudAPIEndpoint = `https://api.${BitbucketCloudDomain}/2.0`
+export const BitbucketCloudAPIDomain = `api.${BitbucketCloudDomain}`
+export const BitbucketCloudAPIEndpoint = `https://${BitbucketCloudAPIDomain}/2.0`
 
 export const GitLabCloudDomain = 'gitlab.com'
 export const GitLabCloudURL = `https://${GitLabCloudDomain}`

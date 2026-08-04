@@ -723,18 +723,19 @@ export class CloneRepository extends React.Component<
   }
 
   private getSignInAction(tab: NonGenericCloneRepositoryTab) {
+    const { dispatcher } = this.props
     if (tab === CloneRepositoryTab.DotCom) {
-      return this.props.dispatcher.showDotComSignInDialog
+      return () => dispatcher.showDotComSignInDialog()
     } else if (tab === CloneRepositoryTab.Enterprise) {
-      return this.props.dispatcher.showEnterpriseSignInDialog
+      return () => dispatcher.showEnterpriseSignInDialog()
     } else if (tab === CloneRepositoryTab.Bitbucket) {
-      return this.props.dispatcher.showBitbucketSignInDialog
+      return () => dispatcher.showBitbucketSignInDialog()
     } else if (tab === CloneRepositoryTab.GitLab) {
-      return this.props.dispatcher.showGitLabSignInDialog
+      return () => dispatcher.showGitLabSignInDialog()
     } else if (tab === CloneRepositoryTab.Forgejo) {
-      return this.props.dispatcher.showCodebergSignInDialog
+      return () => dispatcher.showCodebergSignInDialog()
     } else if (tab === CloneRepositoryTab.Gitea) {
-      return this.props.dispatcher.showGiteaSignInDialog
+      return () => dispatcher.showGiteaSignInDialog()
     } else {
       return assertNever(tab, `Unknown sign in tab: ${tab}`)
     }
