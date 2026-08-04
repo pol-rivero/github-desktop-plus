@@ -12,7 +12,6 @@ import { assertNever, fatalError } from '../lib/fatal-error'
 import { createEqualityHash } from './equality-hash'
 import { memoizedGetRemotesFromPath } from '../lib/git'
 import { findDefaultRemote } from '../lib/stores/helpers/find-default-remote'
-import { isTrustedRemoteHost } from '../lib/api'
 import { EditorOverride } from './editor-override'
 
 export enum LoginSpecialValue {
@@ -264,14 +263,7 @@ export function getNonGitHubUrl(repository: Repository): string | null {
 
   // Convert potentially SSH URLs (e.g., git@github.com:user/repo.git) to HTTPS URLs (e.g., https://github.com/user/repo.git)
   // If the URL is already HTTPS, this will be a no-op.
-  const httpsUrl = repository.url.replace(/^[^@]+@([^:]+):/, 'https://$1/')
-
-  // Only return URLs that belong to trusted hosts.
-  if (isTrustedRemoteHost(httpsUrl)) {
-    return httpsUrl
-  }
-
-  return null
+  return repository.url.replace(/^[^@]+@([^:]+):/, 'https://$1/')
 }
 
 /**
