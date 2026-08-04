@@ -86,6 +86,8 @@ export class ChangeRepositoryAlias extends React.Component<
         return ' on GitLab'
       case 'forgejo':
         return ` on ${getForgejoName(gitHubRepository.endpoint)}`
+      case 'gitea':
+        return ' on Gitea'
       default:
         assertNever(
           gitHubRepository.type,

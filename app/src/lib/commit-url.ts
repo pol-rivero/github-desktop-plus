@@ -23,6 +23,7 @@ export function createCommitURL(
       case 'gitlab':
         return `${baseURL}/-/commit/${SHA}`
       case 'forgejo':
+      case 'gitea':
         return `${baseURL}/commit/${SHA}`
       default:
         assertNever(
@@ -40,7 +41,8 @@ export function createCommitURL(
       return `${baseURL}/commits/${SHA}#chg-${filePath}`
     case 'gitlab':
       return `${baseURL}/-/commit/${SHA}#diff-${fileHash}`
-    case 'forgejo': {
+    case 'forgejo':
+    case 'gitea': {
       const sha1Hash = crypto.createHash('sha1').update(filePath).digest('hex')
       return `${baseURL}/commit/${SHA}#diff-${sha1Hash}`
     }

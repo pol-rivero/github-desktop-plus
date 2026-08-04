@@ -815,6 +815,10 @@ export class App extends React.Component<IAppProps, IAppState> {
         tree: `${htmlURL}/src/branch/${urlEncodedBranchName}`,
         compare: `${htmlURL}/compare/${baseBranch}...${urlEncodedBranchName}`,
       },
+      gitea: {
+        tree: `${htmlURL}/src/branch/${urlEncodedBranchName}`,
+        compare: `${htmlURL}/compare/${baseBranch}...${urlEncodedBranchName}`,
+      },
     }
 
     this.props.dispatcher.openInBrowser(URLS[repoType][view])

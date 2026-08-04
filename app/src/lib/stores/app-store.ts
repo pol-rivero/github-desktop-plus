@@ -9208,6 +9208,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
     return this.signInStore.beginCodebergSignIn(resultCallback)
   }
 
+  public _beginGiteaSignIn(resultCallback?: (result: SignInResult) => void) {
+    return this.signInStore.beginGiteaSignIn(resultCallback)
+  }
+
   public _beginSelfHostedSignIn(
     apiType: SelfHostedApiType,
     resultCallback?: (result: SignInResult) => void
@@ -9764,6 +9768,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       bitbucket: `${baseRepoUrl}/pull-requests/${pr.pullRequestNumber}`,
       gitlab: `${baseRepoUrl}/merge_requests/${pr.pullRequestNumber}`,
       forgejo: `${baseRepoUrl}/pulls/${pr.pullRequestNumber}`,
+      gitea: `${baseRepoUrl}/pulls/${pr.pullRequestNumber}`,
     }
 
     const type = pr.base.gitHubRepository.type
@@ -9885,7 +9890,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
           encodedBaseBranch
         )
       case 'forgejo':
-        return this.getForgejoPullRequestCreationURL(
+      case 'gitea':
+        return this.getForgejoOrGiteaPullRequestCreationURL(
           gitHubRepository,
           isFork,
           encodedCompareBranch,
@@ -9947,7 +9953,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     return `${htmlURL}/-/merge_requests/new?${sourceBranch}&${targetBranch}`
   }
 
-  private getForgejoPullRequestCreationURL(
+  private getForgejoOrGiteaPullRequestCreationURL(
     { parent, owner, name, htmlURL }: GitHubRepository,
     isFork: boolean,
     encodedCompareBranch: string,

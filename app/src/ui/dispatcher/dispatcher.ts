@@ -1962,6 +1962,10 @@ export class Dispatcher {
     this.appStore._beginCodebergSignIn(resultCallback)
   }
 
+  public beginGiteaSignIn(resultCallback: (result: SignInResult) => void) {
+    this.appStore._beginGiteaSignIn(resultCallback)
+  }
+
   public beginSelfHostedSignIn(
     apiType: SelfHostedApiType,
     resultCallback?: (result: SignInResult) => void
@@ -2079,6 +2083,13 @@ export class Dispatcher {
     resultCallback?: (result: SignInResult) => void
   ): Promise<void> {
     this.appStore._beginCodebergSignIn(resultCallback)
+    this.appStore._showPopup({ type: PopupType.SignIn })
+  }
+
+  public async showGiteaSignInDialog(
+    resultCallback?: (result: SignInResult) => void
+  ): Promise<void> {
+    this.appStore._beginGiteaSignIn(resultCallback)
     this.appStore._showPopup({ type: PopupType.SignIn })
   }
 

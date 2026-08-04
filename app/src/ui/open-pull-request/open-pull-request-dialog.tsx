@@ -36,6 +36,8 @@ function getProviderLabel(gitHubRepository: GitHubRepository | null): string {
       return 'GitLab'
     case 'forgejo':
       return getForgejoName(gitHubRepository.endpoint)
+    case 'gitea':
+      return 'Gitea'
     default:
       assertNever(
         gitHubRepository.type,

@@ -220,6 +220,8 @@ function getViewOnBrowserLabel(gitHubRepository: GitHubRepository | null) {
       return 'View on GitLab'
     case 'forgejo':
       return `View on ${getForgejoName(gitHubRepository.endpoint)}`
+    case 'gitea':
+      return 'View on Gitea'
     default:
       return 'View in your browser'
   }

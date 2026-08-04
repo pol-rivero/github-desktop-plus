@@ -8,7 +8,7 @@ import {
   tryGetHost,
 } from '../endpoint-api-type-registry'
 import { assertNever } from '../fatal-error'
-import { SignInResult } from '../stores'
+import { SelfHostedApiType, SignInResult } from '../stores'
 
 type PromptSSHSecretResponse = {
   readonly secret: string | undefined
@@ -105,17 +105,16 @@ class TrampolineUIHelper {
           this.dispatcher.beginBitbucketSignIn(cb)
           break
         case 'gitlab':
-        case 'forgejo': {
+        case 'forgejo':
+        case 'gitea': {
           // A registered host is a self-hosted instance, so sign in to that
           // instance rather than to the provider's cloud offering.
           const registered = findRegisteredEndpointForHost(tryGetHost(endpoint))
           if (registered?.apiType === repositoryType) {
             this.dispatcher.beginSelfHostedSignIn(repositoryType, cb)
             await this.dispatcher.setSignInEndpoint(registered.webBaseUrl)
-          } else if (repositoryType === 'gitlab') {
-            this.dispatcher.beginGitLabSignIn(cb)
           } else {
-            this.dispatcher.beginCodebergSignIn(cb)
+            this.beginCloudSignIn(repositoryType, cb)
           }
           break
         }
@@ -132,6 +131,26 @@ class TrampolineUIHelper {
       log.error(`Could not prompt for GitHub sign in`, e)
       return undefined
     })
+  }
+
+  /** Sign in to the cloud offering of a third-party provider. */
+  private beginCloudSignIn(
+    apiType: SelfHostedApiType,
+    cb: (result: SignInResult) => void
+  ) {
+    switch (apiType) {
+      case 'gitlab':
+        this.dispatcher.beginGitLabSignIn(cb)
+        break
+      case 'forgejo':
+        this.dispatcher.beginCodebergSignIn(cb)
+        break
+      case 'gitea':
+        this.dispatcher.beginGiteaSignIn(cb)
+        break
+      default:
+        assertNever(apiType, `Unexpected API type: ${apiType}`)
+    }
   }
 
   public async getLoginForRepositoryPath(path: string): Promise<string | null> {

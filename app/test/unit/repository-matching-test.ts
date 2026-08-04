@@ -248,9 +248,23 @@ describe('repository-matching', () => {
         '',
         'free'
       ),
+      new Account(
+        'gt-user',
+        'https://git.example.com:3001/api/v1',
+        'gitea',
+        '',
+        '',
+        0,
+        [],
+        '',
+        3,
+        '',
+        'free'
+      ),
     ]
     registerEndpointApiType('https://git.example.com:8443/api/v4', 'gitlab')
     registerEndpointApiType('https://git.example.com:3000/api/v1', 'forgejo')
+    registerEndpointApiType('https://git.example.com:3001/api/v1', 'gitea')
 
     try {
       assert.equal(
@@ -268,6 +282,14 @@ describe('repository-matching', () => {
           null
         )?.account.login,
         'gl-user'
+      )
+      assert.equal(
+        matchGitHubRepository(
+          accounts,
+          'https://git.example.com:3001/someuser/somerepo.git',
+          null
+        )?.account.login,
+        'gt-user'
       )
     } finally {
       localStorage.removeItem('api-endpoint-types')

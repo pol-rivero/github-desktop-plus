@@ -83,6 +83,8 @@ build() {
     export "$(_deobfuscate "[[DESKTOP_OAUTH_CLIENT_SECRET_GITLAB_NAME]]")"="$(_deobfuscate "[[DESKTOP_OAUTH_CLIENT_SECRET_GITLAB]]")"
     export "$(_deobfuscate "[[DESKTOP_OAUTH_CLIENT_ID_CODEBERG_NAME]]")"="$(_deobfuscate "[[DESKTOP_OAUTH_CLIENT_ID_CODEBERG]]")"
     export "$(_deobfuscate "[[DESKTOP_OAUTH_CLIENT_SECRET_CODEBERG_NAME]]")"="$(_deobfuscate "[[DESKTOP_OAUTH_CLIENT_SECRET_CODEBERG]]")"
+    export "$(_deobfuscate "[[DESKTOP_OAUTH_CLIENT_ID_GITEA_NAME]]")"="$(_deobfuscate "[[DESKTOP_OAUTH_CLIENT_ID_GITEA]]")"
+    export "$(_deobfuscate "[[DESKTOP_OAUTH_CLIENT_SECRET_GITEA_NAME]]")"="$(_deobfuscate "[[DESKTOP_OAUTH_CLIENT_SECRET_GITEA]]")"
     xvfb-run yarn build:prod
 }
 

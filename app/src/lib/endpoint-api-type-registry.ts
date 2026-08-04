@@ -15,7 +15,7 @@
 
 const StorageKey = 'api-endpoint-types'
 
-export type RegisteredApiType = 'bitbucket' | 'gitlab' | 'forgejo'
+export type RegisteredApiType = 'bitbucket' | 'gitlab' | 'forgejo' | 'gitea'
 
 export type RegisteredEndpoint = {
   readonly apiType: RegisteredApiType
@@ -28,7 +28,12 @@ export type RegisteredEndpointMatch = RegisteredEndpoint & {
 }
 
 export function isRegisteredApiType(type: string): type is RegisteredApiType {
-  return type === 'bitbucket' || type === 'gitlab' || type === 'forgejo'
+  return (
+    type === 'bitbucket' ||
+    type === 'gitlab' ||
+    type === 'forgejo' ||
+    type === 'gitea'
+  )
 }
 
 /** The path each provider roots its REST API at, relative to the web root. */
@@ -36,6 +41,7 @@ const apiPathSuffixes: Record<RegisteredApiType, RegExp> = {
   bitbucket: /\/rest\/api\/[\d.]+$/,
   gitlab: /\/api\/v\d+$/,
   forgejo: /\/api\/v\d+$/,
+  gitea: /\/api\/v\d+$/,
 }
 
 const trimTrailingSlashes = (url: string) => url.replace(/\/+$/, '')

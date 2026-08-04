@@ -26,6 +26,11 @@ import {
   ForgejoApiPath,
   GitLabRequiredScopes,
   ForgejoRequiredScopes,
+  GiteaCloudAPIEndpoint,
+  getGiteaOAuthAuthorizationURL,
+  requestOAuthTokenGitea,
+  GiteaApiPath,
+  GiteaRequiredScopes,
 } from '../../lib/api'
 
 import { APIError } from '../http'
@@ -190,16 +195,18 @@ interface IAuthenticationEvent {
 }
 
 /** The third-party providers that users can host on their own instance. */
-export type SelfHostedApiType = 'gitlab' | 'forgejo'
+export type SelfHostedApiType = 'gitlab' | 'forgejo' | 'gitea'
 
 export const isSelfHostedApiType = (
   apiType: AccountAPIType
-): apiType is SelfHostedApiType => apiType === 'gitlab' || apiType === 'forgejo'
+): apiType is SelfHostedApiType =>
+  apiType === 'gitlab' || apiType === 'forgejo' || apiType === 'gitea'
 
 /** The path each provider serves its REST API at, relative to the web root. */
 const selfHostedApiPaths: Record<SelfHostedApiType, string> = {
   gitlab: GitLabApiPath,
   forgejo: ForgejoApiPath,
+  gitea: GiteaApiPath,
 }
 
 /** The name we show users for a self-hosted provider. */
@@ -209,6 +216,8 @@ export function friendlySelfHostedName(apiType: SelfHostedApiType) {
       return 'GitLab'
     case 'forgejo':
       return 'Forgejo'
+    case 'gitea':
+      return 'Gitea'
     default:
       assertNever(apiType, `Unknown self-hosted API type ${apiType}`)
   }
@@ -218,6 +227,7 @@ export function friendlySelfHostedName(apiType: SelfHostedApiType) {
 export const selfHostedTokenScopes: Record<SelfHostedApiType, string[]> = {
   gitlab: GitLabRequiredScopes,
   forgejo: ForgejoRequiredScopes,
+  gitea: GiteaRequiredScopes,
 }
 
 /** The page where the user creates a personal access token on their instance. */
@@ -230,6 +240,8 @@ export function getSelfHostedTokenSettingsURL(
       return `${webBaseUrl}/-/user_settings/personal_access_tokens/legacy/new`
     case 'forgejo':
       return `${webBaseUrl}/user/settings/applications/tokens/new`
+    case 'gitea':
+      return `${webBaseUrl}/user/settings/applications`
     default:
       assertNever(apiType, `Unknown self-hosted API type ${apiType}`)
   }
@@ -356,6 +368,7 @@ function apiTypeToOAuthProvider(apiType: AccountAPIType): OAuthProvider {
     case 'bitbucket':
     case 'gitlab':
     case 'forgejo':
+    case 'gitea':
       return apiType
     default:
       return assertNever(apiType, `Unknown API type ${apiType}`)
@@ -561,6 +574,8 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
         return getGitLabOAuthAuthorizationURL(csrfToken, codeChallenge)
       case 'forgejo':
         return getCodebergOAuthAuthorizationURL(csrfToken, codeChallenge)
+      case 'gitea':
+        return getGiteaOAuthAuthorizationURL(csrfToken, codeChallenge)
       default:
         assertNever(oauthProvider, 'Unexpected oauth provider')
     }
@@ -623,6 +638,8 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
         return await requestOAuthTokenGitLab(code, codeVerifier)
       case 'forgejo':
         return await requestOAuthTokenCodeberg(code, codeVerifier)
+      case 'gitea':
+        return await requestOAuthTokenGitea(code, codeVerifier)
       default:
         assertNever(oauthProvider, 'Unexpected oauth provider')
     }
@@ -710,6 +727,21 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
       kind: SignInStep.Authentication,
       endpoint: CodebergCloudAPIEndpoint,
       apiType: 'forgejo',
+      error: null,
+      loading: false,
+      resultCallback: resultCallback ?? noop,
+    })
+  }
+
+  public beginGiteaSignIn(resultCallback?: (result: SignInResult) => void) {
+    if (this.state !== null) {
+      this.reset()
+    }
+
+    this.setState({
+      kind: SignInStep.Authentication,
+      endpoint: GiteaCloudAPIEndpoint,
+      apiType: 'gitea',
       error: null,
       loading: false,
       resultCallback: resultCallback ?? noop,

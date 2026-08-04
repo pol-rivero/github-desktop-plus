@@ -44,6 +44,7 @@ export async function accountToGitCredential(
         token: await getFreshToken(account),
       }
     case 'forgejo':
+    case 'gitea':
       return {
         login: account.login,
         endpoint: account.endpoint,

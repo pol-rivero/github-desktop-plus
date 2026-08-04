@@ -141,6 +141,14 @@ describe('endpoint-api-type-registry', () => {
         deriveWebBaseUrl('https://codeberg.org/api/v1', 'forgejo'),
         'https://codeberg.org'
       )
+      assert.equal(
+        deriveWebBaseUrl('https://git.example.com/api/v1', 'gitea'),
+        'https://git.example.com'
+      )
+      assert.equal(
+        deriveWebBaseUrl('https://gitea.com/api/v1', 'gitea'),
+        'https://gitea.com'
+      )
     })
 
     it('preserves a subpath install', () => {
@@ -365,7 +373,19 @@ describe('endpoint-api-type-registry', () => {
         'bitbucket'
       )
       assert.equal(deduceRepositoryType('https://codeberg.org/o/r'), 'forgejo')
+      assert.equal(
+        deduceRepositoryType('https://gitea.com/owner/repo'),
+        'gitea'
+      )
       assert.equal(deduceRepositoryType('https://github.com/o/r'), 'github')
+    })
+
+    it('deduces a registered self-hosted Gitea instance', () => {
+      registerEndpointApiType('https://git.example.com:3000/api/v1', 'gitea')
+      assert.equal(
+        deduceRepositoryType('https://git.example.com:3000/owner/repo'),
+        'gitea'
+      )
     })
   })
 })

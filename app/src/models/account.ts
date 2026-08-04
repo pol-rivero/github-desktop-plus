@@ -19,6 +19,7 @@ export type AccountAPIType =
   | 'bitbucket'
   | 'gitlab'
   | 'forgejo'
+  | 'gitea'
 
 export enum UnknownLogin {
   InitialAuthFetch,

@@ -4,6 +4,7 @@ export enum CloneRepositoryTab {
   Bitbucket,
   GitLab,
   Forgejo,
+  Gitea,
   Generic,
 }
 

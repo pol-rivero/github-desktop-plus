@@ -1,6 +1,7 @@
 import {
   BitbucketCloudDomain,
   CodebergCloudDomain,
+  GiteaCloudDomain,
   GitLabCloudDomain,
 } from '../lib/api'
 import { findRegisteredEndpointForHost } from '../lib/endpoint-api-type-registry'
@@ -9,7 +10,7 @@ import { Owner } from './owner'
 
 export type GitHubRepositoryPermission = 'read' | 'write' | 'admin' | null
 
-export type RepoType = 'github' | 'bitbucket' | 'gitlab' | 'forgejo'
+export type RepoType = 'github' | 'bitbucket' | 'gitlab' | 'forgejo' | 'gitea'
 
 /** A GitHub repository. */
 export class GitHubRepository {
@@ -110,6 +111,8 @@ export function deduceRepositoryType(url: string): RepoType {
       return 'gitlab'
     } else if (host === CodebergCloudDomain) {
       return 'forgejo'
+    } else if (host === GiteaCloudDomain) {
+      return 'gitea'
     }
     const registered = findRegisteredEndpointForHost(host)
     if (registered !== undefined) {

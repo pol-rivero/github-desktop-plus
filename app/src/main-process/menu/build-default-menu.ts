@@ -731,6 +731,8 @@ function onGithubLabel(
       return 'on GitLab'
     case 'forgejo':
       return `on ${getForgejoName(endpoint)}`
+    case 'gitea':
+      return 'on Gitea'
     case null:
       return 'in your browser'
     default:

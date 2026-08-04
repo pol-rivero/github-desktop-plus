@@ -243,6 +243,8 @@ export class ConfigureGitUser extends React.Component<
         return 'GitLab'
       case 'forgejo':
         return getForgejoName(account.endpoint)
+      case 'gitea':
+        return 'Gitea'
       default:
         assertNever(account.apiType, 'Unknown account type')
     }

@@ -10,7 +10,11 @@ import { Avatar } from '../lib/avatar'
 import { CallToAction } from '../lib/call-to-action'
 import { LinkButton } from '../lib/link-button'
 import { getHTMLURL } from '../../lib/api'
-import { isCodebergCloud, isGitLabCloud } from '../../lib/endpoint-capabilities'
+import {
+  isCodebergCloud,
+  isGitLabCloud,
+  isGiteaCloud,
+} from '../../lib/endpoint-capabilities'
 import { SelfHostedApiType } from '../../lib/stores/sign-in-store'
 
 interface IAccountsProps {
@@ -21,6 +25,7 @@ interface IAccountsProps {
   readonly onBitbucketSignIn: () => void
   readonly onGitLabSignIn: () => void
   readonly onCodebergSignIn: () => void
+  readonly onGiteaSignIn: () => void
   readonly onSelfHostedSignIn: (apiType: SelfHostedApiType) => void
   readonly onLogout: (account: Account) => void
 }
@@ -31,11 +36,13 @@ enum SignInType {
   Bitbucket,
   GitLab,
   Forgejo,
+  Gitea,
 }
 
 const isSelfHostedAccount = (account: Account) =>
   (account.apiType === 'gitlab' && !isGitLabCloud(account.endpoint)) ||
-  (account.apiType === 'forgejo' && !isCodebergCloud(account.endpoint))
+  (account.apiType === 'forgejo' && !isCodebergCloud(account.endpoint)) ||
+  (account.apiType === 'gitea' && !isGiteaCloud(account.endpoint))
 
 /** The provider a section can add a self-hosted instance of, if any. */
 const selfHostedApiTypeFor = (
@@ -46,6 +53,8 @@ const selfHostedApiTypeFor = (
       return 'gitlab'
     case SignInType.Forgejo:
       return 'forgejo'
+    case SignInType.Gitea:
+      return 'gitea'
     default:
       return undefined
   }
@@ -69,6 +78,9 @@ export class Accounts extends React.Component<IAccountsProps, {}> {
 
         <h2>Codeberg / Forgejo</h2>
         {this.renderMultipleForgejoAccounts()}
+
+        <h2>Gitea</h2>
+        {this.renderMultipleGiteaAccounts()}
       </DialogContent>
     )
   }
@@ -128,6 +140,16 @@ export class Accounts extends React.Component<IAccountsProps, {}> {
       SignInType.Forgejo,
       'Add Codeberg account',
       this.props.onCodebergSignIn
+    )
+  }
+
+  private renderMultipleGiteaAccounts() {
+    const giteaAccounts = this.props.accounts.filter(a => a.apiType === 'gitea')
+    return this.renderMultipleAccounts(
+      giteaAccounts,
+      SignInType.Gitea,
+      'Add Gitea account',
+      this.props.onGiteaSignIn
     )
   }
 
@@ -238,6 +260,10 @@ export class Accounts extends React.Component<IAccountsProps, {}> {
     this.props.onCodebergSignIn()
   }
 
+  private onGiteaSignIn = () => {
+    this.props.onGiteaSignIn()
+  }
+
   private renderSignIn(type: SignInType) {
     const signInTitle = __DARWIN__ ? 'Sign Into' : 'Sign into'
     switch (type) {
@@ -298,6 +324,17 @@ export class Accounts extends React.Component<IAccountsProps, {}> {
           >
             <div>
               Sign in to your Codeberg account to access your repositories.
+            </div>
+          </CallToAction>
+        )
+      case SignInType.Gitea:
+        return (
+          <CallToAction
+            actionTitle={signInTitle + ' Gitea'}
+            onAction={this.onGiteaSignIn}
+          >
+            <div>
+              Sign in to your Gitea account to access your repositories.
             </div>
           </CallToAction>
         )

@@ -29,6 +29,12 @@ declare const __OAUTH_CLIENT_ID_CODEBERG__: string | undefined
 /** The OAuth secret the app should use for Codeberg */
 declare const __OAUTH_SECRET_CODEBERG__: string | undefined
 
+/** The OAuth client id the app should use for Gitea */
+declare const __OAUTH_CLIENT_ID_GITEA__: string | undefined
+
+/** The OAuth secret the app should use for Gitea */
+declare const __OAUTH_SECRET_GITEA__: string | undefined
+
 /** Is the app being built to run on Darwin? */
 declare const __DARWIN__: boolean
 

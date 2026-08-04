@@ -44,6 +44,8 @@ function getViewPullRequestLabel(gitHubRepository: GitHubRepository): string {
       return 'View Merge Request on GitLab'
     case 'forgejo':
       return `View Pull Request on ${getForgejoName(gitHubRepository.endpoint)}`
+    case 'gitea':
+      return 'View Pull Request on Gitea'
     default:
       assertNever(
         gitHubRepository.type,

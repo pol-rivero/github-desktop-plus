@@ -622,6 +622,8 @@ export class PushPullButton extends React.Component<
         return 'to GitLab'
       case 'forgejo':
         return `to ${getForgejoName(gitHubRepository.endpoint)}`
+      case 'gitea':
+        return 'to Gitea'
       default:
         assertNever(
           gitHubRepository.type,

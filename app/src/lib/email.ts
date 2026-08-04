@@ -5,6 +5,7 @@ import {
   isDotCom,
   isGHE,
   isGHES,
+  isGiteaCloudOrSelfHosted,
 } from './endpoint-capabilities'
 
 /**
@@ -62,7 +63,10 @@ const getStealthEmailHostForEndpoint = (endpoint: string) => {
     return `users.noreply.${new URL(endpoint).hostname}`
   } else if (isDotCom(endpoint)) {
     return 'users.noreply.github.com'
-  } else if (isCodebergCloudOrForgejo(endpoint)) {
+  } else if (
+    isCodebergCloudOrForgejo(endpoint) ||
+    isGiteaCloudOrSelfHosted(endpoint)
+  ) {
     // https://codeberg.org/forgejo/forgejo/issues/5055
     return `noreply.${new URL(endpoint).hostname}`
   } else {

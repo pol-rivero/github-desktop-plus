@@ -5,6 +5,7 @@ import {
   findRegisteredEndpointForHost,
   getRegisteredApiType,
   getRegisteredEndpoint,
+  RegisteredApiType,
   tryGetHost,
 } from './endpoint-api-type-registry'
 import {
@@ -27,6 +28,7 @@ import {
   isCodebergCloud,
   isDotCom,
   isGHE,
+  isGiteaCloud,
   isGitLabCloud,
   updateEndpointVersion,
 } from './endpoint-capabilities'
@@ -160,6 +162,8 @@ const ClientIDCodeberg = process.env.TEST_ENV
 const ClientSecretCodeberg = process.env.TEST_ENV
   ? ''
   : __OAUTH_SECRET_CODEBERG__
+const ClientIDGitea = process.env.TEST_ENV ? '' : __OAUTH_CLIENT_ID_GITEA__
+const ClientSecretGitea = process.env.TEST_ENV ? '' : __OAUTH_SECRET_GITEA__
 
 if (!ClientID || !ClientID.length || !ClientSecret || !ClientSecret.length) {
   log.warn(
@@ -179,6 +183,11 @@ if (!ClientIDGitLab?.length || !ClientSecretGitLab?.length) {
 if (!ClientIDCodeberg?.length || !ClientSecretCodeberg?.length) {
   log.warn(
     `DESKTOP_OAUTH_CLIENT_ID_CODEBERG and/or DESKTOP_OAUTH_CLIENT_SECRET_CODEBERG is undefined. You won't be able to authenticate new Codeberg users.`
+  )
+}
+if (!ClientIDGitea?.length || !ClientSecretGitea?.length) {
+  log.warn(
+    `DESKTOP_OAUTH_CLIENT_ID_GITEA and/or DESKTOP_OAUTH_CLIENT_SECRET_GITEA is undefined. You won't be able to authenticate new Gitea users.`
   )
 }
 
@@ -3289,6 +3298,8 @@ export function getEndpointForRepository(url: string): string | null {
     return GitLabCloudAPIEndpoint
   } else if (parsed.hostname === CodebergCloudDomain) {
     return CodebergCloudAPIEndpoint
+  } else if (parsed.hostname === GiteaCloudDomain) {
+    return GiteaCloudAPIEndpoint
   } else {
     const host = asHost(parsed)
     const registered = findRegisteredEndpointForHost(host)
@@ -3326,6 +3337,8 @@ export function getHTMLURL(endpoint: string): string {
     return GitLabCloudURL
   } else if (endpoint === CodebergCloudAPIEndpoint) {
     return CodebergCloudURL
+  } else if (endpoint === GiteaCloudAPIEndpoint) {
+    return GiteaCloudURL
   } else {
     const registered = getRegisteredEndpoint(endpoint)
     if (registered !== undefined) {
@@ -3372,6 +3385,9 @@ export const getAPIEndpoint = (endpoint: string) => {
   }
   if (isCodebergCloud(endpoint)) {
     return CodebergCloudAPIEndpoint
+  }
+  if (isGiteaCloud(endpoint)) {
+    return GiteaCloudAPIEndpoint
   }
   const registered = findRegisteredEndpointForHost(tryGetHost(endpoint))
   if (registered !== undefined) {
@@ -3421,6 +3437,16 @@ export const ForgejoRequiredScopes = [
   'read:issue',
 ]
 
+export const GiteaCloudDomain = 'gitea.com'
+export const GiteaCloudURL = `https://${GiteaCloudDomain}`
+export const GiteaApiPath = '/api/v1'
+export const GiteaCloudAPIEndpoint = GiteaCloudURL + GiteaApiPath
+export const GiteaRequiredScopes = [
+  'read:user',
+  'write:repository',
+  'read:issue',
+]
+
 export function deriveApiType<T>(
   endpoint: string,
   defaultValue?: T
@@ -3433,6 +3459,8 @@ export function deriveApiType<T>(
     return 'gitlab'
   } else if (endpoint === CodebergCloudAPIEndpoint) {
     return 'forgejo'
+  } else if (endpoint === GiteaCloudAPIEndpoint) {
+    return 'gitea'
   } else {
     return getRegisteredApiType(endpoint) ?? defaultValue ?? 'enterprise'
   }
@@ -3493,9 +3521,20 @@ export function getCodebergOAuthAuthorizationURL(
   state: string,
   codeChallenge: string
 ): string {
+  const scope = encodeURIComponent(ForgejoRequiredScopes.join(' '))
   const encodedRedirectUri = encodeURIComponent(oauthRedirectUri)
   const pkceParams = pkceChallengeParams(codeChallenge)
-  return `${CodebergCloudURL}/login/oauth/authorize?client_id=${ClientIDCodeberg}&redirect_uri=${encodedRedirectUri}&response_type=code&state=${state}&${pkceParams}`
+  return `${CodebergCloudURL}/login/oauth/authorize?client_id=${ClientIDCodeberg}&redirect_uri=${encodedRedirectUri}&response_type=code&scope=${scope}&state=${state}&${pkceParams}`
+}
+
+export function getGiteaOAuthAuthorizationURL(
+  state: string,
+  codeChallenge: string
+): string {
+  const scope = encodeURIComponent(GiteaRequiredScopes.join(' '))
+  const encodedRedirectUri = encodeURIComponent(oauthRedirectUri)
+  const pkceParams = pkceChallengeParams(codeChallenge)
+  return `${GiteaCloudURL}/login/oauth/authorize?client_id=${ClientIDGitea}&redirect_uri=${encodedRedirectUri}&response_type=code&scope=${scope}&state=${state}&${pkceParams}`
 }
 
 export async function requestOAuthToken(
@@ -3610,6 +3649,35 @@ export async function requestOAuthTokenCodeberg(
     return [result.access_token, result.refresh_token, expiresAt]
   } catch (e) {
     log.warn('requestOAuthTokenCodeberg failed', e)
+    return null
+  }
+}
+
+export async function requestOAuthTokenGitea(
+  code: string,
+  codeVerifier: string
+): Promise<[string, string, number] | null> {
+  try {
+    const response = await fetch(`${GiteaCloudURL}/login/oauth/access_token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        client_id: ClientIDGitea,
+        client_secret: ClientSecretGitea,
+        code: code,
+        grant_type: 'authorization_code',
+        redirect_uri: oauthRedirectUri,
+        code_verifier: codeVerifier,
+      }),
+    })
+
+    const result = await parsedResponse<IForgejoAPIAccessToken>(response)
+    const expiresAt = toExpiresAt(result.expires_in)
+    return [result.access_token, result.refresh_token, expiresAt]
+  } catch (e) {
+    log.warn('requestOAuthTokenGitea failed', e)
     return null
   }
 }
@@ -4494,19 +4562,19 @@ export class ForgejoAPI extends API {
     expiresAt: number
   ): ForgejoAPI {
     if (login === UnknownLogin.InitialAuthFetch) {
-      return new ForgejoAPI(endpoint, token, login, refreshToken, expiresAt)
+      return new this(endpoint, token, login, refreshToken, expiresAt)
     }
     const instanceKey = `${endpoint}:${login}`
-    const instance = this.instances.get(instanceKey)
-    if (!instance?.token) {
-      const newInstance = new ForgejoAPI(
+    const instance = ForgejoAPI.instances.get(instanceKey)
+    if (!instance?.token || instance.constructor !== this) {
+      const newInstance = new this(
         endpoint,
         token,
         login,
         refreshToken,
         expiresAt
       )
-      this.instances.set(instanceKey, newInstance)
+      ForgejoAPI.instances.set(instanceKey, newInstance)
       return newInstance
     }
     return instance
@@ -4515,7 +4583,7 @@ export class ForgejoAPI extends API {
   private apiRefreshToken: string
   private expiresAt: Date | null = null
 
-  private constructor(
+  protected constructor(
     endpoint: string,
     token: string,
     login: string | UnknownLogin,
@@ -4533,6 +4601,18 @@ export class ForgejoAPI extends API {
 
   public override getExpiresAt() {
     return this.expiresAt?.getTime() ?? 0
+  }
+
+  protected get apiType(): RegisteredApiType {
+    return 'forgejo'
+  }
+
+  protected get oauthClientId() {
+    return ClientIDCodeberg
+  }
+
+  protected get oauthClientSecret() {
+    return ClientSecretCodeberg
   }
 
   // https://forgejo.org/docs/latest/user/api-usage/
@@ -4558,15 +4638,15 @@ export class ForgejoAPI extends API {
     }
 
     try {
-      const instanceRoot = deriveWebBaseUrl(this.endpoint, 'forgejo')
+      const instanceRoot = deriveWebBaseUrl(this.endpoint, this.apiType)
       const response = await fetch(`${instanceRoot}/login/oauth/access_token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          client_id: ClientIDCodeberg,
-          client_secret: ClientSecretCodeberg,
+          client_id: this.oauthClientId,
+          client_secret: this.oauthClientSecret,
           refresh_token: this.apiRefreshToken,
           grant_type: 'refresh_token',
         }),
@@ -4584,7 +4664,7 @@ export class ForgejoAPI extends API {
         this.login
       )
     } catch (e) {
-      log.warn('Forgejo refreshToken failed', e)
+      log.warn(`${this.apiType} refreshToken failed`, e)
     }
   }
 
@@ -4621,7 +4701,9 @@ export class ForgejoAPI extends API {
         (e.responseStatus === HttpStatusCode.NotFound ||
           e.responseStatus === HttpStatusCode.Forbidden)
       ) {
-        log.warn('Forgejo user/emails unavailable, continuing without emails')
+        log.warn(
+          `${this.apiType} user/emails unavailable, continuing without emails`
+        )
         return []
       }
 
@@ -4983,6 +5065,25 @@ export class ForgejoAPI extends API {
   }
 }
 
+/**
+ * Gitea's REST API is identical to Forgejo's for everything we use,
+ * only the provider identity (used to resolve the instance's web root and its
+ * OAuth application) differs.
+ */
+export class GiteaAPI extends ForgejoAPI {
+  protected override get apiType(): RegisteredApiType {
+    return 'gitea'
+  }
+
+  protected override get oauthClientId() {
+    return ClientIDGitea
+  }
+
+  protected override get oauthClientSecret() {
+    return ClientSecretGitea
+  }
+}
+
 function instantiateAPI(
   apiType: AccountAPIType,
   endpoint: string,
@@ -4999,6 +5100,8 @@ function instantiateAPI(
       return GitLabAPI.get(endpoint, token, login, refreshToken, expiresAt)
     case 'forgejo':
       return ForgejoAPI.get(endpoint, token, login, refreshToken, expiresAt)
+    case 'gitea':
+      return GiteaAPI.get(endpoint, token, login, refreshToken, expiresAt)
     case 'dotcom':
     case 'enterprise':
       return new API(endpoint, token, login, copilotEndpoint)

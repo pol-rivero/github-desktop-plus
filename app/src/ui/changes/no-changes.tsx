@@ -38,7 +38,7 @@ import {
 import { KeyboardShortcut } from '../keyboard-shortcut/keyboard-shortcut'
 import * as octicons from '../octicons/octicons.generated'
 import { OcticonSymbol } from '../octicons/octicons.generated'
-import { stash, bitbucket, gitlab, codeberg, forgejo } from '../octicons'
+import { stash, bitbucket, gitlab, codeberg, forgejo, gitea } from '../octicons'
 import { assertNever } from '../../lib/fatal-error'
 import { formatNumber } from '../../lib/format-number'
 import { isCodebergCloud } from '../../lib/endpoint-capabilities'
@@ -331,6 +331,8 @@ export class NoChanges extends React.Component<
         return isCodebergCloud(gitHubRepository.endpoint)
           ? ['on Codeberg', codeberg]
           : ['on Forgejo', forgejo]
+      case 'gitea':
+        return ['on Gitea', gitea]
       default:
         assertNever(
           gitHubRepository.type,
@@ -669,6 +671,8 @@ export class NoChanges extends React.Component<
         return 'GitLab'
       case 'forgejo':
         return getForgejoName(gitHubRepository.endpoint)
+      case 'gitea':
+        return 'Gitea'
       default:
         assertNever(
           gitHubRepository.type,

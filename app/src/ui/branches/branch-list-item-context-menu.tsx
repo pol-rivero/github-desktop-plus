@@ -118,6 +118,8 @@ function getViewBranchLabel(gitHubRepository: GitHubRepository): string {
       return `View ${branch} on GitLab`
     case 'forgejo':
       return `View ${branch} on ${getForgejoName(gitHubRepository.endpoint)}`
+    case 'gitea':
+      return `View ${branch} on Gitea`
     default:
       return assertNever(
         gitHubRepository.type,
@@ -136,6 +138,8 @@ function getViewPullRequestLabel(gitHubRepository: GitHubRepository): string {
       return 'View Merge Request on GitLab'
     case 'forgejo':
       return `View Pull Request on ${getForgejoName(gitHubRepository.endpoint)}`
+    case 'gitea':
+      return 'View Pull Request on Gitea'
     default:
       return assertNever(
         gitHubRepository.type,

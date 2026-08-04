@@ -45,6 +45,8 @@ on:
       DESKTOP_OAUTH_CLIENT_SECRET_GITLAB:
       DESKTOP_OAUTH_CLIENT_ID_CODEBERG:
       DESKTOP_OAUTH_CLIENT_SECRET_CODEBERG:
+      DESKTOP_OAUTH_CLIENT_ID_GITEA:
+      DESKTOP_OAUTH_CLIENT_SECRET_GITEA:
       APPLE_ID:
       APPLE_ID_PASSWORD:
       APPLE_TEAM_ID:
@@ -178,6 +180,10 @@ jobs:
             ${{ secrets.DESKTOP_OAUTH_CLIENT_ID_CODEBERG }}
           DESKTOP_OAUTH_CLIENT_SECRET_CODEBERG:
             ${{ secrets.DESKTOP_OAUTH_CLIENT_SECRET_CODEBERG }}
+          DESKTOP_OAUTH_CLIENT_ID_GITEA:
+            ${{ secrets.DESKTOP_OAUTH_CLIENT_ID_GITEA }}
+          DESKTOP_OAUTH_CLIENT_SECRET_GITEA:
+            ${{ secrets.DESKTOP_OAUTH_CLIENT_SECRET_GITEA }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -480,6 +486,8 @@ jobs:
             sed -i "s/\[\[DESKTOP_OAUTH_CLIENT_SECRET_GITLAB_NAME\]\]/$(_obfuscate "DESKTOP_OAUTH_CLIENT_SECRET_GITLAB")/" $PKGBUILD_FILE
             sed -i "s/\[\[DESKTOP_OAUTH_CLIENT_ID_CODEBERG_NAME\]\]/$(_obfuscate "DESKTOP_OAUTH_CLIENT_ID_CODEBERG")/" $PKGBUILD_FILE
             sed -i "s/\[\[DESKTOP_OAUTH_CLIENT_SECRET_CODEBERG_NAME\]\]/$(_obfuscate "DESKTOP_OAUTH_CLIENT_SECRET_CODEBERG")/" $PKGBUILD_FILE
+            sed -i "s/\[\[DESKTOP_OAUTH_CLIENT_ID_GITEA_NAME\]\]/$(_obfuscate "DESKTOP_OAUTH_CLIENT_ID_GITEA")/" $PKGBUILD_FILE
+            sed -i "s/\[\[DESKTOP_OAUTH_CLIENT_SECRET_GITEA_NAME\]\]/$(_obfuscate "DESKTOP_OAUTH_CLIENT_SECRET_GITEA")/" $PKGBUILD_FILE
 
             sed -i "s/\[\[DESKTOP_OAUTH_CLIENT_ID\]\]/$(_obfuscate "${{ secrets.DESKTOP_OAUTH_CLIENT_ID }}")/" $PKGBUILD_FILE
             sed -i "s/\[\[DESKTOP_OAUTH_CLIENT_SECRET\]\]/$(_obfuscate "${{ secrets.DESKTOP_OAUTH_CLIENT_SECRET }}")/" $PKGBUILD_FILE
@@ -489,6 +497,8 @@ jobs:
             sed -i "s/\[\[DESKTOP_OAUTH_CLIENT_SECRET_GITLAB\]\]/$(_obfuscate "${{ secrets.DESKTOP_OAUTH_CLIENT_SECRET_GITLAB }}")/" $PKGBUILD_FILE
             sed -i "s/\[\[DESKTOP_OAUTH_CLIENT_ID_CODEBERG\]\]/$(_obfuscate "${{ secrets.DESKTOP_OAUTH_CLIENT_ID_CODEBERG }}")/" $PKGBUILD_FILE
             sed -i "s/\[\[DESKTOP_OAUTH_CLIENT_SECRET_CODEBERG\]\]/$(_obfuscate "${{ secrets.DESKTOP_OAUTH_CLIENT_SECRET_CODEBERG }}")/" $PKGBUILD_FILE
+            sed -i "s/\[\[DESKTOP_OAUTH_CLIENT_ID_GITEA\]\]/$(_obfuscate "${{ secrets.DESKTOP_OAUTH_CLIENT_ID_GITEA }}")/" $PKGBUILD_FILE
+            sed -i "s/\[\[DESKTOP_OAUTH_CLIENT_SECRET_GITEA\]\]/$(_obfuscate "${{ secrets.DESKTOP_OAUTH_CLIENT_SECRET_GITEA }}")/" $PKGBUILD_FILE
 
           done
 

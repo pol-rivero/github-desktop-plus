@@ -13,6 +13,9 @@ const devClientSecretGitLab =
 const devClientIdCodeberg = 'eec16d05-93bd-43ec-8e29-a7e5dc677c78'
 const devClientSecretCodeberg =
   'gto_ehmm7ppeie2ptokgtj4stzo3k5wijcueilpmlgacvglhcpry56bq'
+const devClientIdGitea = '654533c4-cf62-494e-b391-b90edb22773f'
+const devClientSecretGitea =
+  'gto_52c3a7cm7pzj64uhzvyi2th2y2xylxpvrsyqorkuyoin5uhzlgnq'
 
 const channel = getChannel()
 
@@ -48,6 +51,12 @@ export function getReplacements() {
     __OAUTH_SECRET_CODEBERG__: s(
       process.env.DESKTOP_OAUTH_CLIENT_SECRET_CODEBERG ||
         devClientSecretCodeberg
+    ),
+    __OAUTH_CLIENT_ID_GITEA__: s(
+      process.env.DESKTOP_OAUTH_CLIENT_ID_GITEA || devClientIdGitea
+    ),
+    __OAUTH_SECRET_GITEA__: s(
+      process.env.DESKTOP_OAUTH_CLIENT_SECRET_GITEA || devClientSecretGitea
     ),
     __DARWIN__: process.platform === 'darwin',
     __WIN32__: process.platform === 'win32',

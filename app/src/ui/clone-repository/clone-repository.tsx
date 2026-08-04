@@ -111,6 +111,12 @@ interface ICloneRepositoryState {
   readonly forgejoTabState: IGitHubTabState
 
   /**
+   * The persisted state of the CloneGitHubRepository component for
+   * the Gitea account.
+   */
+  readonly giteaTabState: IGitHubTabState
+
+  /**
    * The persisted state of the CloneGenericRepository component.
    */
   readonly urlTabState: IUrlTabState
@@ -251,6 +257,15 @@ export class CloneRepository extends React.Component<
             .filter(account => account.apiType === 'forgejo')
             .at(0) || null,
       },
+      giteaTabState: {
+        kind: 'gitea',
+        filterText: '',
+        selectedItem: null,
+        ...initialBaseTabState,
+        selectedAccount:
+          props.accounts.filter(account => account.apiType === 'gitea').at(0) ||
+          null,
+      },
       urlTabState: {
         kind: 'url',
         ...initialBaseTabState,
@@ -274,6 +289,8 @@ export class CloneRepository extends React.Component<
         return 'gitlab'
       case CloneRepositoryTab.Forgejo:
         return 'forgejo'
+      case CloneRepositoryTab.Gitea:
+        return 'gitea'
       case CloneRepositoryTab.Generic:
         return 'generic'
       default:
@@ -320,6 +337,7 @@ export class CloneRepository extends React.Component<
       bitbucketTabState: await withDefaultPath(this.state.bitbucketTabState),
       gitlabTabState: await withDefaultPath(this.state.gitlabTabState),
       forgejoTabState: await withDefaultPath(this.state.forgejoTabState),
+      giteaTabState: await withDefaultPath(this.state.giteaTabState),
       urlTabState: await withDefaultPath(this.state.urlTabState),
     })
 
@@ -398,6 +416,8 @@ export class CloneRepository extends React.Component<
         return getForgejoNameForAccounts(
           this.getAccountsForTab(tab, this.props.accounts)
         )
+      case CloneRepositoryTab.Gitea:
+        return 'Gitea'
       case CloneRepositoryTab.Generic:
         return 'URL'
       default:
@@ -540,6 +560,8 @@ export class CloneRepository extends React.Component<
       return this.state.gitlabTabState
     } else if (tab === CloneRepositoryTab.Forgejo) {
       return this.state.forgejoTabState
+    } else if (tab === CloneRepositoryTab.Gitea) {
+      return this.state.giteaTabState
     } else {
       return assertNever(tab, `Unknown tab: ${tab}`)
     }
@@ -629,6 +651,16 @@ export class CloneRepository extends React.Component<
         }),
         callback
       )
+    } else if (tab === CloneRepositoryTab.Gitea) {
+      this.setState(
+        prevState => ({
+          giteaTabState: {
+            ...prevState.giteaTabState,
+            ...state,
+          },
+        }),
+        callback
+      )
     } else if (tab === CloneRepositoryTab.Generic) {
       this.setState(
         prevState => ({
@@ -665,6 +697,10 @@ export class CloneRepository extends React.Component<
       this.setState(prevState => ({
         forgejoTabState: merge(prevState.forgejoTabState, tabState),
       }))
+    } else if (tab === CloneRepositoryTab.Gitea) {
+      this.setState(prevState => ({
+        giteaTabState: merge(prevState.giteaTabState, tabState),
+      }))
     } else {
       return assertNever(tab, `Unknown tab: ${tab}`)
     }
@@ -697,6 +733,8 @@ export class CloneRepository extends React.Component<
       return this.props.dispatcher.showGitLabSignInDialog
     } else if (tab === CloneRepositoryTab.Forgejo) {
       return this.props.dispatcher.showCodebergSignInDialog
+    } else if (tab === CloneRepositoryTab.Gitea) {
+      return this.props.dispatcher.showGiteaSignInDialog
     } else {
       return assertNever(tab, `Unknown sign in tab: ${tab}`)
     }

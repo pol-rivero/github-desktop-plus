@@ -560,6 +560,8 @@ function getViewOnGitHubLabel(gitHubRepository: GitHubRepository) {
       return 'View on GitLab'
     case 'forgejo':
       return `View on ${getForgejoName(gitHubRepository.endpoint)}`
+    case 'gitea':
+      return 'View on Gitea'
     default:
       assertNever(
         gitHubRepository.type,

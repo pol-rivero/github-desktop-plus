@@ -569,6 +569,11 @@ export class Preferences extends React.Component<
     this.props.dispatcher.showCodebergSignInDialog()
   }
 
+  private onGiteaSignIn = () => {
+    this.props.onDismissed()
+    this.props.dispatcher.showGiteaSignInDialog()
+  }
+
   private onSelfHostedSignIn = (apiType: SelfHostedApiType) => {
     this.props.onDismissed()
     this.props.dispatcher.showSelfHostedSignInDialog(apiType)
@@ -635,6 +640,7 @@ export class Preferences extends React.Component<
             onBitbucketSignIn={this.onBitbucketSignIn}
             onGitLabSignIn={this.onGitLabSignIn}
             onCodebergSignIn={this.onCodebergSignIn}
+            onGiteaSignIn={this.onGiteaSignIn}
             onSelfHostedSignIn={this.onSelfHostedSignIn}
             onLogout={this.onLogout}
           />

@@ -8,6 +8,7 @@ import {
   BitbucketCloudAPIEndpoint,
   CodebergCloudAPIEndpoint,
   GitLabCloudAPIEndpoint,
+  GiteaCloudAPIEndpoint,
   deriveApiType,
 } from '../api'
 import { assertNever, fatalError } from '../fatal-error'
@@ -88,6 +89,8 @@ const getCloudEndpointForApiType = (type: RegisteredApiType) => {
       return GitLabCloudAPIEndpoint
     case 'forgejo':
       return CodebergCloudAPIEndpoint
+    case 'gitea':
+      return GiteaCloudAPIEndpoint
     default:
       assertNever(type, `Unknown API type: ${type}`)
   }
@@ -115,6 +118,8 @@ const friendlyApiTypeName = (apiType: AccountAPIType) => {
       return 'GitLab'
     case 'forgejo':
       return 'Forgejo'
+    case 'gitea':
+      return 'Gitea'
   }
 }
 

@@ -4,6 +4,7 @@ import {
   SignInResult,
   SignInStore,
   SignInStep,
+  SelfHostedApiType,
 } from '../../src/lib/stores/sign-in-store'
 import { AccountsStore } from '../../src/lib/stores'
 import { Account } from '../../src/models/account'
@@ -72,7 +73,7 @@ function createEnterpriseAccount(
 function createSelfHostedAccount(
   login: string,
   endpoint: string,
-  apiType: 'gitlab' | 'forgejo'
+  apiType: SelfHostedApiType
 ): Account {
   return new Account(login, endpoint, apiType, 'pat', '', 0, [], '', 3, login)
 }
@@ -405,6 +406,25 @@ describe('SignInStore', () => {
       }
     })
 
+    it('rejects a host already signed in to as another self-hosted provider', async () => {
+      await accountsStore.addAccount(
+        createSelfHostedAccount(
+          'joan',
+          'https://git.example.com/api/v1',
+          'gitea'
+        )
+      )
+
+      signInStore.beginSelfHostedSignIn('forgejo')
+      await signInStore.setEndpoint('https://git.example.com')
+
+      const state = signInStore.getState()
+      assert.equal(state?.kind, SignInStep.EndpointEntry)
+      if (state?.kind === SignInStep.EndpointEntry) {
+        assert.match(state.error?.message ?? '', /already associated with a/)
+      }
+    })
+
     it('allows the same hostname on a different port', async () => {
       await accountsStore.addAccount(
         createSelfHostedAccount(
@@ -438,7 +458,7 @@ describe('SignInStore', () => {
     }
 
     const signIn = async (
-      apiType: 'gitlab' | 'forgejo',
+      apiType: 'gitlab' | 'forgejo' | 'gitea',
       address: string,
       token = 'pat-1234'
     ) => {

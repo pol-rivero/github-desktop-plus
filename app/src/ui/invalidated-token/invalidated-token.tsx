@@ -4,7 +4,11 @@ import { Dispatcher } from '../dispatcher'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { Account } from '../../models/account'
 import { getHTMLURL } from '../../lib/api'
-import { isCodebergCloud, isGitLabCloud } from '../../lib/endpoint-capabilities'
+import {
+  isCodebergCloud,
+  isGitLabCloud,
+  isGiteaCloud,
+} from '../../lib/endpoint-capabilities'
 import { Ref } from '../lib/ref'
 import { assertNever } from '../../lib/fatal-error'
 
@@ -77,6 +81,16 @@ export class InvalidatedToken extends React.Component<IInvalidatedTokenProps> {
         } else {
           dispatcher.showSelfHostedSignInDialog(
             'forgejo',
+            getHTMLURL(account.endpoint)
+          )
+        }
+        break
+      case 'gitea':
+        if (isGiteaCloud(account.endpoint)) {
+          dispatcher.showGiteaSignInDialog()
+        } else {
+          dispatcher.showSelfHostedSignInDialog(
+            'gitea',
             getHTMLURL(account.endpoint)
           )
         }

@@ -38,6 +38,7 @@ function renderAccounts(
       onBitbucketSignIn={() => {}}
       onGitLabSignIn={() => {}}
       onCodebergSignIn={() => {}}
+      onGiteaSignIn={() => {}}
       onSelfHostedSignIn={onSelfHostedSignIn}
       onLogout={() => {}}
     />
@@ -55,19 +56,20 @@ describe('preferences accounts tab', () => {
     resetEndpointApiTypeRegistryForTesting()
   })
 
-  it('offers a self-hosted sign in for GitLab and Codeberg', () => {
+  it('offers a self-hosted sign in for GitLab, Codeberg and Gitea', () => {
     const chosen = new Array<SelfHostedApiType>()
     renderAccounts([], apiType => chosen.push(apiType))
 
     const links = screen.getAllByRole('button', {
       name: 'Add self-hosted instance…',
     })
-    assert.equal(links.length, 2)
+    assert.equal(links.length, 3)
 
     fireEvent.click(links[0])
     fireEvent.click(links[1])
+    fireEvent.click(links[2])
 
-    assert.deepEqual(chosen, ['gitlab', 'forgejo'])
+    assert.deepEqual(chosen, ['gitlab', 'forgejo', 'gitea'])
   })
 
   it('shows the instance address of a self-hosted account', () => {

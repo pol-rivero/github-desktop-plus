@@ -3,6 +3,7 @@ import {
   BitbucketCloudAPIEndpoint,
   CodebergCloudAPIEndpoint,
   getDotComAPIEndpoint,
+  GiteaCloudAPIEndpoint,
   GitLabCloudAPIEndpoint,
 } from './api'
 import { assertNonNullable } from './fatal-error'
@@ -76,8 +77,16 @@ export const isCodebergCloud = (ep: string) => {
   return ep === CodebergCloudAPIEndpoint
 }
 
+export const isGiteaCloud = (ep: string) => {
+  return ep === GiteaCloudAPIEndpoint
+}
+
 export const isCodebergCloudOrForgejo = (ep: string) => {
   return isCodebergCloud(ep) || getRegisteredApiType(ep) === 'forgejo'
+}
+
+export const isGiteaCloudOrSelfHosted = (ep: string) => {
+  return isGiteaCloud(ep) || getRegisteredApiType(ep) === 'gitea'
 }
 
 /** Whether or not the given endpoint URI is under the ghe.com domain */
@@ -93,6 +102,7 @@ export const isGHES = (ep: string) =>
   !isBitbucketCloud(ep) &&
   !isGitLabCloud(ep) &&
   !isCodebergCloud(ep) &&
+  !isGiteaCloud(ep) &&
   getRegisteredApiType(ep) === undefined
 
 export function getEndpointVersion(endpoint: string) {

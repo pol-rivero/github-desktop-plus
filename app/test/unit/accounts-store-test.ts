@@ -256,7 +256,7 @@ describe('AccountsStore', () => {
       assert.equal(users[0].apiType, 'enterprise')
     })
 
-    it('keeps accounts for two providers on the same hostname but different ports', async () => {
+    it('keeps accounts for several providers on the same hostname but different ports', async () => {
       const gitlabAccount = new Account(
         'joan',
         'https://git.example.com:8443/api/v4',
@@ -281,12 +281,25 @@ describe('AccountsStore', () => {
         2,
         ''
       )
+      const giteaAccount = new Account(
+        'joan',
+        'https://git.example.com:3001/api/v1',
+        'gitea',
+        't',
+        '',
+        0,
+        [],
+        '',
+        3,
+        ''
+      )
 
       assert.notEqual(await accountsStore.addAccount(gitlabAccount), null)
       assert.notEqual(await accountsStore.addAccount(forgejoAccount), null)
+      assert.notEqual(await accountsStore.addAccount(giteaAccount), null)
 
       const users = await accountsStore.getAll()
-      assert.equal(users.length, 2)
+      assert.equal(users.length, 3)
       assert.equal(
         getRegisteredApiType('https://git.example.com:8443/api/v4'),
         'gitlab'
@@ -294,6 +307,10 @@ describe('AccountsStore', () => {
       assert.equal(
         getRegisteredApiType('https://git.example.com:3000/api/v1'),
         'forgejo'
+      )
+      assert.equal(
+        getRegisteredApiType('https://git.example.com:3001/api/v1'),
+        'gitea'
       )
     })
   })

@@ -3,6 +3,7 @@ import assert from 'node:assert'
 import {
   BitbucketAPI,
   ForgejoAPI,
+  GiteaAPI,
   GitLabAPI,
   BitbucketCloudAPIEndpoint,
 } from '../../src/lib/api'
@@ -81,5 +82,42 @@ describe('token refresh', () => {
     )
 
     assert.equal(await countFetches(() => refreshToken(api)), 1)
+  })
+})
+
+describe('ForgejoAPI.get', () => {
+  it('builds a GiteaAPI rather than its Forgejo base class', () => {
+    const api = GiteaAPI.get(
+      'https://gitea.example.com/api/v1',
+      'pat',
+      'joan',
+      '',
+      0
+    )
+
+    assert.ok(api instanceof GiteaAPI)
+  })
+
+  it('reuses the cached instance for the same endpoint and login', () => {
+    const endpoint = 'https://cached.example.com/api/v1'
+    const api = GiteaAPI.get(endpoint, 'pat', 'joan', '', 0)
+
+    assert.equal(GiteaAPI.get(endpoint, 'pat', 'joan', '', 0), api)
+    assert.notEqual(GiteaAPI.get(endpoint, 'pat', 'ada', '', 0), api)
+  })
+
+  it('discards a cached instance of the other forge for the same endpoint', () => {
+    const endpoint = 'https://switching.example.com/api/v1'
+    const forgejo = ForgejoAPI.get(endpoint, 'pat', 'joan', '', 0)
+    assert.ok(!(forgejo instanceof GiteaAPI))
+
+    const gitea = GiteaAPI.get(endpoint, 'pat', 'joan', '', 0)
+    assert.ok(gitea instanceof GiteaAPI)
+    assert.notEqual(gitea, forgejo)
+
+    // ...and switching back drops the Gitea instance again
+    const backToForgejo = ForgejoAPI.get(endpoint, 'pat', 'joan', '', 0)
+    assert.ok(!(backToForgejo instanceof GiteaAPI))
+    assert.notEqual(backToForgejo, gitea)
   })
 })
