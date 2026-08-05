@@ -340,7 +340,7 @@ describe('AccountsStore', () => {
       )
 
       assert.notEqual(conflict, null)
-      assert.match(conflict?.message ?? '', /git.example.com/)
+      assert.match(conflict?.message ?? '', /git\.example\.com/)
       assert.match(conflict?.message ?? '', /GitHub Enterprise/)
     })
 
