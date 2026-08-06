@@ -21,6 +21,7 @@ import { ConflictsFoundBanner } from './conflicts-found-banner'
 import { OSVersionNoLongerSupportedBanner } from './os-version-no-longer-supported-banner'
 import { WorktreesEnabledBanner } from './worktrees-enabled-banner'
 import { ConfigDirMigratedBanner } from './config-dir-migrated-banner'
+import { SuccessfulSignIn } from './successful-sign-in'
 
 export function renderBanner(
   banner: Banner,
@@ -187,6 +188,15 @@ export function renderBanner(
           migratedFromAppName={banner.migratedFromAppName}
           onDismissed={onDismissed}
           key={'config-dir-migrated'}
+        />
+      )
+    case BannerType.SuccessfulSignIn:
+      return (
+        <SuccessfulSignIn
+          login={banner.login}
+          friendlyEndpoint={banner.friendlyEndpoint}
+          onDismissed={onDismissed}
+          key={'successful-sign-in'}
         />
       )
     default:

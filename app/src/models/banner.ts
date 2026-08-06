@@ -19,6 +19,7 @@ export enum BannerType {
   OSVersionNoLongerSupported = 'OSVersionNoLongerSupported',
   WorktreesEnabled = 'WorktreesEnabled',
   ConfigDirMigrated = 'ConfigDirMigrated',
+  SuccessfulSignIn = 'SuccessfulSignIn',
 }
 
 export type Banner =
@@ -128,4 +129,9 @@ export type Banner =
   | {
       readonly type: BannerType.ConfigDirMigrated
       readonly migratedFromAppName: string
+    }
+  | {
+      readonly type: BannerType.SuccessfulSignIn
+      readonly login: string
+      readonly friendlyEndpoint: string
     }
