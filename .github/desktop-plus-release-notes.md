@@ -8,6 +8,9 @@ Desktop Plus v3.6.4-alpha4
 - [#214] Building on top of the self-hosted support we just added, we now also support **Gitea** instances. Thank you @eliasSFL for contributing an early draft!  
   Gitea support is also experimental, so please report any issues you encounter.
 
+- [#229] The "View in your browser" button is now available for all remotes, not just for a whitelist of trusted hosts. This means you will always have the option to open a repository in your browser, even if the provider is not supported or you decide not to sign in to it.  
+  Please note that the web UI URL that will be opened in the browser is a best-effort guess, especially for SSH remotes.
+
 ### Limitations of self-hosted support
 - Subpath deployments are not supported. For example, you **cannot** use `https://example.com/gitlab` as your self-hosted instance URL.  
   Subdomains and non-standard ports are supported, so you **can** use `https://gitlab.example.com` or `http://localhost:1234`.
