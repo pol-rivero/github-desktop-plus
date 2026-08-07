@@ -80,6 +80,11 @@ if (__LINUX__) {
   app.commandLine.appendSwitch('use-system-ca')
 }
 
+app.userAgentFallback = app.userAgentFallback.replace(
+  'DesktopPlus',
+  'GitHubDesktop'
+)
+
 const windows = new Map<number, AppWindow>()
 
 const launchTime = now()
