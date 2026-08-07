@@ -2,7 +2,7 @@
 <component type="desktop-application">
   <id>org.desktop_plus.desktop-plus</id>
   <name>Desktop Plus</name>
-  <summary>Git client with advanced functionality and Bitbucket, GitLab integration</summary>
+  <summary>Git client for power users</summary>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>MIT</project_license>
   <developer id="io.github.pol_rivero">
@@ -10,9 +10,17 @@
   </developer>
   <description>
     <p>
-      This is an up-to-date fork of GitHub Desktop, with many quality of life improvements and advanced features for power users.
+      This is an up-to-date fork of GitHub Desktop, with many quality of life improvements and advanced features, including:
     </p>
-    <p>See https://github.com/desktop-plus/desktop-plus for a full list of added features.</p>
+    <ul>
+      <li>Multi-account support (e.g. two GitHub accounts at once).</li>
+      <li>Rich integration with GitHub, Bitbucket, GitLab, Codeberg/Forgejo, and Gitea, including self-hosted instances. Basic git functionality in other platforms.</li>
+      <li>Search for commits by title, message, tag, or hash.</li>
+      <li>Ability to visualize the commit graph.</li>
+      <li>Ability to create several stashes per branch.</li>
+      <li>Many small improvements to speed up your workflow, like unpushed branch indicators, and recognizable icons and colors across the UI.</li>
+    </ul>
+    <p>For a full list of added features and improvements, see: https://desktop-plus.org/#feature-list</p>
   </description>
   <url type="homepage">https://desktop-plus.org</url>
   <url type="vcs-browser">https://github.com/desktop-plus/desktop-plus</url>
