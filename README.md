@@ -6,7 +6,7 @@ This is an **up-to-date** fork of [GitHub Desktop](https://desktop.github.com) w
 > This is a community-maintained project. It **is not** an official GitHub product. 
 
 ## Highlights 👀
-| <h4>Search commits by title, message, tag, or hash</h4> | <h4>Add multiple GitHub, Bitbucket, GitLab & Codeberg accounts</h4> |
+| <h4>Search commits by title, message, tag, or hash</h4> | <h4>Add multiple GitHub, Bitbucket, GitLab, Codeberg/Forgejo & Gitea accounts (cloud or self-hosted)</h4> |
 | :---: | :---: |
 | <img src="docs/assets/desktop-plus-demo-search.webp" alt="Commit search" width="450"> | <img src="docs/assets/desktop-plus-demo-multiaccount.webp" alt="Multiple accounts" width="450"> |
 | <h4>Create multiple stashes per branch</h4> | <h4>Visualize the Commit Graph</h4> |
