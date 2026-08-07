@@ -705,7 +705,7 @@ jobs:
     permissions: {}
     steps:
       - name: Publish to winget
-        uses: vedantmgoyal9/winget-releaser@v2
+        uses: vedantmgoyal9/winget-releaser@b3a5dae0047c6180023acba3f548c55fdf6b7193
         with:
           identifier: DesktopPlus.DesktopPlus
           version:
