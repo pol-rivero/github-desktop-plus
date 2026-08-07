@@ -6,7 +6,7 @@ This is an **up-to-date** fork of [GitHub Desktop](https://desktop.github.com) w
 > This is a community-maintained project. It **is not** an official GitHub product. 
 
 ## Highlights 👀
-| <h4>Search commits by title, message, tag, or hash</h4> | <h4>Rich integration with GitHub, Bitbucket, GitLab, Codeberg/Forgejo, and Gitea</h4> |
+| <h4>Search commits by title, message, tag, or hash</h4> | <h4>Rich integration with all major Git platforms [^1]</h4> |
 | :---: | :---: |
 | <img src="docs/assets/desktop-plus-demo-search.webp" alt="Commit search" width="450"> | <img src="docs/assets/desktop-plus-demo-multiaccount.webp" alt="Multiple accounts" width="450"> |
 | <h4>Create multiple stashes per branch</h4> | <h4>Visualize the Commit Graph</h4> |
@@ -14,6 +14,7 @@ This is an **up-to-date** fork of [GitHub Desktop](https://desktop.github.com) w
 | <h4>Buttons optimized for visual recognition</h4> | <h4>Quickly find unpushed branches</h4> |
 | <img src="docs/assets/desktop-plus-demo-stash-header.webp" alt="Stash header" width="450"> | <img src="docs/assets/desktop-plus-demo-push-indicator.webp" alt="Branch push indicator" width="450"> |
 
+[^1]: Rich integration with GitHub, GitHub Enterprise, Bitbucket Cloud, GitLab Cloud, self-hosted GitLab, Codeberg Cloud, self-hosted Forgejo, Gitea Cloud, and self-hosted Gitea. Multi-account support is available for all of them (e.g., sign in to multiple GitHub accounts at the same time).
 
 ## Additional Features in Desktop Plus ✨
 
