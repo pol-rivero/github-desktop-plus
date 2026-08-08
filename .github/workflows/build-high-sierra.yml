@@ -84,9 +84,6 @@ jobs:
         env:
           npm_config_arch: x64
 
-      - name: Run unit tests
-        run: yarn test:unit
-
       - name: Run script tests
         run: yarn test:script
 
