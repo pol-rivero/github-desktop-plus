@@ -2,7 +2,7 @@
 /// <reference path="./globals.d.ts" />
 
 import * as cp from 'child_process'
-import packager, { OsxNotarizeOptions } from 'electron-packager'
+import packager, { Options } from '@electron/packager'
 import frontMatter from 'front-matter'
 import * as path from 'path'
 import { getPrintenvzPath } from 'printenvz'
@@ -180,18 +180,13 @@ function packageApp() {
     `Unable to find Assets.car at ${assetsCarPath}`
   )
 
-  // this setting only works for macOS and Windows, so let's clear it now to ensure
-  // the app is working as expected
-  const icon =
-    process.platform === 'linux' ? undefined : join(iconPath, 'icon-logo')
-
   return packager({
     name: getExecutableName(),
     platform: toPackagePlatform(process.platform),
     arch: getPackageArch(),
     asar: false, // TODO: Probably wanna enable this down the road.
     out: getDistRoot(),
-    icon,
+    icon: getIcon(),
     extraResource: [assetsCarPath],
     dir: outRoot,
     overwrite: true,
@@ -200,7 +195,7 @@ function packageApp() {
     prune: false, // We'll prune them ourselves below.
     ignore: [
       new RegExp('/node_modules/electron($|/)'),
-      new RegExp('/node_modules/electron-packager($|/)'),
+      new RegExp('/node_modules/@electron/packager($|/)'),
       new RegExp('/\\.git($|/)'),
       new RegExp('/node_modules/\\.bin($|/)'),
     ],
@@ -247,6 +242,23 @@ function packageApp() {
       InternalName: getProductName(),
     },
   })
+}
+
+function getIcon() {
+  switch (process.platform) {
+    case 'darwin':
+      // Packager probes for a sibling .icon file and requires macOS 26 to compile
+      // it. Use a distinct basename so older build hosts use the prebuilt ICNS.
+      return path.join(getIconDirectory(), 'icon-logo-legacy.icns')
+    case 'win32':
+      return path.join(getIconDirectory(), 'icon-logo')
+    case 'linux':
+      // this setting only works for macOS and Windows, so let's clear it now to ensure
+      // the app is working as expected
+      return undefined
+    default:
+      throw new Error(`Unsupported platform: ${process.platform}`)
+  }
 }
 
 function removeAndCopy(source: string, destination: string) {
@@ -495,7 +507,7 @@ ${licenseText}`
   rmSync(chooseALicense, { recursive: true, force: true })
 }
 
-function getNotarizationOptions(): OsxNotarizeOptions | undefined {
+function getNotarizationOptions(): Options['osxNotarize'] {
   const {
     APPLE_ID: appleId,
     APPLE_ID_PASSWORD: appleIdPassword,
@@ -503,7 +515,7 @@ function getNotarizationOptions(): OsxNotarizeOptions | undefined {
   } = process.env
 
   return appleId && appleIdPassword && teamId
-    ? { tool: 'notarytool', appleId, appleIdPassword, teamId }
+    ? { appleId, appleIdPassword, teamId }
     : undefined
 }
 
