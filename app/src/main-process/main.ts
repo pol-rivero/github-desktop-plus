@@ -1,4 +1,5 @@
 import '../lib/logging/main/install'
+import '../lib/setup-old-mac-git'
 
 import {
   app,

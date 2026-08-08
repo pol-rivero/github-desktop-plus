@@ -1,4 +1,5 @@
 import '../lib/logging/renderer/install'
+import '../lib/setup-old-mac-git'
 
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
@@ -92,7 +93,9 @@ enableSourceMaps()
 
 // Tell dugite where to find the git environment,
 // see https://github.com/desktop/dugite/pull/85
-process.env['LOCAL_GIT_DIRECTORY'] = Path.resolve(__dirname, 'git')
+if (!process.env['LOCAL_GIT_DIRECTORY']) {
+  process.env['LOCAL_GIT_DIRECTORY'] = Path.resolve(__dirname, 'git')
+}
 
 // Ensure that dugite infers the GIT_EXEC_PATH
 // based on the LOCAL_GIT_DIRECTORY env variable
