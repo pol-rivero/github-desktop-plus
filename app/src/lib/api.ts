@@ -224,7 +224,7 @@ export interface IBitbucketAPIRepositorySummary {
     }
   }
 }
-function summaryToIAPIRepository(
+function summaryToIAPIRepositoryFromBitbucket(
   repo: IBitbucketAPIRepositorySummary
 ): IAPIRepository {
   const [owner, name] = repo.full_name.split('/')
@@ -315,7 +315,9 @@ export interface IBitbucketAPIRepository
     }>
   }
 }
-function toIAPIRepository(repo: IBitbucketAPIRepository): IAPIRepository {
+function toIAPIRepositoryFromBitbucket(
+  repo: IBitbucketAPIRepository
+): IAPIRepository {
   const sshUrl =
     repo.links.clone.filter(c => c.name === 'ssh')[0]?.href ||
     `git@bitbucket.org:${repo.full_name}.git`
@@ -328,7 +330,7 @@ function toIAPIRepository(repo: IBitbucketAPIRepository): IAPIRepository {
     ssh_url: sshUrl,
     html_url: repo.links.html.href,
     name: repo.slug,
-    owner: toIAPIIdentity(repo.owner),
+    owner: toIAPIIdentityFromBitbucket(repo.owner),
     private: repo.is_private,
     fork: false,
     default_branch: repo.mainbranch?.name,
@@ -337,12 +339,14 @@ function toIAPIRepository(repo: IBitbucketAPIRepository): IAPIRepository {
     archived: false,
   }
 }
-function toIAPIFullRepository(
+function toIAPIFullRepositoryFromBitbucket(
   repo: IBitbucketAPIRepository
 ): IAPIFullRepository {
   return {
-    ...toIAPIRepository(repo),
-    parent: repo.parent ? toIAPIRepository(repo.parent) : undefined,
+    ...toIAPIRepositoryFromBitbucket(repo),
+    parent: repo.parent
+      ? toIAPIRepositoryFromBitbucket(repo.parent)
+      : undefined,
     permissions: {
       // Let's be optimistic
       admin: true,
@@ -407,7 +411,9 @@ export interface IBitbucketAPIIdentity {
     }
   }
 }
-function toIAPIIdentity(identity: IBitbucketAPIIdentity): IAPIIdentity {
+function toIAPIIdentityFromBitbucket(
+  identity: IBitbucketAPIIdentity
+): IAPIIdentity {
   return {
     id: 0,
     login: identity.display_name,
@@ -447,7 +453,9 @@ interface IAPIFullIdentity {
     readonly name: string
   }
 }
-function toIAPIFullIdentity(identity: IBitbucketAPIIdentity): IAPIFullIdentity {
+function toIAPIFullIdentityFromBitbucket(
+  identity: IBitbucketAPIIdentity
+): IAPIFullIdentity {
   return {
     id: 0,
     login: identity.username,
@@ -488,7 +496,7 @@ export interface IAPIMentionableUser {
 interface IBitbucketApiWorkspaceMembership {
   user: IBitbucketAPIIdentity
 }
-function toIAPIMentionableUser(
+function toIAPIMentionableUserFromBitbucket(
   member: IBitbucketApiWorkspaceMembership
 ): IAPIMentionableUser {
   return {
@@ -531,7 +539,7 @@ export interface IBitbucketAPIEmail {
   readonly is_primary: boolean
   readonly is_confirmed: boolean
 }
-function toIAPIEmail(email: IBitbucketAPIEmail): IAPIEmail {
+function toIAPIEmailFromBitbucket(email: IBitbucketAPIEmail): IAPIEmail {
   return {
     email: email.email,
     verified: email.is_confirmed,
@@ -604,19 +612,19 @@ export interface IBitbucketAPICommitStatus {
   readonly description: string
   readonly name: string
 }
-function toIAPIRefStatusItem(
+function toIAPIRefStatusItemFromBitbucket(
   id: number,
   status: IBitbucketAPICommitStatus
 ): IAPIRefStatusItem {
   return {
-    state: mapRefState(status.state),
+    state: mapRefStateFromBitbucket(status.state),
     target_url: status.url,
     description: status.description,
     context: status.name,
     id,
   }
 }
-function mapRefState(state: BitbucketAPIRefState): APIRefState {
+function mapRefStateFromBitbucket(state: BitbucketAPIRefState): APIRefState {
   switch (state) {
     case 'FAILED':
       return 'failure'
@@ -972,13 +980,13 @@ interface IBitbucketAPIPullRequestRef {
   } | null
   readonly repository: IBitbucketAPIRepositorySummary
 }
-function toIAPIPullRequestRef(
+function toIAPIPullRequestRefFromBitbucket(
   ref: IBitbucketAPIPullRequestRef
 ): IAPIPullRequestRef {
   return {
     ref: ref.branch.name,
     sha: ref.commit?.hash ?? '',
-    repo: summaryToIAPIRepository(ref.repository),
+    repo: summaryToIAPIRepositoryFromBitbucket(ref.repository),
   }
 }
 
@@ -1007,15 +1015,17 @@ interface IBitbucketAPIPullRequest {
   readonly state: 'OPEN' | 'MERGED' | 'DECLINED'
   readonly type: 'pullrequest'
 }
-function toIAPIPullRequest(pr: IBitbucketAPIPullRequest): IAPIPullRequest {
+function toIAPIPullRequestFromBitbucket(
+  pr: IBitbucketAPIPullRequest
+): IAPIPullRequest {
   return {
     number: pr.id,
     title: pr.title,
     created_at: pr.created_on,
     updated_at: pr.updated_on,
-    user: toIAPIIdentity(pr.author),
-    head: toIAPIPullRequestRef(pr.source),
-    base: toIAPIPullRequestRef(pr.destination),
+    user: toIAPIIdentityFromBitbucket(pr.author),
+    head: toIAPIPullRequestRefFromBitbucket(pr.source),
+    base: toIAPIPullRequestRefFromBitbucket(pr.destination),
     body: pr.description,
     state: pr.state === 'OPEN' ? 'open' : 'closed',
   }
@@ -3916,7 +3926,7 @@ export class BitbucketAPI extends API {
       const prs = await this.fetchAll<IBitbucketAPIPullRequest>(url, {
         perPage: 50,
       })
-      return prs.map(toIAPIPullRequest)
+      return prs.map(toIAPIPullRequestFromBitbucket)
     } catch (e) {
       log.warn(`failed fetching open PRs for repository ${owner}/${name}`, e)
       throw e
@@ -3970,7 +3980,7 @@ export class BitbucketAPI extends API {
       })
       return prs
         .filter(pr => Date.parse(pr.updated_on) >= sinceTime)
-        .map(toIAPIPullRequest)
+        .map(toIAPIPullRequestFromBitbucket)
     } catch (e) {
       log.warn(`failed fetching updated PRs for repository ${owner}/${name}`, e)
       throw e
@@ -3979,14 +3989,14 @@ export class BitbucketAPI extends API {
 
   public override async fetchAccount(): Promise<IAPIFullIdentity> {
     const response = await this.request(this.endpoint, 'GET', 'user')
-    return toIAPIFullIdentity(
+    return toIAPIFullIdentityFromBitbucket(
       await parsedResponse<IBitbucketAPIIdentity>(response)
     )
   }
 
   public override async fetchEmails(): Promise<ReadonlyArray<IAPIEmail>> {
     const emails = await this.fetchAll<IBitbucketAPIEmail>('user/emails')
-    return emails.map(toIAPIEmail)
+    return emails.map(toIAPIEmailFromBitbucket)
   }
 
   public async fetchMentionables(
@@ -3999,7 +4009,9 @@ export class BitbucketAPI extends API {
       )
       return {
         etag: undefined,
-        users: response.map(member => toIAPIMentionableUser(member)),
+        users: response.map(member =>
+          toIAPIMentionableUserFromBitbucket(member)
+        ),
       }
     } catch (e) {
       log.warn(`fetchMentionables: failed for ${owner}/${name}`, e)
@@ -4022,7 +4034,7 @@ export class BitbucketAPI extends API {
         return null
       }
       const repo = await parsedResponse<IBitbucketAPIRepository>(response)
-      return toIAPIFullRepository(repo)
+      return toIAPIFullRepositoryFromBitbucket(repo)
     } catch (e) {
       log.warn(`fetchRepository: an error occurred for '${owner}/${name}'`, e)
       return null
@@ -4074,7 +4086,7 @@ export class BitbucketAPI extends API {
     try {
       const statuses = await this.fetchAll<IBitbucketAPICommitStatus>(path)
       const checkRuns = statuses.map((status, index) =>
-        toIAPIRefStatusItem(index, status)
+        toIAPIRefStatusItemFromBitbucket(index, status)
       )
       return {
         state: getCombinedRefStatus(checkRuns),
@@ -4108,7 +4120,7 @@ export class BitbucketAPI extends API {
     const bitbucketRepo = await parsedResponse<IBitbucketAPIRepository>(
       response
     )
-    const repo = toIAPIRepository(bitbucketRepo)
+    const repo = toIAPIRepositoryFromBitbucket(bitbucketRepo)
     return {
       url: protocol === 'ssh' ? repo.ssh_url : repo.clone_url,
       defaultBranch: repo.default_branch,
@@ -4123,7 +4135,7 @@ export class BitbucketAPI extends API {
       for (const workspaceAccess of workspaceAccessList) {
         const path = `repositories/${workspaceAccess.workspace.uuid}`
         const repos = await this.fetchAll<IBitbucketAPIRepository>(path)
-        callback(repos.map(toIAPIRepository))
+        callback(repos.map(toIAPIRepositoryFromBitbucket))
       }
     } catch (error) {
       log.warn(
