@@ -442,7 +442,8 @@ export class RepositoriesStore extends TypedBaseStore<
       repository.customEditorOverride,
       repository.isTutorialRepository,
       repository.overrideLogin,
-      repository.gitDir
+      repository.gitDir,
+      repository.mainWorktreePath
     )
   }
 
@@ -474,7 +475,8 @@ export class RepositoriesStore extends TypedBaseStore<
       repository.customEditorOverride,
       repository.isTutorialRepository,
       account?.login ?? LoginSpecialValue.ForceNullLogin,
-      repository.gitDir
+      repository.gitDir,
+      repository.mainWorktreePath
     )
   }
 
@@ -779,7 +781,8 @@ export class RepositoriesStore extends TypedBaseStore<
       oldRepo.customEditorOverride,
       newRepo.isTutorialRepository,
       oldRepo.overrideLogin,
-      newRepo.gitDir
+      newRepo.gitDir,
+      newRepo.mainWorktreePath
     )
   }
 
