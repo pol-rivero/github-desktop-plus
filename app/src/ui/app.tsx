@@ -211,7 +211,6 @@ import { offsetFromNow } from '../lib/offset-from'
 import { getNumber } from '../lib/local-storage'
 import { IconPreviewDialog } from './octicons/icon-preview-dialog'
 import { isCertificateErrorSuppressedFor } from '../lib/suppress-certificate-error'
-import { webUtils } from 'electron'
 import { showTestUI } from './lib/test-ui-components/test-ui-components'
 import { ConfirmCommitFilteredChanges } from './changes/confirm-commit-filtered-changes-dialog'
 import { AboutTestDialog } from './about/about-test-dialog'
@@ -1376,7 +1375,7 @@ export class App extends React.Component<IAppProps, IAppState> {
   }
 
   private async handleDragAndDrop(fileList: FileList) {
-    const paths = Array.from(fileList, webUtils.getPathForFile)
+    const paths = Array.from(fileList, file => file.path)
     const { dispatcher } = this.props
 
     // If they're bulk adding repositories then just blindly try to add them.

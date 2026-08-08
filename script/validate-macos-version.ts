@@ -17,8 +17,8 @@ type ChannelToValidate = 'production' | 'beta'
  * cause compatibility issues or prevent users from running the application.
  */
 const ValidMacOSVersions: Record<ChannelToValidate, string> = {
-  production: '12.0',
-  beta: '12.0',
+  production: '10.13.0',
+  beta: '10.13.0',
 }
 
 // Only when we get a RELEASE_CHANNEL we know we're in the middle of a deployment.

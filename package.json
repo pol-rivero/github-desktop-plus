@@ -157,7 +157,7 @@
     "@types/webpack-bundle-analyzer": "^4.7.0",
     "@types/webpack-hot-middleware": "^2.25.9",
     "diff": "^8.0.3",
-    "electron": "42.4.0",
+    "electron": "26.6.10",
     "electron-builder": "^25.1.8",
     "electron-packager": "^17.1.1",
     "electron-winstaller": "^5.0.0",
