@@ -28,6 +28,10 @@ if (
     if (!fs.existsSync(binDir)) {
       fs.mkdirSync(binDir, { recursive: true })
     }
+    const libexecDir = path.join(shimGitDir, 'libexec', 'git-core')
+    if (!fs.existsSync(libexecDir)) {
+      fs.mkdirSync(libexecDir, { recursive: true })
+    }
 
     // 2. Helper to find system binary
     const findSystemBinary = (name: string): string | null => {
@@ -70,9 +74,94 @@ if (
         console.error('Failed to resolve system git --exec-path:', e)
       }
 
-      // 5. Find system git-lfs and add its directory to PATH
-      const systemGitLfs = findSystemBinary('git-lfs')
+      // 5. Find system git-lfs or download a compatible version dynamically if missing
+      let systemGitLfs = findSystemBinary('git-lfs')
+      if (!systemGitLfs) {
+        const localLfsPath = path.join(binDir, 'git-lfs')
+        if (fs.existsSync(localLfsPath)) {
+          systemGitLfs = localLfsPath
+        } else {
+          try {
+            console.log(
+              'Downloading compatible git-lfs for macOS High Sierra...'
+            )
+            const zipPath = '/tmp/git-lfs.zip'
+            const extractDir = '/tmp/git-lfs-extract'
+
+            // Delete old temporary files if they exist
+            if (fs.existsSync(zipPath)) {
+              fs.unlinkSync(zipPath)
+            }
+            if (fs.existsSync(extractDir)) {
+              fs.rmSync(extractDir, { recursive: true, force: true })
+            }
+
+            // Download using curl
+            const downloadUrl =
+              'https://github.com/git-lfs/git-lfs/releases/download/v3.2.0/git-lfs-darwin-amd64-v3.2.0.zip'
+            cp.execSync(`/usr/bin/curl -L -s -o "${zipPath}" "${downloadUrl}"`)
+
+            // Unzip
+            fs.mkdirSync(extractDir, { recursive: true })
+            cp.execSync(`/usr/bin/unzip -q -o "${zipPath}" -d "${extractDir}"`)
+
+            // Find git-lfs recursively inside extractDir
+            const findFile = (dir: string, name: string): string | null => {
+              const files = fs.readdirSync(dir)
+              for (const f of files) {
+                const fp = path.join(dir, f)
+                if (fs.statSync(fp).isDirectory()) {
+                  const found = findFile(fp, name)
+                  if (found) {
+                    return found
+                  }
+                } else if (f === name) {
+                  return fp
+                }
+              }
+              return null
+            }
+
+            const downloadedLfs = findFile(extractDir, 'git-lfs')
+            if (downloadedLfs) {
+              fs.copyFileSync(downloadedLfs, localLfsPath)
+              fs.chmodSync(localLfsPath, 0o755)
+              systemGitLfs = localLfsPath
+            }
+
+            // Cleanup
+            try {
+              fs.unlinkSync(zipPath)
+              fs.rmSync(extractDir, { recursive: true, force: true })
+            } catch {}
+          } catch (err) {
+            console.error('Failed to download compatible git-lfs:', err)
+          }
+        }
+      }
+
       if (systemGitLfs) {
+        // Create symlink in libexec/git-core for git-lfs
+        const lfsSymlinkPath = path.join(libexecDir, 'git-lfs')
+        if (fs.existsSync(lfsSymlinkPath)) {
+          try {
+            fs.unlinkSync(lfsSymlinkPath)
+          } catch {}
+        }
+        fs.symlinkSync(systemGitLfs, lfsSymlinkPath)
+
+        // Create symlink in bin/git-lfs if needed
+        const binLfsPath = path.join(binDir, 'git-lfs')
+        if (systemGitLfs !== binLfsPath) {
+          if (fs.existsSync(binLfsPath)) {
+            try {
+              fs.unlinkSync(binLfsPath)
+            } catch {}
+          }
+          fs.symlinkSync(systemGitLfs, binLfsPath)
+        }
+
+        // Add git-lfs dir to PATH
         const lfsDir = path.dirname(systemGitLfs)
         if (lfsDir) {
           process.env['PATH'] = `${lfsDir}:${process.env['PATH'] || ''}`
