@@ -16,7 +16,7 @@ env:
 jobs:
   build-high-sierra:
     name: Build macOS High Sierra (x64)
-    runs-on: macos-13
+    runs-on: macos-14
     permissions:
       contents: read
     steps:
