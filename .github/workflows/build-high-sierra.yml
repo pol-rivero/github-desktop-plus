@@ -1,0 +1,94 @@
+name: Build for macOS High Sierra
+
+on:
+  push:
+    branches:
+      - development
+      - main
+    tags:
+      - 'v*.*.*'
+  pull_request:
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: 24.15.0
+
+jobs:
+  build-high-sierra:
+    name: Build macOS High Sierra (x64)
+    runs-on: macos-13
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - uses: ./.github/actions/setup-ci-environment
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          arch: x64
+
+      - name: Validate macOS version
+        run: yarn validate-macos-version
+
+      - name: Run desktop-trampoline tests
+        run: |
+          cd vendor/desktop-trampoline
+          yarn install
+          yarn test
+
+      - name: Compute app version
+        run: |
+          VERSION="0.0.0"
+          if [[ "$GITHUB_REF" =~ ^refs/tags/ ]]; then
+            VERSION=$(echo "${GITHUB_REF/refs\/tags\//}" | sed -E "s/v(.*)/\\1/")
+          fi
+          echo "Computed version: ${VERSION}"
+          echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Build production app
+        run: yarn build:prod
+        env:
+          DESKTOP_OAUTH_CLIENT_ID: ${{ secrets.DESKTOP_OAUTH_CLIENT_ID }}
+          DESKTOP_OAUTH_CLIENT_SECRET: ${{ secrets.DESKTOP_OAUTH_CLIENT_SECRET }}
+          DESKTOP_OAUTH_CLIENT_ID_BITBUCKET: ${{ secrets.DESKTOP_OAUTH_CLIENT_ID_BITBUCKET }}
+          DESKTOP_OAUTH_CLIENT_SECRET_BITBUCKET: ${{ secrets.DESKTOP_OAUTH_CLIENT_SECRET_BITBUCKET }}
+          DESKTOP_OAUTH_CLIENT_ID_GITLAB: ${{ secrets.DESKTOP_OAUTH_CLIENT_ID_GITLAB }}
+          DESKTOP_OAUTH_CLIENT_SECRET_GITLAB: ${{ secrets.DESKTOP_OAUTH_CLIENT_SECRET_GITLAB }}
+          DESKTOP_OAUTH_CLIENT_ID_CODEBERG: ${{ secrets.DESKTOP_OAUTH_CLIENT_ID_CODEBERG }}
+          DESKTOP_OAUTH_CLIENT_SECRET_CODEBERG: ${{ secrets.DESKTOP_OAUTH_CLIENT_SECRET_CODEBERG }}
+          DESKTOP_OAUTH_CLIENT_ID_GITEA: ${{ secrets.DESKTOP_OAUTH_CLIENT_ID_GITEA }}
+          DESKTOP_OAUTH_CLIENT_SECRET_GITEA: ${{ secrets.DESKTOP_OAUTH_CLIENT_SECRET_GITEA }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APPLICATION_CERT: ${{ secrets.APPLE_APPLICATION_CERT }}
+          KEY_PASSWORD: ${{ secrets.APPLE_APPLICATION_CERT_PASSWORD }}
+          npm_config_arch: x64
+          TARGET_ARCH: x64
+
+      - name: Prepare testing environment
+        run: yarn test:setup
+        env:
+          npm_config_arch: x64
+
+      - name: Run unit tests
+        run: yarn test:unit
+
+      - name: Run script tests
+        run: yarn test:script
+
+      - name: Package production app
+        run: yarn package
+        env:
+          npm_config_arch: x64
+
+      - name: Upload High Sierra artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: DesktopPlus-macOS-High-Sierra-x64
+          path: |
+            dist/DesktopPlus-v*-macOS-x64.zip
+            dist/Desktop Plus-darwin-x64/Desktop Plus.app
+          if-no-files-found: error
