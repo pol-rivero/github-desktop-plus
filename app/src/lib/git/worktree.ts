@@ -1,9 +1,8 @@
 import * as Path from 'path'
 import type { Repository } from '../../models/repository'
 import type { WorktreeEntry, WorktreeType } from '../../models/worktree'
+import { pathExists } from '../path-exists'
 import { git } from './core'
-import { directoryExists } from '../directory-exists'
-import { readFile } from 'fs/promises'
 
 export function parseWorktreePorcelainOutput(
   stdout: string
@@ -132,38 +131,42 @@ export async function listWorktreesFromGitDir(
   }
 }
 
-export async function listWorktreesFromGitDirFallback(
-  gitDir: string
-): Promise<ReadonlyArray<WorktreeEntry>> {
-  const commonDir = await resolveCommonGitDir(gitDir)
-  const mainWorktreePath = Path.dirname(commonDir)
+/**
+ * Resolve the path to the main worktree of the repository the given repository
+ * belongs to, or null if it is already the main worktree or cannot be resolved.
+ *
+ * Prefers the path recorded when Desktop switched onto the worktree, falling
+ * back to the worktree's administrative git dir for repositories recorded
+ * before that path was persisted. The fallback only works while that metadata
+ * exists — `git worktree remove` and `git worktree prune` both delete it.
+ */
+export async function resolveMainWorktreePath(
+  repository: Repository
+): Promise<string | null> {
+  const { mainWorktreePath, gitDir, path } = repository
 
-  if (!(await directoryExists(mainWorktreePath))) {
-    return []
-  }
-  try {
-    return listWorktrees(mainWorktreePath)
-  } catch {
-    return []
-  }
-}
-
-async function resolveCommonGitDir(gitDir: string): Promise<string> {
-  if (Path.basename(Path.dirname(gitDir)) !== 'worktrees') {
-    return gitDir
+  if (mainWorktreePath === path) {
+    return null
   }
 
-  // Prefer the `commondir` file, but fall back to the conventional layout (two
-  // levels up) when it's unreadable, e.g. `git worktree remove` deleted the
-  // worktree's admin files too.
-  const conventionalCommonDir = Path.dirname(Path.dirname(gitDir))
-  try {
-    const fileContent = await readFile(Path.join(gitDir, 'commondir'), 'utf8')
-    const path = fileContent.replace(/\r?\n$/, '')
-    return path ? Path.resolve(gitDir, path) : conventionalCommonDir
-  } catch {
-    return conventionalCommonDir
+  // A recorded path can outlive the location it names, so treat it as a hint
+  // rather than the answer — otherwise a stale one would suppress the lookup
+  // below, which may well still work.
+  if (mainWorktreePath !== undefined && (await pathExists(mainWorktreePath))) {
+    return mainWorktreePath
   }
+
+  if (gitDir === undefined) {
+    return null
+  }
+
+  const mainWorktree = (await listWorktreesFromGitDir(gitDir)).find(
+    wt => wt.type === 'main'
+  )
+
+  return mainWorktree === undefined || mainWorktree.path === path
+    ? null
+    : mainWorktree.path
 }
 
 export async function addWorktree(
