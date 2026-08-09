@@ -12,13 +12,20 @@ export function parseWorktreePorcelainOutput(
     return []
   }
 
-  // With -z, worktree blocks are separated by double NUL and fields within
-  // a block are separated by single NUL
-  const blocks = stdout.replace(/\0$/, '').split('\0\0')
+  // Detect separator: if it has NUL characters, it's NUL-separated (-z used)
+  const isNulSeparated = stdout.includes('\0')
+  const blockSeparator = isNulSeparated ? '\0\0' : '\n\n'
+  const fieldSeparator = isNulSeparated ? '\0' : '\n'
+
+  const normalizedStdout = isNulSeparated
+    ? stdout.replace(/\0$/, '')
+    : stdout.replace(/\r/g, '').trim()
+
+  const blocks = normalizedStdout.split(blockSeparator)
   const entries: WorktreeEntry[] = []
 
   for (let i = 0; i < blocks.length; i++) {
-    const lines = blocks[i].split('\0')
+    const lines = blocks[i].split(fieldSeparator)
     let path = ''
     let head = ''
     let branch: string | null = null
@@ -47,8 +54,18 @@ export function parseWorktreePorcelainOutput(
       }
     }
 
-    const type: WorktreeType = i === 0 ? 'main' : 'linked'
-    entries.push({ path, head, branch, isDetached, type, isLocked, isPrunable })
+    if (path) {
+      const type: WorktreeType = i === 0 ? 'main' : 'linked'
+      entries.push({
+        path,
+        head,
+        branch,
+        isDetached,
+        type,
+        isLocked,
+        isPrunable,
+      })
+    }
   }
 
   return entries
@@ -57,27 +74,62 @@ export function parseWorktreePorcelainOutput(
 export async function listWorktrees(
   repositoryOrPath: Repository | string
 ): Promise<ReadonlyArray<WorktreeEntry>> {
-  const result = await git(
-    ['worktree', 'list', '--porcelain', '-z'],
+  const path =
     typeof repositoryOrPath === 'string'
       ? repositoryOrPath
-      : repositoryOrPath.path,
-    'listWorktrees'
-  )
+      : repositoryOrPath.path
 
-  return parseWorktreePorcelainOutput(result.stdout)
+  try {
+    const result = await git(
+      ['worktree', 'list', '--porcelain', '-z'],
+      path,
+      'listWorktrees'
+    )
+    return parseWorktreePorcelainOutput(result.stdout)
+  } catch (err) {
+    const errStr = String(err)
+    if (
+      errStr.includes('unknown switch') ||
+      errStr.includes('-z') ||
+      errStr.includes("switch `z'")
+    ) {
+      const result = await git(
+        ['worktree', 'list', '--porcelain'],
+        path,
+        'listWorktrees'
+      )
+      return parseWorktreePorcelainOutput(result.stdout)
+    }
+    throw err
+  }
 }
 
 export async function listWorktreesFromGitDir(
   gitDir: string
 ): Promise<ReadonlyArray<WorktreeEntry>> {
-  const result = await git(
-    ['--git-dir', gitDir, 'worktree', 'list', '--porcelain', '-z'],
-    gitDir,
-    'listWorktreesFromGitDir'
-  )
-
-  return parseWorktreePorcelainOutput(result.stdout)
+  try {
+    const result = await git(
+      ['--git-dir', gitDir, 'worktree', 'list', '--porcelain', '-z'],
+      gitDir,
+      'listWorktreesFromGitDir'
+    )
+    return parseWorktreePorcelainOutput(result.stdout)
+  } catch (err) {
+    const errStr = String(err)
+    if (
+      errStr.includes('unknown switch') ||
+      errStr.includes('-z') ||
+      errStr.includes("switch `z'")
+    ) {
+      const result = await git(
+        ['--git-dir', gitDir, 'worktree', 'list', '--porcelain'],
+        gitDir,
+        'listWorktreesFromGitDir'
+      )
+      return parseWorktreePorcelainOutput(result.stdout)
+    }
+    throw err
+  }
 }
 
 export async function listWorktreesFromGitDirFallback(
