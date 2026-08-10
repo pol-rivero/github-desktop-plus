@@ -43,6 +43,14 @@ describe('URL remote parsing', () => {
     assert.equal(remote.name, 'repo')
   })
 
+  it('parses HTTPS URLs with a trailing slash after the git suffix', () => {
+    const remote = parseRemote('https://github.com/hubot/repo.git/')
+    assert(remote !== null)
+    assert.equal(remote.hostname, 'github.com')
+    assert.equal(remote.owner, 'hubot')
+    assert.equal(remote.name, 'repo')
+  })
+
   it('parses HTTPS URLs which include a username', () => {
     const remote = parseRemote('https://monalisa@github.com/hubot/repo.git')
     assert(remote !== null)
@@ -130,6 +138,14 @@ describe('URL remote parsing', () => {
     assert.equal(remote.name, 'repo')
   })
 
+  it('parses SSH URLs with a trailing slash after the git suffix', () => {
+    const remote = parseRemote('git@github.com:hubot/repo.git/')
+    assert(remote !== null)
+    assert.equal(remote.hostname, 'github.com')
+    assert.equal(remote.owner, 'hubot')
+    assert.equal(remote.name, 'repo')
+  })
+
   it('parses git URLs', () => {
     const remote = parseRemote('git:github.com/hubot/repo.git')
     assert(remote !== null)
@@ -170,6 +186,14 @@ describe('URL remote parsing', () => {
     assert.equal(remote.name, 'repo')
   })
 
+  it('parses SSH URLs with the ssh prefix and a trailing slash after the git suffix', () => {
+    const remote = parseRemote('ssh://git@github.com/hubot/repo.git/')
+    assert(remote !== null)
+    assert.equal(remote.hostname, 'github.com')
+    assert.equal(remote.owner, 'hubot')
+    assert.equal(remote.name, 'repo')
+  })
+
   it('parses SSH URLs with the ssh prefix and a non-default port', () => {
     const remote = parseRemote('ssh://git@git.example.com:2222/hubot/repo.git')
     assert(remote !== null)
@@ -177,6 +201,86 @@ describe('URL remote parsing', () => {
     // and API on, so it's neither kept in the hostname nor reported as a port.
     assert.equal(remote.hostname, 'git.example.com')
     assert.equal(remote.port, null)
+    assert.equal(remote.owner, 'hubot')
+    assert.equal(remote.name, 'repo')
+  })
+
+  it('parses SSH URLs with an IPv6 host', () => {
+    const remote = parseRemote('ssh://git@[2001:db8::1]/hubot/repo.git')
+    assert(remote !== null)
+    assert.equal(remote.hostname, '[2001:db8::1]')
+    assert.equal(remote.owner, 'hubot')
+    assert.equal(remote.name, 'repo')
+  })
+
+  it('parses SSH URLs with an IPv6 host and a non-default port', () => {
+    const remote = parseRemote('ssh://git@[2001:db8::1]:2222/hubot/repo.git')
+    assert(remote !== null)
+    assert.equal(remote.hostname, '[2001:db8::1]')
+    assert.equal(remote.port, null)
+    assert.equal(remote.owner, 'hubot')
+    assert.equal(remote.name, 'repo')
+  })
+
+  // Nested groups (GitLab subgroups, Bitbucket projects) mean the owner can
+  // span more than one path component, whichever form the remote takes.
+  it('parses HTTPS URLs of a repository in a nested group', () => {
+    const remote = parseRemote('https://gitlab.example.com/group/sub/repo.git')
+    assert(remote !== null)
+    assert.equal(remote.hostname, 'gitlab.example.com')
+    assert.equal(remote.owner, 'group/sub')
+    assert.equal(remote.name, 'repo')
+  })
+
+  it('parses SSH URLs of a repository in a nested group', () => {
+    const remote = parseRemote('git@gitlab.example.com:group/sub/repo.git')
+    assert(remote !== null)
+    assert.equal(remote.hostname, 'gitlab.example.com')
+    assert.equal(remote.owner, 'group/sub')
+    assert.equal(remote.name, 'repo')
+  })
+
+  it('parses SSH URLs with the ssh prefix of a repository in a nested group', () => {
+    const remote = parseRemote(
+      'ssh://git@gitlab.example.com/group/sub/repo.git'
+    )
+    assert(remote !== null)
+    // The group must not be swallowed by the hostname
+    assert.equal(remote.hostname, 'gitlab.example.com')
+    assert.equal(remote.owner, 'group/sub')
+    assert.equal(remote.name, 'repo')
+  })
+
+  it('parses SSH URLs with a non-default port of a repository in a nested group', () => {
+    const remote = parseRemote(
+      'ssh://git@gitlab.example.com:2222/group/sub/repo.git'
+    )
+    assert(remote !== null)
+    assert.equal(remote.hostname, 'gitlab.example.com')
+    assert.equal(remote.owner, 'group/sub')
+    assert.equal(remote.name, 'repo')
+  })
+
+  it('parses SSH URLs with a custom username of a repository in a nested group', () => {
+    const remote = parseRemote('niik@niik.ghe.com:group/sub/repo.git')
+    assert(remote !== null)
+    assert.equal(remote.hostname, 'niik.ghe.com')
+    assert.equal(remote.owner, 'group/sub')
+    assert.equal(remote.name, 'repo')
+  })
+
+  it('parses git URLs of a repository in a nested group', () => {
+    const remote = parseRemote('git:gitlab.example.com/group/sub/repo.git')
+    assert(remote !== null)
+    assert.equal(remote.hostname, 'gitlab.example.com')
+    assert.equal(remote.owner, 'group/sub')
+    assert.equal(remote.name, 'repo')
+  })
+
+  it('parses git protocol URLs', () => {
+    const remote = parseRemote('git://gitlab.example.com/hubot/repo.git')
+    assert(remote !== null)
+    assert.equal(remote.hostname, 'gitlab.example.com')
     assert.equal(remote.owner, 'hubot')
     assert.equal(remote.name, 'repo')
   })
@@ -209,5 +313,13 @@ describe('URL remote parsing', () => {
   it('does not parse invalid git URLs when missing repo owner', () => {
     const remote = parseRemote('git:github.com/hubot/')
     assert(remote === null)
+  })
+
+  // A remote can be a local path, which names no host at all
+  it('does not parse local paths', () => {
+    assert.equal(parseRemote('/home/hubot/repo'), null)
+    assert.equal(parseRemote('../repo'), null)
+    assert.equal(parseRemote('C:\\Users\\hubot\\repo'), null)
+    assert.equal(parseRemote('file:///home/hubot/repo'), null)
   })
 })

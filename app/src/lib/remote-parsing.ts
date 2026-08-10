@@ -24,31 +24,47 @@ interface IGitRemoteURL {
   readonly name: string
 }
 
+// A hostname, either an IPv6 literal in brackets or anything that isn't a path
+// or port separator.
+const hostnamePattern = '(\\[[^\\]]+\\]|[^/:]+)'
+
+// The owner, followed by the repository name. The owner is allowed to span
+// several path components, since a repository can live in a nested group.
+const ownerAndNamePattern = '(.+)/([^/]+?)'
+
+// The optional `.git` and/or trailing slash.
+const gitSuffixPattern = '(?:\\.git)?/?'
+
 // Examples:
 // https://github.com/octocat/Hello-World.git
 // https://github.com/octocat/Hello-World.git/
 // git@github.com:octocat/Hello-World.git
 // git:github.com/octocat/Hello-World.git
+// git@gitlab.example.com:group/subgroup/Hello-World.git
 const remoteRegexes: ReadonlyArray<{ protocol: GitProtocol; regex: RegExp }> = [
   {
     protocol: 'https',
     regex: new RegExp(
-      '^https?://(?:.+@)?(\\[[^\\]]+\\]|[^/:]+)(?::\\d+)?/(.+)/([^/]+?)(?:/|\\.git/?)?$'
+      `^https?://(?:.+@)?${hostnamePattern}(?::\\d+)?/${ownerAndNamePattern}${gitSuffixPattern}$`
     ),
-  },
-  {
-    protocol: 'ssh',
-    regex: new RegExp('^git@(.+):([^/]+)/([^/]+?)(?:/|\\.git)?$'),
   },
   {
     protocol: 'ssh',
     regex: new RegExp(
-      '^(?:.+)@(.+\\.ghe\\.com):([^/]+)/([^/]+?)(?:/|\\.git)?$'
+      `^git@${hostnamePattern}:${ownerAndNamePattern}${gitSuffixPattern}$`
     ),
   },
   {
     protocol: 'ssh',
-    regex: new RegExp('^git:(.+)/([^/]+)/([^/]+?)(?:/|\\.git)?$'),
+    regex: new RegExp(
+      `^(?:.+)@(.+\\.ghe\\.com):${ownerAndNamePattern}${gitSuffixPattern}$`
+    ),
+  },
+  {
+    protocol: 'ssh',
+    regex: new RegExp(
+      `^git:(?://)?${hostnamePattern}/${ownerAndNamePattern}${gitSuffixPattern}$`
+    ),
   },
   {
     // Self-hosted SSH URLs like ssh://git@git.example.com:2222/owner/name.git
@@ -56,12 +72,14 @@ const remoteRegexes: ReadonlyArray<{ protocol: GitProtocol; regex: RegExp }> = [
     // says nothing about the port the instance serves its web UI and API on.
     protocol: 'ssh',
     regex: new RegExp(
-      '^ssh://git@(\\[[^\\]]+\\]|[^/:]+):\\d+/(.+)/(.+?)(?:/|\\.git)?$'
+      `^ssh://git@${hostnamePattern}:\\d+/${ownerAndNamePattern}${gitSuffixPattern}$`
     ),
   },
   {
     protocol: 'ssh',
-    regex: new RegExp('^ssh://git@(.+)/(.+)/(.+?)(?:/|\\.git)?$'),
+    regex: new RegExp(
+      `^ssh://git@${hostnamePattern}/${ownerAndNamePattern}${gitSuffixPattern}$`
+    ),
   },
 ]
 
