@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert'
-import { parseRemote } from '../../src/lib/remote-parsing'
+import { parseRemote, remoteUrlToWebUrl } from '../../src/lib/remote-parsing'
 
 describe('URL remote parsing', () => {
   it('parses HTTPS URLs with a trailing git suffix', () => {
@@ -222,8 +222,7 @@ describe('URL remote parsing', () => {
     assert.equal(remote.name, 'repo')
   })
 
-  // Nested groups (GitLab subgroups, Bitbucket projects) mean the owner can
-  // span more than one path component, whichever form the remote takes.
+  // Nested groups, such as GitLab subgroups, are supported in every remote form
   it('parses HTTPS URLs of a repository in a nested group', () => {
     const remote = parseRemote('https://gitlab.example.com/group/sub/repo.git')
     assert(remote !== null)
@@ -321,5 +320,112 @@ describe('URL remote parsing', () => {
     assert.equal(parseRemote('../repo'), null)
     assert.equal(parseRemote('C:\\Users\\hubot\\repo'), null)
     assert.equal(parseRemote('file:///home/hubot/repo'), null)
+  })
+})
+
+describe('remoteUrlToWebUrl', () => {
+  it('keeps HTTPS URLs, dropping the .git suffix', () => {
+    assert.equal(
+      remoteUrlToWebUrl('https://gitlab.example.com/hubot/repo.git'),
+      'https://gitlab.example.com/hubot/repo'
+    )
+  })
+
+  it('keeps the web port of HTTPS URLs', () => {
+    assert.equal(
+      remoteUrlToWebUrl('https://gitlab.example.com:3000/hubot/repo.git'),
+      'https://gitlab.example.com:3000/hubot/repo'
+    )
+  })
+
+  it('keeps the scheme of plain HTTP URLs', () => {
+    assert.equal(
+      remoteUrlToWebUrl('http://gitlab.example.com/hubot/repo.git'),
+      'http://gitlab.example.com/hubot/repo'
+    )
+  })
+
+  it('strips credentials from HTTPS URLs', () => {
+    assert.equal(
+      remoteUrlToWebUrl(
+        'https://hubot:token@gitlab.example.com/hubot/repo.git'
+      ),
+      'https://gitlab.example.com/hubot/repo'
+    )
+  })
+
+  it('converts scp-style SSH remotes to HTTPS', () => {
+    assert.equal(
+      remoteUrlToWebUrl('git@gitlab.example.com:hubot/repo.git'),
+      'https://gitlab.example.com/hubot/repo'
+    )
+  })
+
+  it('converts scp-style SSH remotes without a username', () => {
+    assert.equal(
+      remoteUrlToWebUrl('gitlab.example.com:hubot/repo.git'),
+      'https://gitlab.example.com/hubot/repo'
+    )
+  })
+
+  it('keeps nested groups of scp-style SSH remotes', () => {
+    assert.equal(
+      remoteUrlToWebUrl('git@gitlab.example.com:group/subgroup/repo.git'),
+      'https://gitlab.example.com/group/subgroup/repo'
+    )
+  })
+
+  it('converts ssh:// remotes to HTTPS', () => {
+    assert.equal(
+      remoteUrlToWebUrl('ssh://git@gitlab.example.com/hubot/repo.git'),
+      'https://gitlab.example.com/hubot/repo'
+    )
+  })
+
+  it('drops the SSH port of ssh:// remotes', () => {
+    assert.equal(
+      remoteUrlToWebUrl('ssh://git@gitlab.example.com:2222/hubot/repo.git'),
+      'https://gitlab.example.com/hubot/repo'
+    )
+  })
+
+  it('converts ssh:// remotes with an IPv6 host', () => {
+    assert.equal(
+      remoteUrlToWebUrl('ssh://git@[2001:db8::1]:2222/hubot/repo.git'),
+      'https://[2001:db8::1]/hubot/repo'
+    )
+  })
+
+  it('converts git:// remotes to HTTPS', () => {
+    assert.equal(
+      remoteUrlToWebUrl('git://gitlab.example.com/hubot/repo.git'),
+      'https://gitlab.example.com/hubot/repo'
+    )
+  })
+
+  it('keeps a -git suffix', () => {
+    assert.equal(
+      remoteUrlToWebUrl('git@gitlab.example.com:hubot/repo-git'),
+      'https://gitlab.example.com/hubot/repo-git'
+    )
+  })
+
+  it('drops a trailing slash', () => {
+    assert.equal(
+      remoteUrlToWebUrl('https://gitlab.example.com/hubot/repo.git/'),
+      'https://gitlab.example.com/hubot/repo'
+    )
+  })
+
+  it('returns null for local paths', () => {
+    assert.equal(remoteUrlToWebUrl('/home/hubot/repo'), null)
+    assert.equal(remoteUrlToWebUrl('../repo'), null)
+    assert.equal(remoteUrlToWebUrl('C:\\Users\\hubot\\repo'), null)
+    assert.equal(remoteUrlToWebUrl('file:///home/hubot/repo'), null)
+  })
+
+  it('returns null for empty remotes', () => {
+    assert.equal(remoteUrlToWebUrl(''), null)
+    assert.equal(remoteUrlToWebUrl('   '), null)
   })
 })

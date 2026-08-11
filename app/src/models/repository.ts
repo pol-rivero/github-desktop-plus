@@ -13,6 +13,7 @@ import { createEqualityHash } from './equality-hash'
 import { memoizedGetRemotesFromPath } from '../lib/git'
 import { findDefaultRemote } from '../lib/stores/helpers/find-default-remote'
 import { EditorOverride } from './editor-override'
+import { remoteUrlToWebUrl } from '../lib/remote-parsing'
 
 export enum LoginSpecialValue {
   ForceNullLogin = 1,
@@ -272,9 +273,7 @@ export function getNonGitHubUrl(repository: Repository): string | null {
     return null
   }
 
-  // Convert potentially SSH URLs (e.g., git@github.com:user/repo.git) to HTTPS URLs (e.g., https://github.com/user/repo.git)
-  // If the URL is already HTTPS, this will be a no-op.
-  return repository.url.replace(/^[^@]+@([^:]+):/, 'https://$1/')
+  return remoteUrlToWebUrl(repository.url)
 }
 
 /**
