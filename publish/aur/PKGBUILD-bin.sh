@@ -15,7 +15,6 @@ provides=(${_pkgname})
 conflicts=(${_pkgname})
 depends=(
     'curl'
-    'libcurl-gnutls'
     'git'
     'libsecret'
     'libxss'

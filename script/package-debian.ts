@@ -89,7 +89,6 @@ const options: DebianOptions = {
   depends: [
     // dugite-native dependencies
     'libcurl3 | libcurl4',
-    'libcurl3-gnutls | libcurl4-gnutls',
     // keytar dependencies
     'libsecret-1-0',
     'gnome-keyring',

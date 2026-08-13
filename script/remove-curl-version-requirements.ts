@@ -4,9 +4,9 @@ import { readdirSync, readFileSync, lstatSync, writeFileSync } from 'fs'
 import * as path from 'path'
 
 /**
- * The embedded git binaries from dugite are built on Ubuntu, where
- * libcurl-gnutls carries versioned symbols (the CURL_GNUTLS_3 version node
- * added by Debian's packaging).
+ * The embedded git binaries from dugite are built on Ubuntu, where libcurl
+ * carries versioned symbols (the CURL_OPENSSL_4 version node added by Debian's
+ * packaging).
  *
  * This strips the version requirement on libcurl from the embedded git
  * binaries: the Elf64_Verneed entry for libcurl is removed and the affected
@@ -187,7 +187,7 @@ type SectionHeader = ReturnType<typeof Elf64_Shdr.read> & {
 }
 
 interface IVerneedEntry {
-  /** Name of the required library, e.g. "libcurl-gnutls.so.4" */
+  /** Name of the required library, e.g. "libcurl.so.4" */
   readonly file: string
   /** Offset of the library name in the string table */
   readonly fileOffset: number
