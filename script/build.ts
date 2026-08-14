@@ -63,6 +63,7 @@ const isPublishableBuild = isPublishable()
 const isDevelopmentBuild = getChannel() === 'development'
 const useAdHocSigning = isDesktopPlus || isDevelopmentBuild
 const shouldSkipPackaging = process.env.DESKTOP_SKIP_PACKAGE === '1'
+const isOfflineBuild = process.env.OFFLINE === '1'
 
 const projectRoot = path.join(__dirname, '..')
 const entitlementsSuffix = useAdHocSigning ? '-dev' : ''
@@ -193,6 +194,10 @@ function packageApp() {
     tmpdir: false,
     derefSymlinks: false,
     prune: false, // We'll prune them ourselves below.
+    // @electron/get re-downloads SHASUMS256.txt on every run, even when the
+    // Electron zip is already in its cache, so validating it would defeat the
+    // prepopulated cache that offline builds (Flatpak) rely on.
+    download: { unsafelyDisableChecksums: isOfflineBuild },
     ignore: [
       new RegExp('/node_modules/electron($|/)'),
       new RegExp('/node_modules/@electron/packager($|/)'),
