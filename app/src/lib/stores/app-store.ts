@@ -1174,15 +1174,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.cloningRepositoriesStore.onDidError(e => this.emitError(e))
 
     this.signInStore.onDidAuthenticate(account => this._addAccount(account))
-    this.signInStore.onDidAuthenticate(account => {
-      if (!this.showWelcomeFlow) {
-        this._setBanner({
-          type: BannerType.SuccessfulSignIn,
-          login: account.login,
-          friendlyEndpoint: account.friendlyEndpoint,
-        })
-      }
-    })
     this.signInStore.onDidUpdate(() => this.emitUpdate())
     this.signInStore.onDidError(error => this.emitError(error))
 
@@ -9359,6 +9350,16 @@ export class AppStore extends TypedBaseStore<IAppState> {
     // get to the blankslate.
     if (this.showWelcomeFlow && storedAccount !== null) {
       this.apiRepositoriesStore.loadRepositories(storedAccount)
+    }
+
+    // Only announce the sign in if storing the account succeeded.
+    // In the welcome flow, the banner is not needed as the user is already aware of the sign in
+    if (!this.showWelcomeFlow && storedAccount !== null) {
+      this._setBanner({
+        type: BannerType.SuccessfulSignIn,
+        login: storedAccount.login,
+        friendlyEndpoint: storedAccount.friendlyEndpoint,
+      })
     }
   }
 
