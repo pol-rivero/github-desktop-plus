@@ -1,6 +1,7 @@
 import * as React from 'react'
 import * as Path from 'path'
 import memoize from 'memoize-one'
+import { GitHubRepository } from '../../models/github-repository'
 import { Commit, CommitOneLine } from '../../models/commit'
 import { Branch } from '../../models/branch'
 import { CommitListItem } from './commit-list-item'
@@ -29,7 +30,6 @@ import { Emoji } from '../../lib/emoji'
 import { Repository } from '../../models/repository'
 import { Dispatcher } from '../dispatcher'
 import { AppFileStatusKind } from '../../models/status'
-import { GitHubRepository } from '../../models/github-repository'
 import { getAvatarUsersForCommit, IAvatarUser } from '../../models/avatar'
 import { formatDate } from '../../lib/format-date'
 import { Avatar } from '../lib/avatar'
@@ -688,13 +688,11 @@ export class CommitList extends React.Component<
       )
     }
 
-    const classes = classNames(
-      {
-        'has-highlighted-commits':
-          shasToHighlight !== undefined && shasToHighlight.length > 0,
-      },
-      this.props.className
-    )
+    const upstreamClasses = classNames({
+      'has-highlighted-commits':
+        shasToHighlight !== undefined && shasToHighlight.length > 0,
+    })
+    const classes = classNames(upstreamClasses, this.props.className)
 
     const selectedRows = selectedSHAs
       .map(sha => this.rowForSHA(sha))

@@ -13,12 +13,12 @@ import { openFile } from '../lib/open-file'
 import {
   isSafeFileExtension,
   CopyFilePathLabel,
-  CopyRelativeFilePathLabel,
-  CopySelectedPathsLabel,
-  CopySelectedRelativePathsLabel,
   DefaultEditorLabel,
   RevealInFileManagerLabel,
   OpenWithDefaultProgramLabel,
+  CopyRelativeFilePathLabel,
+  CopySelectedPathsLabel,
+  CopySelectedRelativePathsLabel,
 } from '../lib/context-menu'
 import { ThrottledScheduler } from '../lib/throttled-scheduler'
 
@@ -151,7 +151,12 @@ export class SelectedCommits extends DiffPresentationStateComponent<
     const nextValue = nextProps.selectedCommits.map(c => c.sha).join('')
 
     if (currentValue !== nextValue) {
-      this.setState({ isExpanded: false, selectedFiles: [] })
+      if (this.state.isExpanded) {
+        this.setState({ isExpanded: false })
+      }
+      if (this.state.selectedFiles.length > 0) {
+        this.setState({ selectedFiles: [] })
+      }
     }
   }
 

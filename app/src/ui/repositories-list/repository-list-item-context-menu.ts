@@ -1,21 +1,21 @@
 import * as Path from 'path'
 
-import {
-  isRepositoryWithGitHubRepository,
-  hasDefaultRemoteUrl,
-  Repository,
-} from '../../models/repository'
-import { GitHubRepository } from '../../models/github-repository'
-import { getForgejoName } from '../../lib/forgejo-name'
+import { Repository } from '../../models/repository'
 import { IMenuItem } from '../../lib/menu-item'
 import { Repositoryish } from './group-repositories'
-import { WorktreeEntry } from '../../models/worktree'
 import { clipboard } from 'electron'
 import {
   RevealInFileManagerLabel,
   DefaultEditorLabel,
   DefaultShellLabel,
 } from '../lib/context-menu'
+import {
+  isRepositoryWithGitHubRepository,
+  hasDefaultRemoteUrl,
+} from '../../models/repository'
+import { GitHubRepository } from '../../models/github-repository'
+import { getForgejoName } from '../../lib/forgejo-name'
+import { WorktreeEntry } from '../../models/worktree'
 
 interface IRepositoryListItemContextMenuConfig {
   repository: Repositoryish
@@ -52,7 +52,7 @@ export const generateRepositoryListContextMenu = (
 ) => {
   const { repository } = config
   const missing = repository instanceof Repository && repository.missing
-  const isGitHub =
+  const github =
     repository instanceof Repository &&
     isRepositoryWithGitHubRepository(repository)
   const hasOriginUrl =
@@ -81,11 +81,9 @@ export const generateRepositoryListContextMenu = (
     },
     { type: 'separator' },
     {
-      label: getViewOnBrowserLabel(
-        isGitHub ? repository.gitHubRepository : null
-      ),
+      label: getViewOnBrowserLabel(github ? repository.gitHubRepository : null),
       action: () => config.onViewOnGitHub(repository),
-      enabled: isGitHub || hasOriginUrl,
+      enabled: github || hasOriginUrl,
     },
     ...(config.onOpenInNewWindow && canOpenInNewWindow
       ? [

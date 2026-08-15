@@ -1,1 +1,2 @@
-export { RepositoriesList, getKnownGroupNames } from './repositories-list'
+export { RepositoriesList } from './repositories-list'
+export { getKnownGroupNames } from './repositories-list'

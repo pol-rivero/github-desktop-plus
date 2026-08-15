@@ -134,11 +134,11 @@ export class CompareSidebar extends React.Component<
   }
 
   public componentDidUpdate(prevProps: ICompareSidebarProps) {
-    const { showBranchList, commitSearchQuery } = this.props.compareState
+    const { showBranchList } = this.props.compareState
 
     if (
       prevProps.compareState.commitSearchQuery !== '' &&
-      commitSearchQuery === ''
+      this.props.compareState.commitSearchQuery === ''
     ) {
       this.commitListRef.current?.scrollToSelectedCommit()
     }

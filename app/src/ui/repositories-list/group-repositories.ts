@@ -182,68 +182,69 @@ const toSortedListItems = (
       const repoState = localRepositoryStateLookup.get(r.id)
       const title = getDisplayTitle(r)
 
-      const needsDisambiguation =
-        // If the repository is in the enterprise group and has a duplicate
-        // name in the group, we need to disambiguate it. We don't have to
-        // disambiguate repositories in the 'dotcom' group because they are
-        // already grouped by owner. If the repository is in the 'recent'
-        // group and has a duplicate name in any group, we need to
-        // disambiguate it.
-        ((groupNames.get(title) ?? 0) > 1 && group.kind === 'enterprise') ||
-        ((allNames.get(title) ?? 0) > 1 && group.kind === 'recent')
+      const aheadBehind = repoState?.aheadBehind ?? null
+      const changedFilesCount = repoState?.changedFilesCount ?? 0
+      const mainWorktree =
+        getWorktrees(r, repoState).find(wt => wt.type === 'main') ?? null
+      const isMainWorktreeActive =
+        mainWorktree === null || mainWorktree.path === r.path
 
-      return buildRepositoryRows(r, repoState, needsDisambiguation)
+      return {
+        text: r instanceof Repository ? [title, nameOf(r)] : [title],
+        id: r.id.toString(),
+        repository: r,
+        needsDisambiguation:
+          // If the repository is in the enterprise group and has a duplicate
+          // name in the group, we need to disambiguate it. We don't have to
+          // disambiguate repositories in the 'dotcom' group because they are
+          // already grouped by owner. If the repository is in the 'recent'
+          // group and has a duplicate name in any group, we need to
+          // disambiguate it.
+          ((groupNames.get(title) ?? 0) > 1 && group.kind === 'enterprise') ||
+          ((allNames.get(title) ?? 0) > 1 && group.kind === 'recent'),
+        aheadBehind: isMainWorktreeActive ? aheadBehind : null,
+        changedFilesCount: isMainWorktreeActive ? changedFilesCount : 0,
+        branchName: mainWorktree
+          ? shortBranchName(mainWorktree.branch)
+          : repoState?.branchName ?? null,
+        defaultBranchName: repoState?.defaultBranchName ?? null,
+        worktree: mainWorktree,
+      }
     })
-    .sort((x, y) =>
-      caseInsensitiveCompare(
-        getDisplayTitle(x[0].repository),
-        getDisplayTitle(y[0].repository)
-      )
+    .sort(({ repository: x }, { repository: y }) =>
+      caseInsensitiveCompare(getDisplayTitle(x), getDisplayTitle(y))
     )
-    .flat()
+    .flatMap(item => [
+      item,
+      ...buildLinkedWorktreeRows(item, localRepositoryStateLookup),
+    ])
 }
 
 const shortBranchName = (branch: string | null): string | null =>
   branch ? branch.replace(/^refs\/heads\//, '') : null
 
-/**
- * Builds the list rows for a single repository: the repository row itself
- * (representing the main worktree) followed by one row per linked worktree.
- */
-function buildRepositoryRows(
+function getWorktrees(
   r: Repositoryish,
-  repoState: ILocalRepositoryState | undefined,
-  needsDisambiguation: boolean
+  repoState: ILocalRepositoryState | undefined
+): ReadonlyArray<WorktreeEntry> {
+  return r instanceof Repository ? repoState?.worktrees ?? [] : []
+}
+
+/**
+ * Builds the rows for a repository's linked worktrees, which are nested below
+ * the repository's own row (that one represents the main worktree).
+ */
+function buildLinkedWorktreeRows(
+  item: IRepositoryListItem,
+  localRepositoryStateLookup: ReadonlyMap<number, ILocalRepositoryState>
 ): IRepositoryListItem[] {
-  const title = getDisplayTitle(r)
-  const defaultBranchName = repoState?.defaultBranchName ?? null
-
-  const worktrees = r instanceof Repository ? repoState?.worktrees ?? [] : []
-  const mainWorktree = worktrees.find(wt => wt.type === 'main') ?? null
-
+  const r = item.repository
+  const repoState = localRepositoryStateLookup.get(r.id)
   const aheadBehind = repoState?.aheadBehind ?? null
   const changedFilesCount = repoState?.changedFilesCount ?? 0
-  const isMainWorktreeActive =
-    mainWorktree === null || mainWorktree.path === r.path
-  const mainWorktreeText =
-    r instanceof Repository ? [title, nameOf(r)] : [title]
-
-  const mainWorktreeRow: IRepositoryListItem = {
-    text: mainWorktreeText,
-    id: r.id.toString(),
-    repository: r,
-    needsDisambiguation,
-    aheadBehind: isMainWorktreeActive ? aheadBehind : null,
-    changedFilesCount: isMainWorktreeActive ? changedFilesCount : 0,
-    branchName: mainWorktree
-      ? shortBranchName(mainWorktree.branch)
-      : repoState?.branchName ?? null,
-    defaultBranchName,
-    worktree: mainWorktree,
-  }
 
   // Linked worktree rows match the same filter text as their repository so they travel with it
-  const linkedWorktreeRows = worktrees
+  return getWorktrees(r, repoState)
     .filter(wt => wt.type === 'linked')
     .map((wt): IRepositoryListItem => {
       const isActiveWorktree = wt.path === r.path
@@ -255,12 +256,10 @@ function buildRepositoryRows(
         aheadBehind: isActiveWorktree ? aheadBehind : null,
         changedFilesCount: isActiveWorktree ? changedFilesCount : 0,
         branchName: shortBranchName(wt.branch),
-        defaultBranchName,
+        defaultBranchName: repoState?.defaultBranchName ?? null,
         worktree: wt,
       }
     })
-
-  return [mainWorktreeRow, ...linkedWorktreeRows]
 }
 
 /**

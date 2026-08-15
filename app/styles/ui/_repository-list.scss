@@ -101,6 +101,14 @@
     white-space: nowrap;
   }
 
+  .new-repository-button {
+    flex-shrink: 0;
+
+    .octicon {
+      transform: translateX(4px) translateY(-1px);
+    }
+  }
+
   .repository-group-header {
     display: flex;
     align-items: center;
@@ -175,9 +183,6 @@
   .repo-list-button {
     flex-shrink: 0;
   }
-  .repo-list-button.new-repository .octicon {
-    transform: translateX(4px) translateY(-1px);
-  }
   .repo-list-button.pull-repositories .octicon {
     transform: translateX(-4px) translateY(-1px);
   }
@@ -231,11 +236,15 @@
 }
 
 .list-focus-container {
-  /** Badge colors when list item is selected but not focused */
+  /** Ahead/behind badge colors when list item is selected but not focused */
   .list-item.selected {
     .repository-list-item,
     .repository-list-item-tooltip {
-      .ahead-behind,
+      .ahead-behind {
+        background: var(--list-item-selected-badge-background-color);
+        color: var(--list-item-selected-badge-color);
+      }
+
       .branch-name {
         background: var(--list-item-selected-badge-background-color);
         color: var(--list-item-selected-badge-color);
@@ -244,11 +253,15 @@
   }
 
   &.focus-within {
-    /** Badge colors when list item is selected and focused */
+    /** Ahead/behind badge colors when list item is selected and focused */
     .list-item.selected {
       .repository-list-item,
       .repository-list-item-tooltip {
-        .ahead-behind,
+        .ahead-behind {
+          background: var(--list-item-selected-active-badge-background-color);
+          color: var(--list-item-selected-active-badge-color);
+        }
+
         .branch-name {
           background: var(--list-item-selected-active-badge-background-color);
           color: var(--list-item-selected-active-badge-color);

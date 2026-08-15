@@ -31,10 +31,8 @@ import { encodePathAsUrl } from '../../lib/path'
 import { TooltippedContent } from '../lib/tooltipped-content'
 import memoizeOne from 'memoize-one'
 import { KeyboardShortcut } from '../keyboard-shortcut/keyboard-shortcut'
-import {
-  generateRepositoryListContextMenu,
-  generateWorktreeListItemContextMenu,
-} from '../repositories-list/repository-list-item-context-menu'
+import { generateRepositoryListContextMenu } from '../repositories-list/repository-list-item-context-menu'
+import { generateWorktreeListItemContextMenu } from '../repositories-list/repository-list-item-context-menu'
 import { openRepositoryInNewWindow } from '../main-process-proxy'
 import { enableWorktreeSupport } from '../../lib/feature-flag'
 import { SectionFilterList } from '../lib/section-filter-list'
@@ -136,24 +134,23 @@ function findMatchingListItem(
 
     for (const group of groups) {
       for (const item of group.items) {
-        if (item.repository.id !== selectedRepository.id) {
-          continue
-        }
+        if (item.repository.id === selectedRepository.id) {
+          if (
+            item.worktree !== null &&
+            normalizePath(item.worktree.path) ===
+              normalizePath(selectedRepository.path)
+          ) {
+            return item
+          }
 
-        if (
-          item.worktree !== null &&
-          normalizePath(item.worktree.path) ===
-            normalizePath(selectedRepository.path)
-        ) {
-          return item
+          fallback ??= item
         }
-
-        fallback ??= item
       }
     }
 
     return fallback
   }
+
   return null
 }
 
@@ -389,10 +386,9 @@ export class RepositoriesList extends React.Component<
   }
 
   private getGroupLabel(group: RepositoryListGroup) {
-    const { kind, displayName } = group
-    if (kind === 'pins') {
-      return 'Pinned'
-    } else if (kind === 'enterprise') {
+    const { kind } = group
+    const { displayName } = group
+    if (kind === 'enterprise') {
       return displayName ?? group.host
     } else if (kind === 'other') {
       return displayName ?? 'Other'
@@ -405,6 +401,8 @@ export class RepositoriesList extends React.Component<
       return displayName ?? defaultLabel
     } else if (kind === 'recent') {
       return 'Recent'
+    } else if (kind === 'pins') {
+      return 'Pinned'
     } else {
       assertNever(kind, `Unknown repository group kind ${kind}`)
     }
@@ -770,34 +768,43 @@ export class RepositoriesList extends React.Component<
   private renderPostFilter = () => {
     return (
       <>
-        <Button
-          className="repo-list-button new-repository button-with-icon"
-          onClick={this.onNewRepositoryButtonClick}
-          ariaExpanded={this.state.newRepositoryMenuExpanded}
-          onKeyDown={this.onNewRepositoryButtonKeyDown}
-        >
-          Add
-          <Octicon symbol={octicons.triangleDown} />
-        </Button>
-
-        {this.state.pullingRepositories ? (
-          <Button
-            className="repo-list-button pull-repositories-spin button-with-icon"
-            disabled={true}
-          >
-            <Octicon symbol={syncClockwise} className="spin" />
-            Pulling…
-          </Button>
-        ) : (
-          <Button
-            className="repo-list-button pull-repositories button-with-icon"
-            onClick={this.onPullRepositoriesButtonClick}
-          >
-            <Octicon symbol={octicons.arrowDown} />
-            {__DARWIN__ ? 'Pull All' : 'Pull all'}
-          </Button>
-        )}
+        {this.renderAddRepositoryButton()}
+        {this.renderPullAllRepositoriesButton()}
       </>
+    )
+  }
+
+  private renderAddRepositoryButton() {
+    return (
+      <Button
+        className="new-repository-button button-with-icon"
+        onClick={this.onNewRepositoryButtonClick}
+        ariaExpanded={this.state.newRepositoryMenuExpanded}
+        onKeyDown={this.onNewRepositoryButtonKeyDown}
+      >
+        Add
+        <Octicon symbol={octicons.triangleDown} />
+      </Button>
+    )
+  }
+
+  private renderPullAllRepositoriesButton() {
+    return this.state.pullingRepositories ? (
+      <Button
+        className="repo-list-button pull-repositories-spin button-with-icon"
+        disabled={true}
+      >
+        <Octicon symbol={syncClockwise} className="spin" />
+        Pulling…
+      </Button>
+    ) : (
+      <Button
+        className="repo-list-button pull-repositories button-with-icon"
+        onClick={this.onPullRepositoriesButtonClick}
+      >
+        <Octicon symbol={octicons.arrowDown} />
+        {__DARWIN__ ? 'Pull All' : 'Pull all'}
+      </Button>
     )
   }
 
