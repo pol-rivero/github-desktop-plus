@@ -307,6 +307,15 @@ interface ISectionListProps {
    * includes it being a group header or the item being disabled.
    */
   readonly canSelectRow?: (row: RowIndexPath) => boolean
+
+  /**
+   * Whether there's a selected item which isn't currently among the rows, for
+   * example because the group containing it is collapsed. The list won't move
+   * the selection to its first row as focus enters it in that case, as that
+   * would silently replace a selection the user can't see.
+   */
+  readonly hasHiddenSelection?: boolean
+
   readonly onScroll?: (scrollTop: number, clientHeight: number) => void
 
   /**
@@ -781,7 +790,10 @@ export class SectionList extends React.Component<
     // focused list item if it scrolls back into view.
     if (!focusWithin) {
       this.focusRow = InvalidRowIndexPath
-    } else if (this.props.selectedRows.length === 0) {
+    } else if (
+      this.props.selectedRows.length === 0 &&
+      this.props.hasHiddenSelection !== true
+    ) {
       const firstSelectableRowIndexPath = this.getFirstSelectableRowIndexPath()
       if (firstSelectableRowIndexPath !== null) {
         this.moveSelectionTo(firstSelectableRowIndexPath, { kind: 'focus' })

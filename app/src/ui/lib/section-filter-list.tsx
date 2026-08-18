@@ -82,6 +82,13 @@ interface ISectionFilterListProps<T extends IFilterListItem, GroupIdentifier> {
     identifier: GroupIdentifier
   ) => JSX.Element | null
 
+  /**
+   * Called to determine whether the group with the given identifier is
+   * collapsed.
+   */
+  // eslint-disable-next-line react/no-unused-prop-types
+  readonly isGroupCollapsed?: (identifier: GroupIdentifier) => boolean
+
   /** Called to render content before/above the filter and list. */
   readonly renderPreList?: () => JSX.Element | null
 
@@ -403,6 +410,10 @@ export class SectionFilterList<
             rowIndexPathEquals(this.state.selectedRow, InvalidRowIndexPath)
               ? []
               : [this.state.selectedRow]
+          }
+          hasHiddenSelection={
+            this.props.selectedItem !== null &&
+            rowIndexPathEquals(this.state.selectedRow, InvalidRowIndexPath)
           }
           onSelectedRowChanged={this.onSelectedRowChanged}
           onRowClick={this.onRowClick}
@@ -781,7 +792,15 @@ function createStateUpdate<T extends IFilterListItem, GroupIdentifier>(
       groupRows.push({ kind: 'group', identifier: group.identifier })
     }
 
-    const postProcessedItems = props.postProcessMatches
+    const collapsed =
+      filter.length === 0 &&
+      props.renderGroupHeader !== undefined &&
+      group.showHeader !== false &&
+      props.isGroupCollapsed?.(group.identifier) === true
+
+    const postProcessedItems = collapsed
+      ? []
+      : props.postProcessMatches
       ? props.postProcessMatches(items)
       : items
     for (const { item, matches } of postProcessedItems) {
