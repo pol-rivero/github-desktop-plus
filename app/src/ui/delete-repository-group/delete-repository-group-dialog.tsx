@@ -70,17 +70,16 @@ export class DeleteRepositoryGroup extends React.Component<
               }
               onChange={this.onRemoveRepositoriesChanged}
             />
-            {this.state.removeRepositories && (
-              <Checkbox
-                label={'Also move these repositories to ' + TrashNameLabel}
-                value={
-                  this.state.moveRepositoriesToTrash
-                    ? CheckboxValue.On
-                    : CheckboxValue.Off
-                }
-                onChange={this.onMoveRepositoriesToTrashChanged}
-              />
-            )}
+            <Checkbox
+              label={'Also move these repositories to ' + TrashNameLabel}
+              value={
+                this.state.moveRepositoriesToTrash
+                  ? CheckboxValue.On
+                  : CheckboxValue.Off
+              }
+              onChange={this.onMoveRepositoriesToTrashChanged}
+              disabled={!this.state.removeRepositories}
+            />
           </div>
         </DialogContent>
         <DialogFooter>
