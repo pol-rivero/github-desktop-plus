@@ -22,8 +22,15 @@ interface ICreateRepositoryGroupProps {
   readonly onDismissed: () => void
   readonly repositories: ReadonlyArray<Repository>
 
-  /** The id of a repository to preselect, if the dialog was opened from it */
-  readonly preselectedRepositoryId?: number
+  /** The ids of the repositories to preselect in the list, if any */
+  readonly preselectedRepositoryIds?: ReadonlyArray<number>
+
+  /**
+   * The name of the existing custom group being edited. When set, the dialog
+   * renames that group and unassigns the repositories that were part of it and
+   * have been deselected.
+   */
+  readonly editedGroupName?: string
 }
 
 interface ICreateRepositoryGroupState {
@@ -47,30 +54,46 @@ export class CreateRepositoryGroup extends React.Component<
     super(props)
 
     this.state = {
-      groupName: '',
-      selectedRepositoryIds: new Set(
-        props.preselectedRepositoryId !== undefined
-          ? [props.preselectedRepositoryId]
-          : []
-      ),
+      groupName: props.editedGroupName ?? '',
+      selectedRepositoryIds: new Set(props.preselectedRepositoryIds),
       filterText: '',
     }
   }
 
   public render() {
+    const isEditing = this.props.editedGroupName !== undefined
+
     return (
       <Dialog
         id="create-repository-group"
-        title={__DARWIN__ ? 'New Group' : 'New group'}
+        title={
+          isEditing
+            ? __DARWIN__
+              ? 'Edit Group'
+              : 'Edit group'
+            : __DARWIN__
+            ? 'New Group'
+            : 'New group'
+        }
         ariaDescribedBy="create-repository-group-description"
         onDismissed={this.props.onDismissed}
         onSubmit={this.createGroup}
       >
         <DialogContent>
           <p id="create-repository-group-description">
-            Choose a name for the new group and select which repositories to add
-            to it. You can change this later from each repository's context
-            menu.
+            {isEditing ? (
+              <>
+                Choose a name for the group and select which repositories belong
+                to it. Repositories you deselect will go back to their automatic
+                group.
+              </>
+            ) : (
+              <>
+                Choose a name for the new group and select which repositories to
+                add to it. You can change this later from each repository's
+                context menu.
+              </>
+            )}
           </p>
           <p>
             <TextBox
@@ -97,7 +120,15 @@ export class CreateRepositoryGroup extends React.Component<
 
         <DialogFooter>
           <OkCancelButtonGroup
-            okButtonText={__DARWIN__ ? 'Create Group' : 'Create group'}
+            okButtonText={
+              isEditing
+                ? __DARWIN__
+                  ? 'Save Group'
+                  : 'Save group'
+                : __DARWIN__
+                ? 'Create Group'
+                : 'Create group'
+            }
             okButtonDisabled={
               this.state.groupName.length === 0 ||
               this.state.selectedRepositoryIds.size === 0
@@ -209,15 +240,31 @@ export class CreateRepositoryGroup extends React.Component<
   }
 
   private createGroup = async () => {
+    const { dispatcher, repositories, editedGroupName } = this.props
     const { groupName, selectedRepositoryIds } = this.state
-    const selectedRepositories = this.props.repositories.filter(r =>
+
+    const selectedRepositories = repositories.filter(r =>
       selectedRepositoryIds.has(r.id)
     )
 
-    await this.props.dispatcher.changeRepositoriesGroupName(
+    // Repositories removed from the group being edited go back to having no
+    // group name, otherwise they'd stay in a group the user just left them out
+    // of.
+    const removedRepositories = repositories.filter(
+      r =>
+        editedGroupName !== undefined &&
+        r.groupName === editedGroupName &&
+        !selectedRepositoryIds.has(r.id)
+    )
+
+    await dispatcher.changeRepositoriesGroupName(
       selectedRepositories,
       groupName
     )
+
+    if (removedRepositories.length > 0) {
+      await dispatcher.changeRepositoriesGroupName(removedRepositories, null)
+    }
 
     this.props.onDismissed()
   }

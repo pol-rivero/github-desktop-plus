@@ -2595,7 +2595,8 @@ export class App extends React.Component<IAppProps, IAppState> {
           <CreateRepositoryGroup
             dispatcher={this.props.dispatcher}
             repositories={popup.repositories}
-            preselectedRepositoryId={popup.preselectedRepositoryId}
+            preselectedRepositoryIds={popup.preselectedRepositoryIds}
+            editedGroupName={popup.editedGroupName}
             onDismissed={onPopupDismissedFn}
           />
         )
@@ -3932,7 +3933,7 @@ export class App extends React.Component<IAppProps, IAppState> {
       this.props.dispatcher.showPopup({
         type: PopupType.CreateRepositoryGroup,
         repositories,
-        preselectedRepositoryId: repository.id,
+        preselectedRepositoryIds: [repository.id],
       })
     }
 

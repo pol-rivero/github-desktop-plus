@@ -386,7 +386,15 @@ export type PopupDetail =
   | {
       type: PopupType.CreateRepositoryGroup
       repositories: ReadonlyArray<Repository>
-      preselectedRepositoryId?: number
+
+      /** The ids of the repositories to preselect in the list, if any */
+      preselectedRepositoryIds?: ReadonlyArray<number>
+
+      /**
+       * The name of the existing custom group being edited. When set, the dialog
+       * edits that group instead of creating a new one.
+       */
+      editedGroupName?: string
     }
   | {
       type: PopupType.DeleteRepositoryGroup

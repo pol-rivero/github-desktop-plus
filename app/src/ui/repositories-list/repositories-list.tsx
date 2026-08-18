@@ -9,6 +9,7 @@ import {
   Repositoryish,
   RepositoryListGroup,
   getGroupKey,
+  getGroupForRepository,
 } from './group-repositories'
 import {
   getPinnedRepositories,
@@ -632,12 +633,23 @@ export class RepositoriesList extends React.Component<
       },
     ]
 
+    // Pins and recents aren't real groups, so they can't be turned into one
+    const isCustomizable = group.kind !== 'pins' && group.kind !== 'recent'
+    const editItems: ReadonlyArray<IMenuItem> = isCustomizable
+      ? [
+          { type: 'separator' },
+          {
+            label: __DARWIN__ ? 'Edit Group' : 'Edit group',
+            action: () => this.onEditGroup(group),
+          },
+        ]
+      : []
+
     const groupName = getCustomGroupName(group)
     const deleteItems: ReadonlyArray<IMenuItem> =
       groupName === null
         ? []
         : [
-            { type: 'separator' },
             {
               label: __DARWIN__
                 ? `Delete Group "${groupName}"`
@@ -646,7 +658,26 @@ export class RepositoriesList extends React.Component<
             },
           ]
 
-    showContextualMenu([...items, ...deleteItems])
+    showContextualMenu([...items, ...editItems, ...deleteItems])
+  }
+
+  private onEditGroup = (group: RepositoryListGroup) => {
+    const repositories = this.props.repositories.filter(
+      (r): r is Repository => r instanceof Repository
+    )
+
+    const groupKey = getGroupKey(group)
+    const preselectedRepositoryIds = repositories
+      .filter(r => getGroupKey(getGroupForRepository(r)) === groupKey)
+      .map(r => r.id)
+
+    this.props.dispatcher.showPopup({
+      type: PopupType.CreateRepositoryGroup,
+      repositories,
+      preselectedRepositoryIds,
+      // Editing an automatic group creates a new custom group out of it
+      editedGroupName: getCustomGroupName(group) ?? undefined,
+    })
   }
 
   private onDeleteGroup = (groupName: string) => {
@@ -1136,7 +1167,7 @@ export class RepositoriesList extends React.Component<
     this.props.dispatcher.showPopup({
       type: PopupType.CreateRepositoryGroup,
       repositories,
-      preselectedRepositoryId: repository.id,
+      preselectedRepositoryIds: [repository.id],
     })
   }
 
