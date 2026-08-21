@@ -362,7 +362,7 @@ if (__DARWIN__) {
 
 async function handleCommandLineArguments(argv: string[]): Promise<boolean> {
   const args = parseCommandLineArgs(argv, {
-    boolean: ['protocol-launcher'],
+    boolean: ['protocol-launcher', 'cli-new-window'],
   })
 
   // Desktop registers it's protocol handler callback on Windows as
@@ -405,30 +405,53 @@ async function handleCommandLineArguments(argv: string[]): Promise<boolean> {
     // risk a smuggled cli switch
   }
 
+  const forceNewWindow = args['cli-new-window'] === true
+
   if (typeof args['cli-open'] === 'string') {
-    handleCLIAction({ kind: 'open-repository', path: args['cli-open'] })
+    handleCLIAction(
+      { kind: 'open-repository', path: args['cli-open'] },
+      forceNewWindow
+    )
     return true
   } else if (typeof args['cli-clone'] === 'string') {
-    handleCLIAction({
-      kind: 'clone-url',
-      url: args['cli-clone'],
-      branch:
-        typeof args['cli-branch'] === 'string' ? args['cli-branch'] : undefined,
-    })
+    handleCLIAction(
+      {
+        kind: 'clone-url',
+        url: args['cli-clone'],
+        branch:
+          typeof args['cli-branch'] === 'string'
+            ? args['cli-branch']
+            : undefined,
+      },
+      forceNewWindow
+    )
     return true
   }
 
   return false
 }
 
-function handleCLIAction(action: CLIAction) {
-  if (action.kind === 'open-repository') {
+function handleCLIAction(action: CLIAction, forceNewWindow = false) {
+  if (!forceNewWindow && action.kind === 'open-repository') {
     const existingWindow = findWindowForRepositoryPath(action.path)
     if (existingWindow !== null) {
       existingWindow.revealAndFocus()
       existingWindow.sendCLIAction(action)
       return
     }
+  }
+
+  // If we already have at least one window open, honor the request to open
+  // the action in a brand new window rather than reusing an existing one.
+  // If no windows exist yet (e.g. on initial launch) the window created by
+  // the app's normal startup path is already a new window, so we fall
+  // through to `onDidLoad` to avoid spawning a redundant second window.
+  if (forceNewWindow && getAppWindows().length > 0) {
+    createWindow(window => {
+      window.focus()
+      window.sendCLIAction(action)
+    })
+    return
   }
 
   onDidLoad(window => {
