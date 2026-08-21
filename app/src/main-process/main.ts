@@ -446,7 +446,7 @@ function handleCLIAction(action: CLIAction, forceNewWindow = false) {
   // If no windows exist yet (e.g. on initial launch) the window created by
   // the app's normal startup path is already a new window, so we fall
   // through to `onDidLoad` to avoid spawning a redundant second window.
-  if (forceNewWindow && getAppWindows().length > 0) {
+  if (forceNewWindow && (app.isReady() || getAppWindows().length > 0)) {
     createWindow(window => {
       window.focus()
       window.sendCLIAction(action)
