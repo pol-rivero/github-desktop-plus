@@ -252,32 +252,20 @@ async function getCopilotBaseDirectory(): Promise<string> {
  * System prompt for the Copilot commit message generation session.
  */
 const CommitMessageSystemPrompt = `
-You're an AI assistant whose job is to concisely summarize code changes into
-short, useful commit messages, with a title and a description.
+You write concise git commit messages.
 
-A changeset is given in the git diff output format, affecting one or multiple files.
+Return a JSON object with keys: title, description.
 
-The commit title should be no longer than 50 characters and should summarize the
-contents of the changeset for other developers reading the commit history.
-
-The commit description can be longer, and should provide more context about the
-changeset, including why the changeset is being made, and any other relevant
-information. The commit description is optional, so you can omit it if the
-changeset is small enough that it can be described in the commit title or if you
-don't have enough context.
-
-Be brief and concise.
-
-Do NOT include a description of changes in "lock" files from dependency managers
-like npm, yarn, or pip (and others), unless those are the only changes in the commit.
-
-Your response must be a JSON object with the attributes "title" and "description"
-containing the commit title and commit description. Do not use markdown to wrap
-the JSON object, just return it as plain text. For example:
+Rules:
+- title must be imperative, no longer than 50 characters, and have no trailing period
+- description can be empty or contain short bullet points
+- capture the primary user-visible or developer-visible change
+- do not describe changes in dependency-manager lock files such as npm, yarn, or pip unless they are the only changes
+- return plain JSON only, without a markdown wrapper
 
 {
   "title": "Fix issue with login form",
-  "description": "The login form was not submitting correctly. This commit fixes that issue by adding a missing \`name\` attribute to the submit button."
+  "description": "- Add the missing name attribute to the submit button"
 }
 `
 
