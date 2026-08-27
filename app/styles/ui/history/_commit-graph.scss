@@ -148,6 +148,14 @@
             margin: var(--spacing) 0;
           }
 
+          .sub-filter-options {
+            // each author option is 18px height
+            // showing max 15 options at a time
+            // and some part of the next option
+            max-height: 279px;
+            overflow-y: scroll;
+          }
+
           .filter-options-footer {
             padding: var(--spacing-half) 0 var(--spacing) 0;
             margin-top: var(--spacing-quarter);

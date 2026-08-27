@@ -188,7 +188,7 @@ export class CommitGraphFilterButton extends React.Component<
           <Octicon symbol={octicons.x} />
         </button>
       </div>
-      <div className="filter-options">
+      <div className="filter-options sub-filter-options">
         {this.props.authorOptions.map(({ name, email }) => {
           const onChange = this.onAuthorFilterOptionsCheckboxChange(email)
           return (
