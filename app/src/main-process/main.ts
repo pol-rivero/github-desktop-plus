@@ -432,26 +432,25 @@ async function handleCommandLineArguments(argv: string[]): Promise<boolean> {
 }
 
 function handleCLIAction(action: CLIAction, forceNewWindow = false) {
-  if (!forceNewWindow && action.kind === 'open-repository') {
+  // Before the app is ready we can't create windows, but we don't need to
+  // either: the window created by the app's normal startup path picks the
+  // action up from the pending queue, so creating another one here would just
+  // leave a redundant blank window behind.
+  if (forceNewWindow && app.isReady()) {
+    createWindow(window => {
+      window.focus()
+      window.sendCLIAction(action)
+    })
+    return
+  }
+
+  if (action.kind === 'open-repository') {
     const existingWindow = findWindowForRepositoryPath(action.path)
     if (existingWindow !== null) {
       existingWindow.revealAndFocus()
       existingWindow.sendCLIAction(action)
       return
     }
-  }
-
-  // If we already have at least one window open, honor the request to open
-  // the action in a brand new window rather than reusing an existing one.
-  // If no windows exist yet (e.g. on initial launch) the window created by
-  // the app's normal startup path is already a new window, so we fall
-  // through to `onDidLoad` to avoid spawning a redundant second window.
-  if (forceNewWindow && (app.isReady() || getAppWindows().length > 0)) {
-    createWindow(window => {
-      window.focus()
-      window.sendCLIAction(action)
-    })
-    return
   }
 
   onDidLoad(window => {
