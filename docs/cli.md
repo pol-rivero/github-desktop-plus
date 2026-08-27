@@ -10,6 +10,13 @@ desktop-plus-cli open [path]               Open the provided path
 desktop-plus-cli clone [-b branch] <url>   Clone a repository by URL or name/owner (e.g. torvalds/linux)
 ```
 
+### Options
+
+- Add `-n`/`--new-window` to any of the commands above to always open the result in a new window instead of reusing an existing one.  
+  ```bash
+  desktop-plus-cli open --new-window [path]
+  ```
+
 ## Creating a shorter alias
 
 If you find `desktop-plus-cli` too long to type, you can create a shorter alias in your shell (e.g. `github-plus`, or even just `github` to match the upstream CLI name).

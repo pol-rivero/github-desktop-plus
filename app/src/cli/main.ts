@@ -34,8 +34,8 @@ const run = (...args: Array<string>) => {
 }
 
 const args = parse(process.argv.slice(2), {
-  alias: { help: 'h', branch: 'b' },
-  boolean: ['help'],
+  alias: { help: 'h', branch: 'b', 'new-window': 'n' },
+  boolean: ['help', 'new-window'],
 })
 
 const usage = (exitCode = 1): never => {
@@ -45,12 +45,17 @@ const usage = (exitCode = 1): never => {
       '  desktop-plus-cli open [path]               Open the provided path\n' +
       '  desktop-plus-cli clone [-b branch] <url>   Clone the repository by url or name/owner\n' +
       '                                             (ex torvalds/linux), optionally checking\n' +
-      '                                             out the branch\n'
+      '                                             out the branch\n' +
+      '\nOptions:\n' +
+      '  -n, --new-window                           Open in a new window instead of reusing\n' +
+      '                                             an existing one\n'
   )
   process.exit(exitCode)
 }
 
 delete process.env.ELECTRON_RUN_AS_NODE
+
+const newWindowArgs = args['new-window'] ? ['--cli-new-window'] : []
 
 if (args.help || args._.at(0) === 'help') {
   usage(0)
@@ -65,13 +70,13 @@ if (args.help || args._.at(0) === 'help') {
   if (!url) {
     usage(1)
   } else if (typeof args.branch === 'string') {
-    run(`--cli-clone=${url}`, `--cli-branch=${args.branch}`)
+    run(`--cli-clone=${url}`, `--cli-branch=${args.branch}`, ...newWindowArgs)
   } else {
-    run(`--cli-clone=${url}`)
+    run(`--cli-clone=${url}`, ...newWindowArgs)
   }
 } else {
   const [firstArg, secondArg] = args._
   const pathArg = firstArg === 'open' ? secondArg : firstArg
   const path = resolve(pathArg ?? '.')
-  run(`--cli-open=${path}`)
+  run(`--cli-open=${path}`, ...newWindowArgs)
 }
