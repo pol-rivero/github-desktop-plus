@@ -9,7 +9,7 @@ import {
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import classNames from 'classnames'
-import { AUTHOR_FILTER_KEY, TAuthorOption } from './commit-graph-sidebar'
+import { FILTER_KEYS, TAuthorOption, TFilterKeys } from './commit-graph-sidebar'
 
 interface ICommitGraphFilterButtonProps {
   readonly authorOptions: ReadonlyArray<TAuthorOption>
@@ -19,7 +19,7 @@ interface ICommitGraphFilterButtonProps {
 }
 interface ICommitGraphFilterButtonState {
   readonly isParentFilterOptionsOpen: boolean
-  readonly activeParentFilterName: string | null
+  readonly activeParentFilterName: TFilterKeys | null
   readonly hasParentFilterOptionsMounted: boolean
 }
 
@@ -56,9 +56,9 @@ export class CommitGraphFilterButton extends React.Component<
   private onAuthorFilterCheckboxChange = () => {
     this.setState(prevState => ({
       activeParentFilterName:
-        prevState.activeParentFilterName === AUTHOR_FILTER_KEY
+        prevState.activeParentFilterName === FILTER_KEYS.author
           ? null
-          : AUTHOR_FILTER_KEY,
+          : FILTER_KEYS.author,
     }))
 
     // this.props.onFilterUpdate(newFilters)
@@ -71,7 +71,7 @@ export class CommitGraphFilterButton extends React.Component<
     evt.preventDefault()
     evt.stopPropagation()
 
-    if (this.state.activeParentFilterName === AUTHOR_FILTER_KEY) {
+    if (this.state.activeParentFilterName === FILTER_KEYS.author) {
       this.setState({
         activeParentFilterName: null,
       })
@@ -121,7 +121,7 @@ export class CommitGraphFilterButton extends React.Component<
   private renderParentFilterOptions = () => {
     let subFilterOptions = null
     if (this.state.hasParentFilterOptionsMounted) {
-      if (this.state.activeParentFilterName === AUTHOR_FILTER_KEY) {
+      if (this.state.activeParentFilterName === FILTER_KEYS.author) {
         subFilterOptions = this.renderAuthorSubFilterOptions()
       }
     }
@@ -152,7 +152,7 @@ export class CommitGraphFilterButton extends React.Component<
           <div className="filter-options">
             <Checkbox
               value={
-                this.state.activeParentFilterName === AUTHOR_FILTER_KEY
+                this.state.activeParentFilterName === FILTER_KEYS.author
                   ? CheckboxValue.On
                   : CheckboxValue.Off
               }

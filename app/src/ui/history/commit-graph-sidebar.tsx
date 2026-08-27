@@ -80,10 +80,15 @@ interface ICommitGraphSidebarProps {
 }
 
 // Author filter types and constants
-export type TFilterKeys = 'author'
-export type TFilters = Map<TFilterKeys, Set<string>>
+export const FILTER_KEYS = {
+  author: 'author',
+} as const
+
+export type TFilterKeys = keyof typeof FILTER_KEYS
+export type TFilters = {
+  author: Set<string>
+}
 export type TAuthorOption = { name: string; email: string }
-export const AUTHOR_FILTER_KEY = 'author'
 
 interface ICommitGraphSidebarState {
   readonly keyboardReorderData?: KeyboardInsertionData
@@ -530,7 +535,9 @@ export class CommitGraphSidebar extends React.Component<
       commitGraphViewMode: commitGraph_getStoredViewMode(),
       commitGraphSelectedBranchRef: null,
       authorFilterOptions: this.getAuthorFilterData(),
-      filters: new Map([['author', new Set()]]),
+      filters: {
+        author: new Set(),
+      },
     }
   }
 
@@ -578,10 +585,11 @@ export class CommitGraphSidebar extends React.Component<
   private onActiveAuthorEmailsChange = async (
     email: TAuthorOption['email']
   ) => {
-    const authorEmailsSet = this.state.filters.get('author')
-    if (!email || !authorEmailsSet) {
+    if (!email) {
       return
     }
+
+    const authorEmailsSet = this.state.filters['author']
 
     if (authorEmailsSet.has(email)) {
       authorEmailsSet.delete(email)
@@ -593,12 +601,7 @@ export class CommitGraphSidebar extends React.Component<
   }
 
   private onActiveAuthorEmailsClear = async () => {
-    const authorEmailsSet = this.state.filters.get('author')
-    if (!authorEmailsSet) {
-      return
-    }
-
-    authorEmailsSet.clear()
+    this.state.filters['author'].clear()
 
     await this.onCommitSearchFiltersChanged(this.state.filters)
   }
@@ -614,9 +617,7 @@ export class CommitGraphSidebar extends React.Component<
               <span>
                 <CommitGraphFilterButton
                   authorOptions={this.state.authorFilterOptions}
-                  activeAuthorEmails={
-                    this.state.filters.get('author') || new Set<string>()
-                  }
+                  activeAuthorEmails={this.state.filters['author']}
                   onActiveAuthorEmailsClear={this.onActiveAuthorEmailsClear}
                   onActiveAuthorEmailsChange={this.onActiveAuthorEmailsChange}
                 />
