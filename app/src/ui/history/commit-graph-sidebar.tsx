@@ -38,6 +38,7 @@ import {
 } from './commit-graph-model'
 import type { ICommitListItemRenderProps } from './commit-list'
 import { CommitList } from './commit-list'
+import debounce from 'lodash/debounce'
 
 type CommitGraphBranchGroup =
   | 'local'
@@ -97,6 +98,7 @@ interface ICommitGraphSidebarState {
   readonly commitGraphSelectedBranchRef: string | null
   readonly authorFilterOptions: ReadonlyArray<TAuthorOption>
   readonly filters: TFilters
+  readonly searchQuery: string
 }
 
 interface ICommitGraphBranches {
@@ -527,6 +529,37 @@ export class CommitGraphSidebar extends React.Component<
       commitGraph_buildRows(commits, refColors, primaryLaneSha)
   )
 
+  private readonly onCommitQuery = memoizeOne(
+    debounce(async (text: string, filters: TFilters) => {
+      if (this.state.commitGraphViewMode === CommitHistoryViewMode.Graph) {
+        this.props.dispatcher.updateCompareForm(this.props.repository, {
+          commitSearchQuery: text,
+        })
+
+        if (text.length > 0) {
+          void this.props.dispatcher.commitGraph_loadNextCommitBatch(
+            this.props.repository
+          )
+        }
+
+        return
+      }
+
+      try {
+        this.setState({ isSearching: true })
+        await this.props.dispatcher.setCommitSearchQuery(
+          this.props.repository,
+          text,
+          filters
+        )
+      } catch (error) {
+        console.error('Error while searching commits:', error)
+      } finally {
+        this.setState({ isSearching: false })
+      }
+    }, 250)
+  )
+
   public constructor(props: ICommitGraphSidebarProps) {
     super(props)
 
@@ -538,6 +571,7 @@ export class CommitGraphSidebar extends React.Component<
       filters: {
         author: new Set(),
       },
+      searchQuery: '',
     }
   }
 
@@ -607,8 +641,6 @@ export class CommitGraphSidebar extends React.Component<
   }
 
   public render() {
-    const { commitSearchQuery } = this.props.compareState
-
     return (
       <div id="compare-view" role="tabpanel" aria-labelledby="history-tab">
         <div className="commitGraph-view-toolbar">
@@ -630,7 +662,7 @@ export class CommitGraphSidebar extends React.Component<
                 }
                 symbolClassName={this.state.isSearching ? 'spin' : undefined}
                 placeholder={__DARWIN__ ? 'Search Commits' : 'Search commits'}
-                value={commitSearchQuery}
+                value={this.state.searchQuery}
                 onValueChanged={this.onCommitSearchQueryChanged}
               />
             </div>
@@ -1395,35 +1427,9 @@ export class CommitGraphSidebar extends React.Component<
     })
   }
 
-  private onCommitQuery = async (text: string, filters: TFilters) => {
-    if (this.state.commitGraphViewMode === CommitHistoryViewMode.Graph) {
-      this.props.dispatcher.updateCompareForm(this.props.repository, {
-        commitSearchQuery: text,
-      })
-
-      if (text.length > 0) {
-        void this.props.dispatcher.commitGraph_loadNextCommitBatch(
-          this.props.repository
-        )
-      }
-
-      return
-    }
-
-    try {
-      this.setState({ isSearching: true })
-      await this.props.dispatcher.setCommitSearchQuery(
-        this.props.repository,
-        text,
-        filters
-      )
-    } catch (error) {
-      console.error('Error while searching commits:', error)
-    } finally {
-      this.setState({ isSearching: false })
-    }
-  }
   private onCommitSearchQueryChanged = async (text: string) => {
+    this.setState({ searchQuery: text })
+
     await this.onCommitQuery(text, this.state.filters)
   }
   private onCommitSearchFiltersChanged = async (filters: TFilters) => {
