@@ -29,12 +29,7 @@ import { Octicon, syncClockwise } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { Resizable } from '../resizable'
 import { CommitGraphCommitListItem } from './commit-graph-commit-list-item'
-import {
-  AUTHOR_FILTER_KEY,
-  CommitGraphFilterButton,
-  TFilterFillData,
-  TFilters,
-} from './commit-graph-filter-button'
+import { CommitGraphFilterButton } from './commit-graph-filter-button'
 import {
   commitGraph_buildRows,
   commitGraph_getColor,
@@ -84,11 +79,18 @@ interface ICommitGraphSidebarProps {
   readonly showConventionalCommitBadges: boolean
 }
 
+// Author filter types and constants
+export type TFilterKeys = 'author'
+export type TFilters = Map<TFilterKeys, Set<string>>
+export type TAuthorOption = { name: string; email: string }
+export const AUTHOR_FILTER_KEY = 'author'
+
 interface ICommitGraphSidebarState {
   readonly keyboardReorderData?: KeyboardInsertionData
   readonly isSearching: boolean
   readonly commitGraphViewMode: CommitHistoryViewMode
   readonly commitGraphSelectedBranchRef: string | null
+  readonly authorFilterOptions: ReadonlyArray<TAuthorOption>
   readonly filters: TFilters
 }
 
@@ -527,7 +529,8 @@ export class CommitGraphSidebar extends React.Component<
       isSearching: false,
       commitGraphViewMode: commitGraph_getStoredViewMode(),
       commitGraphSelectedBranchRef: null,
-      filters: new Map(),
+      authorFilterOptions: this.getAuthorFilterData(),
+      filters: new Map([['author', new Set()]]),
     }
   }
 
@@ -547,29 +550,57 @@ export class CommitGraphSidebar extends React.Component<
     this.commitListRef.current?.focus()
   }
 
-  private onFilterUpdate = (filters: TFilters) => {
-    this.setState({ filters })
-    this.onCommitSearchFiltersChanged(filters)
-  }
-
   private getAuthorFilterData = () => {
     const seenEmails = new Set<string>()
-    const uniqueAuthors: TFilterFillData[] = []
+    const uniqueAuthors: TAuthorOption[] = []
 
     for (const sha of this.props.compareState.allHistoryCommitSHAs) {
       const commit = this.props.commitLookup.get(sha)
+      const email = commit?.author?.email
 
-      if (commit?.author?.email && !seenEmails.has(commit.author.email)) {
-        seenEmails.add(commit.author.email)
-
-        uniqueAuthors.push({
-          name: commit.author.name,
-          email: commit.author.email,
-        })
+      if (!email || seenEmails.has(email)) {
+        continue
       }
+
+      seenEmails.add(email)
+
+      const name = commit.author.name || email
+
+      uniqueAuthors.push({
+        name,
+        email,
+      })
     }
 
     return uniqueAuthors
+  }
+
+  private onActiveAuthorEmailsChange = async (
+    email: TAuthorOption['email']
+  ) => {
+    const authorEmailsSet = this.state.filters.get('author')
+    if (!email || !authorEmailsSet) {
+      return
+    }
+
+    if (authorEmailsSet.has(email)) {
+      authorEmailsSet.delete(email)
+    } else {
+      authorEmailsSet.add(email)
+    }
+
+    await this.onCommitSearchFiltersChanged(this.state.filters)
+  }
+
+  private onActiveAuthorEmailsClear = async () => {
+    const authorEmailsSet = this.state.filters.get('author')
+    if (!authorEmailsSet) {
+      return
+    }
+
+    authorEmailsSet.clear()
+
+    await this.onCommitSearchFiltersChanged(this.state.filters)
   }
 
   public render() {
@@ -582,11 +613,12 @@ export class CommitGraphSidebar extends React.Component<
             <div className="filter-box-container">
               <span>
                 <CommitGraphFilterButton
-                  filters={this.state.filters}
-                  filtersFillData={{
-                    [AUTHOR_FILTER_KEY]: this.getAuthorFilterData(),
-                  }}
-                  onFilterUpdate={this.onFilterUpdate}
+                  authorOptions={this.state.authorFilterOptions}
+                  activeAuthorEmails={
+                    this.state.filters.get('author') || new Set<string>()
+                  }
+                  onActiveAuthorEmailsClear={this.onActiveAuthorEmailsClear}
+                  onActiveAuthorEmailsChange={this.onActiveAuthorEmailsChange}
                 />
               </span>
               <FancyTextBox
@@ -1377,13 +1409,18 @@ export class CommitGraphSidebar extends React.Component<
       return
     }
 
-    this.setState({ isSearching: true })
-    await this.props.dispatcher.setCommitSearchQuery(
-      this.props.repository,
-      text,
-      filters
-    )
-    this.setState({ isSearching: false })
+    try {
+      this.setState({ isSearching: true })
+      await this.props.dispatcher.setCommitSearchQuery(
+        this.props.repository,
+        text,
+        filters
+      )
+    } catch (error) {
+      console.error('Error while searching commits:', error)
+    } finally {
+      this.setState({ isSearching: false })
+    }
   }
   private onCommitSearchQueryChanged = async (text: string) => {
     await this.onCommitQuery(text, this.state.filters)

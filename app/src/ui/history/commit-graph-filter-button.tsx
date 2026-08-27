@@ -9,21 +9,20 @@ import {
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import classNames from 'classnames'
+import { AUTHOR_FILTER_KEY, TAuthorOption } from './commit-graph-sidebar'
 
-export const AUTHOR_FILTER_KEY = 'author'
-export type TFilters = Map<string, Set<String>>
-export type TFilterFillData = { name: string; email: string }
 interface ICommitGraphFilterButtonProps {
-  readonly filters: TFilters
-  readonly filtersFillData: Record<string, ReadonlyArray<TFilterFillData>>
-  readonly onFilterUpdate: (filters: TFilters) => void
+  readonly authorOptions: ReadonlyArray<TAuthorOption>
+  readonly activeAuthorEmails: ReadonlySet<TAuthorOption['email']>
+  readonly onActiveAuthorEmailsClear: () => void
+  readonly onActiveAuthorEmailsChange: (email: TAuthorOption['email']) => void
 }
 interface ICommitGraphFilterButtonState {
-  readonly isFilterOptionsOpen: boolean
-  readonly isAuthorFilterChecked: boolean
-  readonly hasFilterOptionsMounted: boolean
-  readonly activeFilterData: ReadonlyArray<TFilterFillData>
+  readonly isParentFilterOptionsOpen: boolean
+  readonly activeParentFilterName: string | null
+  readonly hasParentFilterOptionsMounted: boolean
 }
+
 export class CommitGraphFilterButton extends React.Component<
   ICommitGraphFilterButtonProps,
   ICommitGraphFilterButtonState
@@ -35,10 +34,9 @@ export class CommitGraphFilterButton extends React.Component<
     super(props)
 
     this.state = {
-      isFilterOptionsOpen: false,
-      isAuthorFilterChecked: false,
-      hasFilterOptionsMounted: false,
-      activeFilterData: [],
+      isParentFilterOptionsOpen: false,
+      activeParentFilterName: null,
+      hasParentFilterOptionsMounted: false,
     }
   }
 
@@ -46,96 +44,106 @@ export class CommitGraphFilterButton extends React.Component<
     this.filterOptionsButtonRef = buttonRef
   }
 
-  private toggleFilterOptionsOpen = () => {
+  private toggleParentFilterOptionsOpen = () => {
     this.setState(prevState => ({
-      isFilterOptionsOpen: !prevState.isFilterOptionsOpen,
+      isParentFilterOptionsOpen: !prevState.isParentFilterOptionsOpen,
     }))
   }
-  private closeFilterOptions = () => {
-    this.setState({ isFilterOptionsOpen: false })
+  private closeParentFilterOptions = () => {
+    this.setState({ isParentFilterOptionsOpen: false })
   }
-  private onAuthorFilterToIncludedInCommit = (
-    evt: React.FormEvent<HTMLInputElement>
-  ) => {
-    const newFilters = new Map(this.props.filters)
-    if (evt.currentTarget.checked) {
-      newFilters.set(AUTHOR_FILTER_KEY, new Set())
-      this.setState({
-        isAuthorFilterChecked: true,
-        activeFilterData: this.props.filtersFillData[AUTHOR_FILTER_KEY],
-      })
-    } else {
-      newFilters.delete(AUTHOR_FILTER_KEY)
-      this.setState({
-        isAuthorFilterChecked: false,
-      })
-    }
-    this.props.onFilterUpdate(newFilters)
+
+  private onAuthorFilterCheckboxChange = () => {
+    this.setState(prevState => ({
+      activeParentFilterName:
+        prevState.activeParentFilterName === AUTHOR_FILTER_KEY
+          ? null
+          : AUTHOR_FILTER_KEY,
+    }))
+
+    // this.props.onFilterUpdate(newFilters)
     // this.closeFilterOptions()
   }
 
-  private onAuthorSubFilterSelect = (
-    event: React.FormEvent<HTMLInputElement>,
-    key: string
+  private closeAuthorSubFilterOptions = (
+    evt: React.MouseEvent<HTMLButtonElement>
   ) => {
-    if (!key) {
-      return
-    }
-    const checked = event.currentTarget.checked
+    evt.preventDefault()
+    evt.stopPropagation()
 
-    const newFilters = new Map(this.props.filters)
-    const newSet = new Set(newFilters.get(AUTHOR_FILTER_KEY))
-    newFilters.set(AUTHOR_FILTER_KEY, newSet)
-    if (checked) {
-      newSet.add(key)
-    } else {
-      newSet.delete(key)
+    if (this.state.activeParentFilterName === AUTHOR_FILTER_KEY) {
+      this.setState({
+        activeParentFilterName: null,
+      })
     }
-    this.props.onFilterUpdate(newFilters)
   }
 
-  private onFilterContainerRef = (divRef: HTMLDivElement | null) => {
+  private onParentFilterContainerRef = (divRef: HTMLDivElement | null) => {
     this.filterContainerRef = divRef
   }
 
-  private onMountFilterOptions = () => {
+  private onMountParentFilterOptions = () => {
     this.setState({
-      hasFilterOptionsMounted: true,
+      hasParentFilterOptionsMounted: true,
     })
   }
 
-  private onUnmountFilterOptions = () => {
+  private onUnmountParentFilterOptions = () => {
     this.setState({
-      hasFilterOptionsMounted: false,
+      hasParentFilterOptionsMounted: false,
     })
   }
 
-  private onAuthorSubFilterChange = (email: string) => {
-    return (event: React.FormEvent<HTMLInputElement>) => {
-      this.onAuthorSubFilterSelect(event, email)
+  private onAuthorFilterOptionsCheckboxChange = (email: string) => {
+    return () => {
+      if (!email) {
+        return
+      }
+
+      this.props.onActiveAuthorEmailsChange(email)
     }
   }
 
-  private renderFilterOptions() {
+  private onClearAllParentFilters = () => {
+    this.setState({
+      activeParentFilterName: null,
+    })
+  }
+
+  private onClearAllAuthorSubFilters = (
+    evt: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    evt.preventDefault()
+    evt.stopPropagation()
+    this.props.onActiveAuthorEmailsClear()
+  }
+
+  private renderParentFilterOptions = () => {
+    let subFilterOptions = null
+    if (this.state.hasParentFilterOptionsMounted) {
+      if (this.state.activeParentFilterName === AUTHOR_FILTER_KEY) {
+        subFilterOptions = this.renderAuthorSubFilterOptions()
+      }
+    }
     return (
       <>
         <Popover
-          onContainerRef={this.onFilterContainerRef}
+          onContainerRef={this.onParentFilterContainerRef}
           className="filter-popover"
           ariaLabelledby="filter-options-header"
           anchor={this.filterOptionsButtonRef}
           anchorPosition={PopoverAnchorPosition.BottomRight}
           decoration={PopoverDecoration.Balloon}
-          onMousedownOutside={this.closeFilterOptions}
-          onClickOutside={this.closeFilterOptions}
-          onComponentDidMount={this.onMountFilterOptions}
-          onComponentWillUnmount={this.onUnmountFilterOptions}
+          onMousedownOutside={this.closeParentFilterOptions}
+          onClickOutside={this.closeParentFilterOptions}
+          onComponentDidMount={this.onMountParentFilterOptions}
+          onComponentWillUnmount={this.onUnmountParentFilterOptions}
         >
           <div className="filter-popover-header">
             <h3 id="filter-options-header">Filter Options</h3>
             <button
               className="close"
-              onClick={this.closeFilterOptions}
+              onClick={this.closeParentFilterOptions}
               aria-label="Close"
             >
               <Octicon symbol={octicons.x} />
@@ -144,88 +152,86 @@ export class CommitGraphFilterButton extends React.Component<
           <div className="filter-options">
             <Checkbox
               value={
-                this.state.isAuthorFilterChecked
+                this.state.activeParentFilterName === AUTHOR_FILTER_KEY
                   ? CheckboxValue.On
                   : CheckboxValue.Off
               }
-              onChange={this.onAuthorFilterToIncludedInCommit}
-              label={`Search commit by authors`}
+              onChange={this.onAuthorFilterCheckboxChange}
+              label={`Authors`}
             />
           </div>
-          {/* {filtersActive && (
+          {this.state.activeParentFilterName !== null && (
             <div className="filter-options-footer">
-              <Button onClick={this.onClearAllFilters}>Clear filters</Button>
+              <Button onClick={this.onClearAllParentFilters}>
+                Clear filters
+              </Button>
             </div>
-          )} */}
+          )}
         </Popover>
-        {this.state.hasFilterOptionsMounted &&
-          this.props.filters.size > 0 &&
-          this.renderSubFilterOptions()}
+        {subFilterOptions}
       </>
     )
   }
 
-  private renderSubFilterOptions() {
-    return (
-      <Popover
-        className="popover-component filter-popover"
-        ariaLabelledby="filter-options-header"
-        anchor={this.filterContainerRef}
-        anchorPosition={PopoverAnchorPosition.RightTop}
-        decoration={PopoverDecoration.None}
-        // onMousedownOutside={this.closeSubFilterOptions}
-        // onClickOutside={this.closeSubFilterOptions}
-      >
-        <div className="filter-popover-header">
-          <h3 id="filter-options-header">Authors</h3>
-          {/* <button
-            className="close"
-            onClick={this.closeSubFilterOptions}
-            aria-label="Close"
-          >
-            <Octicon symbol={octicons.x} />
-          </button> */}
+  private renderAuthorSubFilterOptions = () => (
+    <Popover
+      className="popover-component filter-popover"
+      ariaLabelledby="filter-options-header"
+      anchor={this.filterContainerRef}
+      anchorPosition={PopoverAnchorPosition.RightTop}
+      decoration={PopoverDecoration.Balloon}
+    >
+      <div className="filter-popover-header">
+        <h3 id="filter-options-header">Authors</h3>
+        <button
+          className="close"
+          onMouseDown={this.closeAuthorSubFilterOptions}
+          onClick={this.closeAuthorSubFilterOptions}
+          aria-label="Close"
+        >
+          <Octicon symbol={octicons.x} />
+        </button>
+      </div>
+      <div className="filter-options">
+        {this.props.authorOptions.map(({ name, email }) => {
+          const onChange = this.onAuthorFilterOptionsCheckboxChange(email)
+          return (
+            <Checkbox
+              key={email}
+              value={
+                this.props.activeAuthorEmails.has(email)
+                  ? CheckboxValue.On
+                  : CheckboxValue.Off
+              }
+              onChange={onChange}
+              label={name}
+            />
+          )
+        })}
+      </div>
+      {this.props.activeAuthorEmails.size > 0 && (
+        <div className="filter-options-footer">
+          <Button onClick={this.onClearAllAuthorSubFilters}>
+            Clear filters
+          </Button>
         </div>
-        <div className="filter-options">
-          {this.state.activeFilterData.map(({ name, email }) => {
-            return (
-              <Checkbox
-                key={email}
-                value={
-                  this.props.filters.get(AUTHOR_FILTER_KEY)?.has(email)
-                    ? CheckboxValue.On
-                    : CheckboxValue.Off
-                }
-                onChange={this.onAuthorSubFilterChange(email)}
-                label={name}
-              />
-            )
-          })}
-        </div>
-        {/* {filtersActive && (
-            <div className="filter-options-footer">
-              <Button onClick={this.onClearAllFilters}>Clear filters</Button>
-            </div>
-          )} */}
-      </Popover>
-    )
-  }
+      )}
+    </Popover>
+  )
 
-  public render() {
-    const authorFilterSet = this.props.filters.get(AUTHOR_FILTER_KEY)
-    const activeFiltersCount = authorFilterSet ? authorFilterSet.size : 0
-    const hasActiveFilters = authorFilterSet ? activeFiltersCount > 0 : false
+  public render = () => {
+    const hasActiveAuthors = this.props.activeAuthorEmails.size > 0
     const buttonTextLabel = `Filter Options ${
-      hasActiveFilters ? `(${activeFiltersCount} applied)` : ''
+      hasActiveAuthors ? `(${this.props.activeAuthorEmails.size} applied)` : ''
     }`
     return (
       <>
         <Button
           className={classNames('filter-button', {
-            active: hasActiveFilters,
+            active: hasActiveAuthors,
           })}
-          onClick={this.toggleFilterOptionsOpen}
-          ariaExpanded={this.state.isFilterOptionsOpen}
+          onClick={this.toggleParentFilterOptionsOpen}
+          ariaExpanded={this.state.isParentFilterOptionsOpen}
           onButtonRef={this.onFilterOptionsButtonRef}
           tooltip={buttonTextLabel}
           ariaLabel={buttonTextLabel}
@@ -233,7 +239,7 @@ export class CommitGraphFilterButton extends React.Component<
           <span>
             <Octicon symbol={octicons.filter} />
           </span>
-          {hasActiveFilters ? (
+          {hasActiveAuthors ? (
             <span className="active-badge">
               <div className="badge-bg">
                 <div className="badge"></div>
@@ -242,7 +248,8 @@ export class CommitGraphFilterButton extends React.Component<
           ) : null}
           <Octicon symbol={octicons.triangleDown} />
         </Button>
-        {this.state.isFilterOptionsOpen && this.renderFilterOptions()}
+        {this.state.isParentFilterOptionsOpen &&
+          this.renderParentFilterOptions()}
       </>
     )
   }
