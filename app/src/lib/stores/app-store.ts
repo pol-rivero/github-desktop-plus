@@ -2499,7 +2499,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   ): Promise<void> {
     const state = this.repositoryStateCache.get(repository)
     const compareState = state.compareState
-    const activeAuthorEmailsSet = filters && filters.author
+    const activeAuthorEmailsSet = filters?.author
     const activeAuthorEmailsLowercase = activeAuthorEmailsSet
       ? Array.from(activeAuthorEmailsSet).map(item => item.toLowerCase())
       : []
@@ -2520,6 +2520,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       : compareState.allHistoryCommitSHAs
 
     const queryTextLowercase = query.toLowerCase()
+
     const baseFilteredCommitSHAs = queryTextLowercase
       ? candidateCommitSHAs.filter(sha =>
           this.commitIsIncluded(state.commitLookup.get(sha), queryTextLowercase)

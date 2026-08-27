@@ -560,6 +560,31 @@ export class CommitGraphSidebar extends React.Component<
     }, 250)
   )
 
+  private readonly getAuthorFilterData = memoizeOne(() => {
+    const seenEmails = new Set<string>()
+    const uniqueAuthors: TAuthorOption[] = []
+
+    for (const sha of this.props.compareState.allHistoryCommitSHAs) {
+      const commit = this.props.commitLookup.get(sha)
+      const email = commit?.author?.email
+
+      if (!email || seenEmails.has(email)) {
+        continue
+      }
+
+      seenEmails.add(email)
+
+      const name = commit.author.name || email
+
+      uniqueAuthors.push({
+        name,
+        email,
+      })
+    }
+
+    return uniqueAuthors
+  })
+
   public constructor(props: ICommitGraphSidebarProps) {
     super(props)
 
@@ -591,31 +616,6 @@ export class CommitGraphSidebar extends React.Component<
     this.commitListRef.current?.focus()
   }
 
-  private getAuthorFilterData = () => {
-    const seenEmails = new Set<string>()
-    const uniqueAuthors: TAuthorOption[] = []
-
-    for (const sha of this.props.compareState.allHistoryCommitSHAs) {
-      const commit = this.props.commitLookup.get(sha)
-      const email = commit?.author?.email
-
-      if (!email || seenEmails.has(email)) {
-        continue
-      }
-
-      seenEmails.add(email)
-
-      const name = commit.author.name || email
-
-      uniqueAuthors.push({
-        name,
-        email,
-      })
-    }
-
-    return uniqueAuthors
-  }
-
   private onActiveAuthorEmailsChange = async (
     email: TAuthorOption['email']
   ) => {
@@ -631,13 +631,28 @@ export class CommitGraphSidebar extends React.Component<
       authorEmailsSet.add(email)
     }
 
-    await this.onCommitSearchFiltersChanged(this.state.filters)
+    const newFilters = {
+      ...this.state.filters,
+      author: new Set(authorEmailsSet),
+    }
+
+    this.setState({
+      filters: newFilters,
+    })
+
+    await this.onCommitSearchFiltersChanged(newFilters)
   }
 
   private onActiveAuthorEmailsClear = async () => {
-    this.state.filters['author'].clear()
+    const newFilters = {
+      ...this.state.filters,
+      author: new Set<string>(),
+    }
+    this.setState({
+      filters: newFilters,
+    })
 
-    await this.onCommitSearchFiltersChanged(this.state.filters)
+    await this.onCommitSearchFiltersChanged(newFilters)
   }
 
   public render() {

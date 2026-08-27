@@ -96,10 +96,6 @@ export class CommitGraphFilterButton extends React.Component<
 
   private onAuthorFilterOptionsCheckboxChange = (email: string) => {
     return () => {
-      if (!email) {
-        return
-      }
-
       this.props.onActiveAuthorEmailsChange(email)
     }
   }
