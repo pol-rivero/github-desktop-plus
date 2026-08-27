@@ -487,7 +487,7 @@ import {
 import { resolveWithin } from '../path'
 import { WorktreeEntry } from '../../models/worktree'
 import type { Model } from '@github/copilot-sdk/dist/generated/rpc'
-import { TFilters } from '../../ui/history/commit-graph-filter-button'
+import { TFilters } from '../../ui/history/commit-graph-sidebar'
 
 const LastSelectedRepositoryIDKey = 'last-selected-repository-id'
 

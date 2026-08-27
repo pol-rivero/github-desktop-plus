@@ -150,7 +150,7 @@ import {
   ICopilotResolutionSummary,
 } from '../../lib/copilot-conflict-resolution'
 import { WorktreeEntry } from '../../models/worktree'
-import { TFilters } from '../history/commit-graph-filter-button'
+import { TFilters } from '../history/commit-graph-sidebar'
 
 /**
  * An error handler function.
