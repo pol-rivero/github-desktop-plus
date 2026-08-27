@@ -11,6 +11,7 @@ import {
   getLastDesktopStashEntryForBranch,
   dropDesktopStashEntry,
   popStashEntry,
+  applyStashEntry,
   getStashes,
   renameStashEntry,
   moveStashEntry,
@@ -513,6 +514,122 @@ describe('git/stash', () => {
         const entryToApply = desktopEntries[0]
         await assert.rejects(() =>
           popStashEntry(repository, entryToApply.stashSha)
+        )
+      })
+    })
+  })
+
+  describe('applyStashEntry', () => {
+    const setup = async (t: TestContext) => {
+      const repository = await setupEmptyRepository(t)
+      const readme = path.join(repository.path, 'README.md')
+      await writeFile(readme, '')
+      await exec(['add', 'README.md'], repository.path)
+      await exec(['commit', '-m', 'initial commit'], repository.path)
+
+      return repository
+    }
+
+    it('restores changes back to the working directory', async t => {
+      const repository = await setup(t)
+
+      await generateTestStashEntry(repository, 'master', true)
+      const { desktopEntries } = await getStashes(repository)
+      assert.equal(desktopEntries.length, 1)
+
+      let status = await getStatusOrThrow(repository)
+      let files = status.workingDirectory.files
+      assert.equal(files.length, 0)
+
+      const entryToApply = desktopEntries[0]
+      await applyStashEntry(repository, entryToApply.stashSha)
+
+      status = await getStatusOrThrow(repository)
+      files = status.workingDirectory.files
+      assert.equal(files.length, 1)
+    })
+
+    it('keeps the stash entry after applying it', async t => {
+      const repository = await setup(t)
+
+      await generateTestStashEntry(repository, 'master', true)
+      await generateTestStashEntry(repository, 'master', true)
+
+      const { desktopEntries } = await getStashes(repository)
+      assert.equal(desktopEntries.length, 2)
+
+      const entryToApply = desktopEntries[0]
+      await applyStashEntry(repository, entryToApply.stashSha)
+
+      const entriesAfter = (await getStashes(repository)).desktopEntries
+      assert.equal(entriesAfter.length, 2)
+      assert(entriesAfter.some(e => e.stashSha === entryToApply.stashSha))
+    })
+
+    it('can apply the same stash entry more than once', async t => {
+      const repository = await setup(t)
+
+      await generateTestStashEntry(repository, 'master', true)
+      const { desktopEntries } = await getStashes(repository)
+      const entryToApply = desktopEntries[0]
+
+      await applyStashEntry(repository, entryToApply.stashSha)
+
+      // discard the restored changes so that the stash can be applied again
+      await exec(['checkout', '--', '.'], repository.path)
+
+      await applyStashEntry(repository, entryToApply.stashSha)
+
+      const status = await getStatusOrThrow(repository)
+      assert.equal(status.workingDirectory.files.length, 1)
+
+      const entriesAfter = (await getStashes(repository)).desktopEntries
+      assert.equal(entriesAfter.length, 1)
+      assert.equal(entriesAfter[0].stashSha, entryToApply.stashSha)
+    })
+
+    describe('when there are (resolvable) conflicts', () => {
+      it('restores changes and keeps the stash', async t => {
+        const repository = await setup(t)
+
+        await generateTestStashEntry(repository, 'master', true)
+        const { desktopEntries } = await getStashes(repository)
+        assert.equal(desktopEntries.length, 1)
+
+        const readme = path.join(repository.path, 'README.md')
+        await appendFile(readme, generateString())
+        await exec(['commit', '-am', 'later commit'], repository.path)
+
+        let status = await getStatusOrThrow(repository)
+        assert.equal(status.workingDirectory.files.length, 0)
+
+        const entryToApply = desktopEntries[0]
+        await applyStashEntry(repository, entryToApply.stashSha)
+
+        status = await getStatusOrThrow(repository)
+        assert.equal(status.workingDirectory.files.length, 1)
+
+        // Popping drops the entry in this case, applying must not
+        const entriesAfter = (await getStashes(repository)).desktopEntries
+        assert.equal(entriesAfter.length, 1)
+        assert.equal(entriesAfter[0].stashSha, entryToApply.stashSha)
+      })
+    })
+
+    describe('when there are unresolvable conflicts', () => {
+      it('throws an error', async t => {
+        const repository = await setup(t)
+
+        await generateTestStashEntry(repository, 'master', true)
+        const { desktopEntries } = await getStashes(repository)
+        assert.equal(desktopEntries.length, 1)
+
+        const readme = path.join(repository.path, 'README.md')
+        await writeFile(readme, generateString())
+
+        const entryToApply = desktopEntries[0]
+        await assert.rejects(() =>
+          applyStashEntry(repository, entryToApply.stashSha)
         )
       })
     })

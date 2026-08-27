@@ -8,6 +8,39 @@ import { Button } from '../lib/button'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { RetryActionType } from '../../models/retry-actions'
+import {
+  DropdownSelectButton,
+  IDropdownSelectButtonOption,
+} from '../dropdown-select-button'
+import {
+  getStashRestoreMode,
+  setStashRestoreMode,
+  StashRestoreMode,
+} from './stash-restore-mode'
+import { parseEnumValue } from '../../lib/enum'
+
+/** The options offered by the "Restore Changes" split button */
+const restoreModeOptions: ReadonlyArray<
+  IDropdownSelectButtonOption & {
+    readonly id: StashRestoreMode
+    readonly description: string
+  }
+> = [
+  {
+    id: StashRestoreMode.Pop,
+    label: 'Restore Changes',
+    description:
+      'Move the changes to the working directory and delete the stash.',
+    icon: octicons.fileDiff,
+  },
+  {
+    id: StashRestoreMode.Apply,
+    label: 'Apply Changes',
+    description:
+      'Copy the changes to the working directory, keeping the stash.',
+    icon: octicons.fileDiff,
+  },
+]
 
 interface IStashDiffHeaderProps {
   readonly stashEntry: IStashEntry
@@ -19,6 +52,7 @@ interface IStashDiffHeaderProps {
 interface IStashDiffHeaderState {
   readonly isRestoring: boolean
   readonly isDiscarding: boolean
+  readonly restoreMode: StashRestoreMode
 }
 
 /**
@@ -35,11 +69,12 @@ export class StashDiffHeader extends React.Component<
     this.state = {
       isRestoring: false,
       isDiscarding: false,
+      restoreMode: getStashRestoreMode(),
     }
   }
 
   public render() {
-    const { isRestoring, isDiscarding } = this.state
+    const { isRestoring, isDiscarding, restoreMode } = this.state
     const { stashEntry } = this.props
 
     return (
@@ -65,16 +100,15 @@ export class StashDiffHeader extends React.Component<
             <Octicon symbol={octicons.x} className="mr" />
             Close
           </Button>
-          <Button
-            onClick={this.onRestoreClick}
-            type="submit"
-            tooltip={'Restore the stashed changes into the working directory'}
-            className="button-with-icon"
+          <DropdownSelectButton
+            options={restoreModeOptions}
+            checkedOption={restoreMode}
             disabled={isRestoring || isDiscarding}
-          >
-            <Octicon symbol={octicons.fileDiff} className="mr" />
-            Restore Changes
-          </Button>
+            tooltip={this.getRestoreTooltip()}
+            dropdownAriaLabel="Restore options"
+            onCheckedOptionChange={this.onRestoreModeChange}
+            onSubmit={this.onRestoreSubmit}
+          />
           <Button
             onClick={this.onDiscardClick}
             tooltip={'Discard the stashed changes'}
@@ -87,6 +121,11 @@ export class StashDiffHeader extends React.Component<
         </div>
       </div>
     )
+  }
+
+  private getRestoreTooltip() {
+    const option = restoreModeOptions.find(o => o.id === this.state.restoreMode)
+    return option?.description
   }
 
   private onRenameClick = () => {
@@ -128,12 +167,43 @@ export class StashDiffHeader extends React.Component<
     }
   }
 
-  private onRestoreClick = async () => {
+  private onRestoreModeChange = (option: IDropdownSelectButtonOption) => {
+    const mode = parseEnumValue(StashRestoreMode, option.id)
+
+    if (mode === undefined) {
+      return
+    }
+
+    setStashRestoreMode(mode)
+    this.setState({ restoreMode: mode })
+  }
+
+  private onRestoreSubmit = async (
+    event: React.MouseEvent<HTMLButtonElement>,
+    selectedOption: IDropdownSelectButtonOption
+  ) => {
+    const mode = parseEnumValue(StashRestoreMode, selectedOption.id)
+
+    if (mode === undefined) {
+      return
+    }
+
+    event.preventDefault()
+    await this.restoreStash(mode)
+  }
+
+  private async restoreStash(mode: StashRestoreMode) {
     const { dispatcher, repository, stashEntry } = this.props
+    const keepStash = mode === StashRestoreMode.Apply
 
     try {
       this.setState({ isRestoring: true })
-      await dispatcher.popStash(repository, stashEntry)
+
+      if (keepStash) {
+        await dispatcher.applyStash(repository, stashEntry)
+      } else {
+        await dispatcher.popStash(repository, stashEntry)
+      }
     } catch (err) {
       const errorWithMetadata = new ErrorWithMetadata(err, {
         repository: repository,
@@ -141,6 +211,7 @@ export class StashDiffHeader extends React.Component<
           type: RetryActionType.PopStash,
           stashEntry,
           repository,
+          keepStash,
         },
       })
       dispatcher.postError(errorWithMetadata)

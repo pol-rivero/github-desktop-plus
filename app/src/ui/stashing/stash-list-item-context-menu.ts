@@ -4,6 +4,7 @@ import { IStashEntry } from '../../models/stash-entry'
 import { Dispatcher } from '../dispatcher'
 import { ErrorWithMetadata } from '../../lib/error-with-metadata'
 import { PopupType } from '../../models/popup'
+import { StashRestoreMode } from './stash-restore-mode'
 
 interface IStashListItemContextMenuConfig {
   readonly stashEntry: IStashEntry
@@ -22,7 +23,11 @@ export const generateStashListContextMenu = (
     },
     {
       label: 'Restore Changes',
-      action: () => onRestore(config),
+      action: () => onRestore(config, StashRestoreMode.Pop),
+    },
+    {
+      label: 'Apply Changes',
+      action: () => onRestore(config, StashRestoreMode.Apply),
     },
     {
       label: 'Discard',
@@ -33,10 +38,17 @@ export const generateStashListContextMenu = (
   return items
 }
 
-async function onRestore(config: IStashListItemContextMenuConfig) {
+async function onRestore(
+  config: IStashListItemContextMenuConfig,
+  mode: StashRestoreMode
+) {
   const { stashEntry, repository, dispatcher } = config
   try {
-    await dispatcher.popStash(repository, stashEntry)
+    if (mode === StashRestoreMode.Apply) {
+      await dispatcher.applyStash(repository, stashEntry)
+    } else {
+      await dispatcher.popStash(repository, stashEntry)
+    }
   } catch (err) {
     const errorWithMetadata = new ErrorWithMetadata(err, {
       repository: repository,

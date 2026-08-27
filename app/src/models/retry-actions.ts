@@ -100,4 +100,5 @@ export type RetryAction =
       type: RetryActionType.PopStash
       repository: Repository
       stashEntry: IStashEntry
+      keepStash: boolean
     }

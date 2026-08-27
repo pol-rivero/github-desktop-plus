@@ -57,6 +57,38 @@
       button {
         margin-right: var(--spacing);
       }
+
+      // The two halves of the split button must stay visually joined, so the
+      // spacing is applied to the container instead of the inner buttons
+      .dropdown-select-button {
+        margin-right: var(--spacing);
+
+        button {
+          margin-right: 0;
+          height: var(--button-height);
+        }
+
+        .invoke-button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding-right: var(--spacing-half);
+        }
+
+        // The container is only as wide as the button, which is too narrow for
+        // the option descriptions
+        .dropdown-select-button-options {
+          min-width: 320px;
+        }
+
+        .dropdown-button {
+          padding-left: 0;
+
+          .octicon {
+            vertical-align: unset;
+          }
+        }
+      }
     }
 
     .explanatory-text {
