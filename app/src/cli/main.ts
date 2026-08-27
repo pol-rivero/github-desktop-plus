@@ -46,6 +46,7 @@ const usage = (exitCode = 1): never => {
       '  desktop-plus-cli clone [-b branch] <url>   Clone the repository by url or name/owner\n' +
       '                                             (ex torvalds/linux), optionally checking\n' +
       '                                             out the branch\n' +
+      '\nOptions:\n' +
       '  -n, --new-window                           Open in a new window instead of reusing\n' +
       '                                             an existing one\n'
   )
