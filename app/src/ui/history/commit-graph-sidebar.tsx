@@ -617,7 +617,7 @@ export class CommitGraphSidebar extends React.Component<
               <span>
                 <CommitGraphFilterButton
                   authorOptions={this.state.authorFilterOptions}
-                  activeAuthorEmails={this.state.filters['author']}
+                  activeAuthorEmails={this.state.filters.author}
                   onActiveAuthorEmailsClear={this.onActiveAuthorEmailsClear}
                   onActiveAuthorEmailsChange={this.onActiveAuthorEmailsChange}
                 />

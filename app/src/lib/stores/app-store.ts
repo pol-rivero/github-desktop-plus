@@ -2188,7 +2188,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
     if (queryTextLowercase === undefined) {
       queryTextLowercase = state.compareState.commitSearchQuery.toLowerCase()
     }
-    const isSearching = !!queryTextLowercase
+    const isSearching = Boolean(
+      queryTextLowercase ||
+        (authorFiltersLowercase && authorFiltersLowercase.length > 0)
+    )
 
     const tip = state.branchesState.tip
 
@@ -2496,10 +2499,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
   ): Promise<void> {
     const state = this.repositoryStateCache.get(repository)
     const compareState = state.compareState
-    const authorFiltersSet = filters && filters.get('author')
-    const authorFiltersLowercase = authorFiltersSet
-      ? Array.from(authorFiltersSet).map(item => item.toLowerCase())
+    const activeAuthorEmailsSet = filters && filters.author
+    const activeAuthorEmailsLowercase = activeAuthorEmailsSet
+      ? Array.from(activeAuthorEmailsSet).map(item => item.toLowerCase())
       : []
+
     const isIncrementalSearch = query
       ? query.startsWith(compareState.commitSearchQuery)
       : false
@@ -2523,10 +2527,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
       : candidateCommitSHAs
 
     const newFilteredCommitSHAs =
-      authorFiltersLowercase.length > 0
+      activeAuthorEmailsLowercase.length > 0
         ? baseFilteredCommitSHAs.filter(sha => {
             const commit = state.commitLookup.get(sha)
-            return authorFiltersLowercase.some(filter =>
+            return activeAuthorEmailsLowercase.some(filter =>
               this.commitIsIncludedByAuthorFilter(commit, filter)
             )
           })
@@ -2542,7 +2546,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
         repository,
         newFilteredCommitSHAs.length,
         queryTextLowercase,
-        authorFiltersLowercase
+        activeAuthorEmailsLowercase
       )
       await this.currentCommitFilterPromise
       this.currentCommitFilterPromise = null
