@@ -1009,6 +1009,8 @@ export interface ICompareBranch {
   readonly aheadBehind: IAheadBehind
 }
 
+export type TAuthorFilterOption = { name: string; email: string }
+
 export interface ICompareState {
   /** The current state of the compare form, based on user input */
   readonly formState: IDisplayHistory | ICompareBranch
@@ -1050,6 +1052,12 @@ export interface ICompareState {
 
   /** The SHAs of commits to render in the commit graph. */
   readonly commitGraphCommitSHAs: ReadonlyArray<string>
+
+  /**
+   * The unique commit authors across the repository, for use as filter
+   * options in the history view, or null before they have been loaded.
+   */
+  readonly commitGraphAuthorFilterOptions: ReadonlyArray<TAuthorFilterOption> | null
 
   readonly compareCommitSHAs: ReadonlyArray<string>
 

@@ -298,6 +298,12 @@ export class Dispatcher {
     return this.appStore._commitGraph_loadNextCommitBatch(repository)
   }
 
+  public commitGraph_loadAuthorFilterOptions(
+    repository: Repository
+  ): Promise<void> {
+    return this.appStore._commitGraph_loadAuthorFilterOptions(repository)
+  }
+
   /** Update the commit search filter text. */
   public setCommitSearchQuery(
     repository: Repository,

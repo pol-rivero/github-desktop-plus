@@ -2,7 +2,11 @@ import * as React from 'react'
 
 import classNames from 'classnames'
 import memoizeOne from 'memoize-one'
-import { ICompareState, IConstrainedValue } from '../../lib/app-state'
+import {
+  ICompareState,
+  IConstrainedValue,
+  TAuthorFilterOption,
+} from '../../lib/app-state'
 import { Emoji } from '../../lib/emoji'
 import { doMergeCommitsExistAfterCommit } from '../../lib/git'
 import { getSquashedCommitDescription } from '../../lib/squash/squashed-commit-description'
@@ -89,14 +93,12 @@ export type TFilterKeys = keyof typeof FILTER_KEYS
 export type TFilters = {
   author: Set<string>
 }
-export type TAuthorOption = { name: string; email: string }
 
 interface ICommitGraphSidebarState {
   readonly keyboardReorderData?: KeyboardInsertionData
   readonly isSearching: boolean
   readonly commitGraphViewMode: CommitHistoryViewMode
   readonly commitGraphSelectedBranchRef: string | null
-  readonly authorFilterOptions: ReadonlyArray<TAuthorOption>
   readonly filters: TFilters
   readonly searchQuery: string
 }
@@ -560,31 +562,6 @@ export class CommitGraphSidebar extends React.Component<
     }, 250)
   )
 
-  private readonly getAuthorFilterData = memoizeOne(() => {
-    const seenEmails = new Set<string>()
-    const uniqueAuthors: TAuthorOption[] = []
-
-    for (const sha of this.props.compareState.allHistoryCommitSHAs) {
-      const commit = this.props.commitLookup.get(sha)
-      const email = commit?.author?.email
-
-      if (!email || seenEmails.has(email)) {
-        continue
-      }
-
-      seenEmails.add(email)
-
-      const name = commit.author.name || email
-
-      uniqueAuthors.push({
-        name,
-        email,
-      })
-    }
-
-    return uniqueAuthors
-  })
-
   public constructor(props: ICommitGraphSidebarProps) {
     super(props)
 
@@ -592,7 +569,6 @@ export class CommitGraphSidebar extends React.Component<
       isSearching: false,
       commitGraphViewMode: commitGraph_getStoredViewMode(),
       commitGraphSelectedBranchRef: null,
-      authorFilterOptions: this.getAuthorFilterData(),
       filters: {
         author: new Set(),
       },
@@ -606,6 +582,10 @@ export class CommitGraphSidebar extends React.Component<
 
   public componentDidMount() {
     this.commitGraph_ensureLoaded()
+
+    void this.props.dispatcher.commitGraph_loadAuthorFilterOptions(
+      this.props.repository
+    )
   }
 
   public componentDidUpdate() {
@@ -617,7 +597,7 @@ export class CommitGraphSidebar extends React.Component<
   }
 
   private onActiveAuthorEmailsChange = async (
-    email: TAuthorOption['email']
+    email: TAuthorFilterOption['email']
   ) => {
     if (!email) {
       return
@@ -663,7 +643,9 @@ export class CommitGraphSidebar extends React.Component<
             <div className="filter-box-container">
               <span>
                 <CommitGraphFilterButton
-                  authorOptions={this.state.authorFilterOptions}
+                  authorOptions={
+                    this.props.compareState.commitGraphAuthorFilterOptions ?? []
+                  }
                   activeAuthorEmails={this.state.filters.author}
                   onActiveAuthorEmailsClear={this.onActiveAuthorEmailsClear}
                   onActiveAuthorEmailsChange={this.onActiveAuthorEmailsChange}

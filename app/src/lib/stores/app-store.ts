@@ -2461,6 +2461,30 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
   }
 
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public async _commitGraph_loadAuthorFilterOptions(
+    repository: Repository
+  ): Promise<void> {
+    const gitStore = this.gitStoreCache.get(repository)
+    const authors = await gitStore.commitGraph_loadAuthorFilterOptions()
+
+    if (authors === null) {
+      return
+    }
+
+    const state = this.repositoryStateCache.get(repository)
+
+    if (state.compareState.commitGraphAuthorFilterOptions === authors) {
+      return
+    }
+
+    this.repositoryStateCache.updateCompareState(repository, () => ({
+      commitGraphAuthorFilterOptions: authors,
+    }))
+
+    this.emitUpdate()
+  }
+
   private commitIsIncluded(
     commit: Commit | undefined,
     filterTextLowerCase: string
@@ -4803,12 +4827,20 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return assertNever(section, `Unknown section: ${section}`)
     }
 
+    // Keep the author filter options fresh once they've been loaded
+    const authorFilterOptionsRefresh =
+      this.repositoryStateCache.get(repository).compareState
+        .commitGraphAuthorFilterOptions !== null
+        ? this._commitGraph_loadAuthorFilterOptions(repository)
+        : Promise.resolve()
+
     await Promise.all([
       gitStore.updateLastFetched(),
       gitStore.loadStashEntries(),
       this._refreshAuthor(repository),
       this._refreshWorktrees(repository),
       refreshSectionPromise,
+      authorFilterOptionsRefresh,
     ])
 
     await gitStore.refreshTags()

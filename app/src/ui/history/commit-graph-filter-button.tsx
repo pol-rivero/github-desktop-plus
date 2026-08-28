@@ -9,13 +9,16 @@ import {
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import classNames from 'classnames'
-import { FILTER_KEYS, TAuthorOption, TFilterKeys } from './commit-graph-sidebar'
+import { FILTER_KEYS, TFilterKeys } from './commit-graph-sidebar'
+import { TAuthorFilterOption } from '../../lib/app-state'
 
 interface ICommitGraphFilterButtonProps {
-  readonly authorOptions: ReadonlyArray<TAuthorOption>
-  readonly activeAuthorEmails: ReadonlySet<TAuthorOption['email']>
+  readonly authorOptions: ReadonlyArray<TAuthorFilterOption>
+  readonly activeAuthorEmails: ReadonlySet<TAuthorFilterOption['email']>
   readonly onActiveAuthorEmailsClear: () => void
-  readonly onActiveAuthorEmailsChange: (email: TAuthorOption['email']) => void
+  readonly onActiveAuthorEmailsChange: (
+    email: TAuthorFilterOption['email']
+  ) => void
 }
 interface ICommitGraphFilterButtonState {
   readonly isParentFilterOptionsOpen: boolean
