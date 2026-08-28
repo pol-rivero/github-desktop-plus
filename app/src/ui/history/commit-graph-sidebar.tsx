@@ -531,8 +531,8 @@ export class CommitGraphSidebar extends React.Component<
       commitGraph_buildRows(commits, refColors, primaryLaneSha)
   )
 
-  private readonly onCommitQuery = memoizeOne(
-    debounce(async (text: string, filters: TFilters) => {
+  private readonly onCommitQuery = debounce(
+    async (text: string, filters: TFilters) => {
       if (this.state.commitGraphViewMode === CommitHistoryViewMode.Graph) {
         this.props.dispatcher.updateCompareForm(this.props.repository, {
           commitSearchQuery: text,
@@ -559,7 +559,8 @@ export class CommitGraphSidebar extends React.Component<
       } finally {
         this.setState({ isSearching: false })
       }
-    }, 250)
+    },
+    250
   )
 
   public constructor(props: ICommitGraphSidebarProps) {
