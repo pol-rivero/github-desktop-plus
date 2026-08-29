@@ -355,6 +355,7 @@ import { isGHES } from '../endpoint-capabilities'
 import { Banner, BannerType } from '../../models/banner'
 import { ComputedAction } from '../../models/computed-action'
 import {
+  applyStashEntry,
   createDesktopStashEntry,
   getLastDesktopStashEntryForBranch,
   popStashEntry,
@@ -10481,6 +10482,21 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     this.statsStore.increment('stashRestoreCount')
     await this._refreshRepository(repository)
+  }
+
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public async _applyStashEntry(
+    repository: Repository,
+    stashEntry: IStashEntry
+  ) {
+    await applyStashEntry(repository, stashEntry.stashSha)
+    log.info(
+      `[AppStore. _applyStashEntry] applied stash with commit id ${stashEntry.stashSha}`
+    )
+
+    this.statsStore.increment('stashRestoreCount')
+    await this._refreshRepository(repository)
+    await this._selectWorkingDirectoryFiles(repository)
   }
 
   /** This shouldn't be called directly. See `Dispatcher`. */

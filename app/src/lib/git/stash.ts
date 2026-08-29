@@ -352,6 +352,43 @@ export async function popStashEntry(
   }
 }
 
+/**
+ * Applies the stash entry identified by matching `stashSha` to its commit hash,
+ * keeping the entry in the stash list.
+ *
+ * Unlike `popStashEntry`, the stash entry is preserved so that the same changes
+ * can be restored again later.
+ */
+export async function applyStashEntry(
+  repository: Repository,
+  stashSha: string
+): Promise<void> {
+  const expectedErrors = new Set<DugiteError>([DugiteError.MergeConflicts])
+  const stashToApply = await getStashEntryMatchingSha(repository, stashSha)
+
+  if (stashToApply !== null) {
+    const args = ['stash', 'apply', '--quiet', `${stashToApply.name}`]
+    await git(args, repository.path, 'applyStashEntry', {
+      expectedErrors,
+    }).catch(e => {
+      // Applying a stash that creates conflicts in the working directory
+      // reports an exit code of `1`. Nothing needs to be cleaned up afterwards
+      // (unlike `git stash pop`) because `apply` never drops the entry.
+      if (
+        e instanceof GitError &&
+        e.result.exitCode === 1 &&
+        e.result.stderr.length === 0
+      ) {
+        log.info(
+          `[applyStashEntry] a stash was applied successfully but exit code ${e.result.exitCode} reported.`
+        )
+        return
+      }
+      return Promise.reject(e)
+    })
+  }
+}
+
 type StashDetails = {
   readonly branchName: string
   readonly customName: string | null

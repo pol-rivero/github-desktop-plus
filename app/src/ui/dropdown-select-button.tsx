@@ -16,6 +16,9 @@ export interface IDropdownSelectButtonOption {
 
   /** The select option's value */
   readonly id: string
+
+  /** An optional octicon rendered before the label in the invoke button */
+  readonly icon?: octicons.OcticonSymbol
 }
 
 interface IDropdownSelectButtonProps {
@@ -371,6 +374,9 @@ export class DropdownSelectButton extends React.Component<
             onButtonRef={this.onInvokeButtonRef}
             onClick={this.onSubmit}
           >
+            {selectedOption.icon && (
+              <Octicon symbol={selectedOption.icon} className="mr" />
+            )}
             {selectedOption.label}
           </Button>
           <Button
