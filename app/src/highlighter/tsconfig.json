@@ -8,6 +8,7 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "noUnusedLocals": true,
+    "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
     "outDir": "../../../out",

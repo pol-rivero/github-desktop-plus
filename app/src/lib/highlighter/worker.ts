@@ -16,16 +16,14 @@ const workerUri = encodePathAsUrl(__dirname, 'highlighter.js')
  *                  by node's basename() function (i.e. without a leading dot).
  * @param extension The file extension of the path in question as returned
  *                  by node's extname() function (i.e. with a leading dot).
- * @param tabSize   The width of a tab character. Defaults to 4. Used by the
- *                  stream to count columns. See CodeMirror's StringStream
- *                  class for more details.
+ * @param tabSize   The width of a tab character. Defaults to 4. Kept for
+ *                  compatibility with legacy stream languages.
  * @param lines     An optional filter of lines which needs to be tokenized.
  *
  *                  If undefined or empty all lines will be tokenized
  *                  and returned. By passing an explicit set of lines we can
- *                  both minimize the size of the response object (which needs
- *                  to be serialized over the IPC boundary) and, for stateless
- *                  modes we can significantly speed up the highlight process.
+ *                  minimize the size of the response object, which needs to
+ *                  be serialized over the worker boundary.
  */
 export function highlight(
   contentLines: ReadonlyArray<string>,

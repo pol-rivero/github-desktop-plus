@@ -150,19 +150,36 @@ export const highlighter = merge({}, commonConfig, {
         modes: {
           enforce: true,
           name: (mod: any) => {
-            const builtInMode =
-              /node_modules[\\\/]codemirror[\\\/]mode[\\\/](\w+)[\\\/]/i.exec(
+            const legacy =
+              /node_modules[\\\/]@codemirror[\\\/]legacy-modes[\\\/]mode[\\\/]([^\\\/.]+)/i.exec(
                 mod.resource
               )
-            if (builtInMode) {
-              return `mode/${builtInMode[1]}`
+            if (legacy) {
+              return `legacy/${legacy[1]}`
             }
-            const external =
-              /node_modules[\\\/]codemirror-mode-(\w+)[\\\/]/i.exec(
+            const parser =
+              /node_modules[\\\/]@lezer[\\\/]([^\\\/]+)[\\\/]/i.exec(
                 mod.resource
               )
-            if (external) {
-              return `ext/${external[1]}`
+            if (
+              parser &&
+              parser[1] !== 'common' &&
+              parser[1] !== 'highlight' &&
+              parser[1] !== 'lr'
+            ) {
+              return `parser/${parser[1]}`
+            }
+            const externalParser =
+              /node_modules[\\\/]lezer-([^\\\/]+)[\\\/]/i.exec(mod.resource)
+            if (externalParser) {
+              return `parser/${externalParser[1]}`
+            }
+            const localStream =
+              /src[\\\/]highlighter[\\\/]languages[\\\/]([^\\\/.]+)\.ts$/i.exec(
+                mod.resource
+              )
+            if (localStream) {
+              return `local/${localStream[1]}`
             }
             return 'common'
           },
@@ -178,20 +195,6 @@ export const highlighter = merge({}, commonConfig, {
       })
     ),
   ],
-  resolve: {
-    // We don't want to bundle all of CodeMirror in the highlighter. A web
-    // worker doesn't have access to the DOM and most of CodeMirror's core
-    // code is useless to us in that context. So instead we use this super
-    // nifty subset of codemirror that defines the minimal context needed
-    // to run a mode inside of node. Now, we're not running in node
-    // but CodeMirror doesn't have to know about that.
-    alias: {
-      codemirror$: 'codemirror/addon/runmode/runmode.node.js',
-      '../lib/codemirror$': '../addon/runmode/runmode.node.js',
-      '../../lib/codemirror$': '../../addon/runmode/runmode.node.js',
-      '../../addon/runmode/runmode$': '../../addon/runmode/runmode.node.js',
-    },
-  },
 })
 
 highlighter.module!.rules = [

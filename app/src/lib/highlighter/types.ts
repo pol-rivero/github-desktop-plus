@@ -37,9 +37,8 @@ export interface ITokens {
  */
 export interface IHighlightRequest {
   /**
-   * The width of a tab character. Defaults to 4. Used by the
-   * stream to count columns. See CodeMirror's StringStream
-   * class for more details.
+   * The width of a tab character. Defaults to 4. Kept in the worker protocol
+   * for compatibility with callers and legacy stream languages.
    */
   readonly tabSize: number
 
@@ -72,10 +71,9 @@ export interface IHighlightRequest {
   readonly lines?: Array<number>
 
   /**
-   * When enabled (off by default), an extra CSS class will be
-   * added to each token, indicating the (inner) mode that
-   * produced it, prefixed with "cm-m-". For example, tokens from
-   * the XML mode will get the cm-m-xml class.
+   * When enabled (off by default), an extra CSS class will be added to each
+   * token, indicating the language definition that produced it, prefixed with
+   * "cm-m-" by the renderer. For example, XML tokens get cm-m-xml.
    */
   readonly addModeClass?: boolean
 }
