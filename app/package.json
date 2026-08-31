@@ -33,7 +33,7 @@
     "@lezer/javascript": "^1.5.4",
     "@lezer/json": "^1.0.3",
     "@lezer/markdown": "^1.7.2",
-    "@lezer/php": "^1.0.5",
+    "@lezer/php": "^1.0.6",
     "@lezer/python": "^1.1.19",
     "@lezer/rust": "^1.0.2",
     "@lezer/sass": "^1.1.0",
