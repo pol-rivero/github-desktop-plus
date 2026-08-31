@@ -24,6 +24,11 @@ import {
   getAvailableDiffFontFamilies,
   getDiffFontFamilyLabel,
 } from '../../models/diff-font'
+import {
+  availableDiffThemes,
+  DiffTheme,
+  getDiffThemeLabel,
+} from '../../models/diff-theme'
 import { enableFormattingPreferences } from '../../lib/feature-flag'
 import {
   DateFormat,
@@ -47,6 +52,8 @@ interface IAppearanceProps {
   readonly onSelectedDiffFontFamilyChanged: (
     diffFontFamily: DiffFontFamily
   ) => void
+  readonly selectedDiffTheme: DiffTheme
+  readonly onSelectedDiffThemeChanged: (diffTheme: DiffTheme) => void
   readonly titleBarStyle: TitleBarStyle
   readonly onTitleBarStyleChanged: (titleBarStyle: TitleBarStyle) => void
   readonly showRecentRepositories: boolean
@@ -80,6 +87,7 @@ interface IAppearanceState {
   readonly selectedTabSize: number
   readonly selectedDiffFontSize: number
   readonly selectedDiffFontFamily: DiffFontFamily
+  readonly selectedDiffTheme: DiffTheme
   readonly availableDiffFontFamilies: ReadonlyArray<DiffFontFamily>
   readonly titleBarStyle: TitleBarStyle
   readonly showRecentRepositories: boolean
@@ -116,6 +124,7 @@ export class Appearance extends React.Component<
       selectedTabSize: props.selectedTabSize,
       selectedDiffFontSize: props.selectedDiffFontSize,
       selectedDiffFontFamily: props.selectedDiffFontFamily,
+      selectedDiffTheme: props.selectedDiffTheme,
       availableDiffFontFamilies:
         props.selectedDiffFontFamily === defaultDiffFontFamily
           ? [defaultDiffFontFamily]
@@ -153,12 +162,14 @@ export class Appearance extends React.Component<
     const selectedTabSize = this.props.selectedTabSize
     const selectedDiffFontSize = this.props.selectedDiffFontSize
     const selectedDiffFontFamily = this.props.selectedDiffFontFamily
+    const selectedDiffTheme = this.props.selectedDiffTheme
 
     this.setState({
       selectedTheme,
       selectedTabSize,
       selectedDiffFontSize,
       selectedDiffFontFamily,
+      selectedDiffTheme,
       showWorktrees: this.props.showWorktrees,
       showWorktreesInRepoList: this.props.showWorktreesInRepoList,
       showCompareTab: this.props.showCompareTab,
@@ -180,6 +191,7 @@ export class Appearance extends React.Component<
       selectedTabSize,
       selectedDiffFontSize: this.props.selectedDiffFontSize,
       selectedDiffFontFamily: this.props.selectedDiffFontFamily,
+      selectedDiffTheme: this.props.selectedDiffTheme,
     })
   }
 
@@ -257,6 +269,15 @@ export class Appearance extends React.Component<
     const value = event.currentTarget.value
     if (value) {
       this.props.onSelectedDiffFontFamilyChanged(value)
+    }
+  }
+
+  private onSelectedDiffThemeChanged = (
+    event: React.FormEvent<HTMLSelectElement>
+  ) => {
+    const diffTheme = event.currentTarget.value as DiffTheme
+    if (availableDiffThemes.includes(diffTheme)) {
+      this.props.onSelectedDiffThemeChanged(diffTheme)
     }
   }
 
@@ -593,6 +614,18 @@ export class Appearance extends React.Component<
     return (
       <div className="advanced-section">
         <h2 id="diff-heading">Diff</h2>
+
+        <Select
+          value={this.state.selectedDiffTheme}
+          label="Color theme"
+          onChange={this.onSelectedDiffThemeChanged}
+        >
+          {availableDiffThemes.map(diffTheme => (
+            <option key={diffTheme} value={diffTheme}>
+              {getDiffThemeLabel(diffTheme)}
+            </option>
+          ))}
+        </Select>
 
         <Select
           value={this.state.selectedDiffFontSize.toString()}

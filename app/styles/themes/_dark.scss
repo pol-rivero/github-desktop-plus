@@ -301,11 +301,13 @@ body.theme-dark {
    * Diff view
    */
 
+  --diff-background-color: var(--background-color);
   --diff-text-color: var(--text-color);
   --diff-alt-text-color: #{darken($gray-100, 20%)};
   --diff-border-color: #{$gray-800};
   --diff-gutter-color: #{$gray-800};
   --diff-gutter-background-color: #{darken($gray-900, 3%)};
+  --diff-minimap-background-color: var(--box-alt-background-color);
 
   --diff-line-number-color: var(--text-secondary-color);
   --diff-line-number-column-width: 50px;

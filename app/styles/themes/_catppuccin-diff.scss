@@ -1,0 +1,157 @@
+// Catppuccin diff palettes follow the official editor color guidance:
+// https://github.com/catppuccin/catppuccin/blob/main/docs/style-guide.md
+// Add/delete overlays use the same opacity levels as Catppuccin for VS Code.
+
+#desktop-app-chrome.diff-theme-catppuccin {
+  // Latte
+  --diff-background-color: #eff1f5;
+  --diff-text-color: #4c4f69;
+  --diff-alt-text-color: #5c5f77;
+  --diff-border-color: #bcc0cc;
+  --diff-gutter-color: #acb0be;
+  --diff-gutter-background-color: #e6e9ef;
+  --diff-minimap-background-color: #e6e9ef;
+  --diff-line-number-color: #6c6f85;
+
+  --diff-selected-background-color: #1e66f5;
+  --diff-selected-border-color: #1e66f5;
+  --diff-selected-gutter-color: #1e66f5;
+  --diff-selected-text-color: #eff1f5;
+
+  --diff-add-background-color: rgba(64, 160, 43, 0.15);
+  --diff-add-border-color: rgba(64, 160, 43, 0.48);
+  --diff-add-gutter-color: #40a02b;
+  --diff-add-gutter-background-color: rgba(64, 160, 43, 0.2);
+  --diff-add-inner-background-color: rgba(64, 160, 43, 0.3);
+  --diff-add-text-color: var(--diff-text-color);
+
+  --diff-delete-background-color: rgba(210, 15, 57, 0.15);
+  --diff-delete-border-color: rgba(210, 15, 57, 0.48);
+  --diff-delete-gutter-color: #d20f39;
+  --diff-delete-gutter-background-color: rgba(210, 15, 57, 0.2);
+  --diff-delete-inner-background-color: rgba(210, 15, 57, 0.3);
+  --diff-delete-text-color: var(--diff-text-color);
+
+  --diff-hunk-background-color: #e6e9ef;
+  --diff-hunk-border-color: #bcc0cc;
+  --diff-hunk-gutter-color: #acb0be;
+  --diff-hunk-gutter-background-color: #dce0e8;
+  --diff-hunk-text-color: #5c5f77;
+
+  --diff-hover-background-color: rgba(30, 102, 245, 0.24);
+  --diff-hover-border-color: #1e66f5;
+  --diff-hover-gutter-color: #1e66f5;
+  --diff-hover-text-color: var(--diff-text-color);
+
+  --diff-add-hover-background-color: rgba(64, 160, 43, 0.28);
+  --diff-add-hover-border-color: #40a02b;
+  --diff-add-hover-gutter-color: #40a02b;
+  --diff-add-hover-text-color: var(--diff-text-color);
+
+  --diff-delete-hover-background-color: rgba(210, 15, 57, 0.28);
+  --diff-delete-hover-border-color: #d20f39;
+  --diff-delete-hover-gutter-color: #d20f39;
+  --diff-delete-hover-text-color: var(--diff-text-color);
+
+  --diff-empty-row-background-color: #e6e9ef;
+  --diff-empty-row-gutter-background-color: #e6e9ef;
+  --diff-empty-hunk-handle: #acb0be;
+
+  --syntax-variable-color: #4c4f69;
+  --syntax-alt-variable-color: #e64553;
+  --syntax-keyword-color: #8839ef;
+  --syntax-atom-color: #fe640b;
+  --syntax-number-color: #fe640b;
+  --syntax-definition-color: #1e66f5;
+  --syntax-string-color: #40a02b;
+  --syntax-qualifier-color: #df8e1d;
+  --syntax-type-color: #df8e1d;
+  --syntax-comment-color: #7c7f93;
+  --syntax-meta-color: #df8e1d;
+  --syntax-tag-color: #179299;
+  --syntax-attribute-color: #df8e1d;
+  --syntax-link-color: #1e66f5;
+  --syntax-header-color: #8839ef;
+  --syntax-quote-color: #40a02b;
+  --syntax-builtin-color: #d20f39;
+  --syntax-bracket-color: #7c7f93;
+  --syntax-operator-color: #04a5e5;
+  --syntax-property-color: #1e66f5;
+}
+
+body.theme-dark #desktop-app-chrome.diff-theme-catppuccin {
+  // Mocha
+  --diff-background-color: #1e1e2e;
+  --diff-text-color: #cdd6f4;
+  --diff-alt-text-color: #bac2de;
+  --diff-border-color: #45475a;
+  --diff-gutter-color: #313244;
+  --diff-gutter-background-color: #181825;
+  --diff-minimap-background-color: #181825;
+  --diff-line-number-color: #7f849c;
+
+  --diff-selected-background-color: rgba(137, 180, 250, 0.35);
+  --diff-selected-border-color: #89b4fa;
+  --diff-selected-gutter-color: #89b4fa;
+  --diff-selected-text-color: #cdd6f4;
+
+  --diff-add-background-color: rgba(166, 227, 161, 0.15);
+  --diff-add-border-color: rgba(166, 227, 161, 0.48);
+  --diff-add-gutter-color: #a6e3a1;
+  --diff-add-gutter-background-color: rgba(166, 227, 161, 0.2);
+  --diff-add-inner-background-color: rgba(166, 227, 161, 0.3);
+  --diff-add-text-color: var(--diff-text-color);
+
+  --diff-delete-background-color: rgba(243, 139, 168, 0.15);
+  --diff-delete-border-color: rgba(243, 139, 168, 0.48);
+  --diff-delete-gutter-color: #f38ba8;
+  --diff-delete-gutter-background-color: rgba(243, 139, 168, 0.2);
+  --diff-delete-inner-background-color: rgba(243, 139, 168, 0.3);
+  --diff-delete-text-color: var(--diff-text-color);
+
+  --diff-hunk-background-color: #181825;
+  --diff-hunk-border-color: #313244;
+  --diff-hunk-gutter-color: #45475a;
+  --diff-hunk-gutter-background-color: #11111b;
+  --diff-hunk-text-color: #a6adc8;
+
+  --diff-hover-background-color: rgba(137, 180, 250, 0.25);
+  --diff-hover-border-color: #89b4fa;
+  --diff-hover-gutter-color: #89b4fa;
+  --diff-hover-text-color: var(--diff-text-color);
+
+  --diff-add-hover-background-color: rgba(166, 227, 161, 0.28);
+  --diff-add-hover-border-color: #a6e3a1;
+  --diff-add-hover-gutter-color: #a6e3a1;
+  --diff-add-hover-text-color: var(--diff-text-color);
+
+  --diff-delete-hover-background-color: rgba(243, 139, 168, 0.28);
+  --diff-delete-hover-border-color: #f38ba8;
+  --diff-delete-hover-gutter-color: #f38ba8;
+  --diff-delete-hover-text-color: var(--diff-text-color);
+
+  --diff-empty-row-background-color: #181825;
+  --diff-empty-row-gutter-background-color: #181825;
+  --diff-empty-hunk-handle: #45475a;
+
+  --syntax-variable-color: #cdd6f4;
+  --syntax-alt-variable-color: #eba0ac;
+  --syntax-keyword-color: #cba6f7;
+  --syntax-atom-color: #fab387;
+  --syntax-number-color: #fab387;
+  --syntax-definition-color: #89b4fa;
+  --syntax-string-color: #a6e3a1;
+  --syntax-qualifier-color: #f9e2af;
+  --syntax-type-color: #f9e2af;
+  --syntax-comment-color: #9399b2;
+  --syntax-meta-color: #f9e2af;
+  --syntax-tag-color: #94e2d5;
+  --syntax-attribute-color: #f9e2af;
+  --syntax-link-color: #89b4fa;
+  --syntax-header-color: #cba6f7;
+  --syntax-quote-color: #a6e3a1;
+  --syntax-builtin-color: #f38ba8;
+  --syntax-bracket-color: #9399b2;
+  --syntax-operator-color: #89dceb;
+  --syntax-property-color: #89b4fa;
+}

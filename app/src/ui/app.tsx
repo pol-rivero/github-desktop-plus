@@ -36,6 +36,7 @@ import {
   getDiffFontFamilyCssValue,
   getDiffLineHeight,
 } from '../models/diff-font'
+import { catppuccinDiffTheme } from '../models/diff-theme'
 import { PreferencesTab } from '../models/preferences'
 import { findItemByAccessKey, itemIsSelectable } from '../models/app-menu'
 import { Account, isDotComAccount } from '../models/account'
@@ -1967,6 +1968,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             selectedTabSize={this.state.selectedTabSize}
             selectedDiffFontSize={this.state.selectedDiffFontSize}
             selectedDiffFontFamily={this.state.selectedDiffFontFamily}
+            selectedDiffTheme={this.state.selectedDiffTheme}
             useCustomEditor={this.state.useCustomEditor}
             customEditor={this.state.customEditor}
             useCustomShell={this.state.useCustomShell}
@@ -4471,6 +4473,8 @@ export class App extends React.Component<IAppProps, IAppState> {
       this.state.appIsFocused ? 'focused' : 'blurred',
       {
         'underline-links': this.state.underlineLinks,
+        'diff-theme-catppuccin':
+          this.state.selectedDiffTheme === catppuccinDiffTheme,
       }
     )
 

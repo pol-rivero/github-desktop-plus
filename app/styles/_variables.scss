@@ -403,11 +403,13 @@ $overlay-background-color: rgba(0, 0, 0, 0.4);
 
   --diff-line-padding-y: 2px;
 
+  --diff-background-color: var(--background-color);
   --diff-text-color: #{$gray-900};
   --diff-alt-text-color: #{$gray-700};
   --diff-border-color: #{$gray-200};
   --diff-gutter-color: #{$gray-200};
   --diff-gutter-background-color: var(--background-color);
+  --diff-minimap-background-color: var(--box-alt-background-color);
 
   --diff-line-number-color: #{$gray-700};
   --diff-line-number-column-width: 50px;

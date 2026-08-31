@@ -10,7 +10,7 @@
 .diff-code-mirror .CodeMirror {
   height: 100%;
   color: var(--diff-text-color);
-  background: var(--background-color);
+  background: var(--diff-background-color);
   font-size: var(--diff-font-size, var(--font-size-sm));
   font-family: var(--diff-font-family, var(--font-family-monospace));
 
@@ -287,7 +287,7 @@
   }
 
   &.diff-context {
-    background: var(--background-color);
+    background: var(--diff-background-color);
   }
 
   &.diff-hunk {
@@ -699,11 +699,11 @@
     color: var(--syntax-atom-color);
   }
   .cm-number {
-    color: inherit;
+    color: var(--syntax-number-color, inherit);
   }
 
   .cm-def {
-    color: inherit;
+    color: var(--syntax-definition-color, inherit);
   }
 
   .cm-quote {
@@ -714,16 +714,18 @@
   .cm-variable-3 {
     color: var(--syntax-alt-variable-color);
   }
-  .cm-comment,
-  .cm-meta {
+  .cm-comment {
     color: var(--syntax-comment-color);
+  }
+  .cm-meta {
+    color: var(--syntax-meta-color, var(--syntax-comment-color));
   }
   .cm-string,
   .cm-string-2 {
     color: var(--syntax-string-color);
 
     &.cm-property {
-      color: inherit;
+      color: var(--syntax-property-color, inherit);
     }
   }
   .cm-qualifier {
@@ -733,10 +735,16 @@
     color: var(--syntax-type-color);
   }
   .cm-builtin {
-    color: inherit;
+    color: var(--syntax-builtin-color, inherit);
   }
   .cm-bracket {
-    color: inherit;
+    color: var(--syntax-bracket-color, inherit);
+  }
+  .cm-operator {
+    color: var(--syntax-operator-color, inherit);
+  }
+  .cm-property {
+    color: var(--syntax-property-color, inherit);
   }
   .cm-tag {
     color: var(--syntax-tag-color);

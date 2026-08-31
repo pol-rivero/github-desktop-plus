@@ -58,6 +58,7 @@ import { ShowBranchNameInRepoListSetting } from '../models/show-branch-name-in-r
 import { CopyPathNormalization } from '../models/copy-path-normalization'
 import { BranchSortOrder } from '../models/branch-sort-order'
 import { DiffFontFamily } from '../models/diff-font'
+import { DiffTheme } from '../models/diff-theme'
 import { DragElement } from '../models/drag-drop'
 import { ILastThankYou } from '../models/last-thank-you'
 import {
@@ -343,6 +344,9 @@ export interface IAppState {
 
   /** The selected font family preference for text diffs */
   readonly selectedDiffFontFamily: DiffFontFamily
+
+  /** The selected color theme for text diffs */
+  readonly selectedDiffTheme: DiffTheme
 
   /** The selected title bar style for the application */
   readonly titleBarStyle: TitleBarStyle

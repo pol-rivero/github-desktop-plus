@@ -22,6 +22,11 @@ import {
   defaultDiffFontFamily,
   DiffFontFamily,
 } from '../../models/diff-font'
+import {
+  defaultDiffTheme,
+  DiffTheme,
+  parseDiffTheme,
+} from '../../models/diff-theme'
 import { EditorOverride } from '../../models/editor-override'
 import { stageResolvedConflictFiles } from '../git/stage'
 import {
@@ -579,6 +584,7 @@ export const tabSizeDefault: number = 4
 const tabSizeKey: string = 'tab-size'
 const diffFontSizeKey = 'diff-font-size'
 const diffFontFamilyKey = 'diff-font-family'
+const diffThemeKey = 'diff-theme'
 
 const shellKey = 'shell'
 
@@ -776,6 +782,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private selectedTabSize = tabSizeDefault
   private selectedDiffFontSize = defaultDiffFontSize
   private selectedDiffFontFamily = defaultDiffFontFamily
+  private selectedDiffTheme = defaultDiffTheme
   private titleBarStyle: TitleBarStyle = __WIN32__ ? 'custom' : 'native'
   private showRecentRepositories: boolean = true
   private showWorktrees: boolean = false
@@ -1476,6 +1483,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       selectedTabSize: this.selectedTabSize,
       selectedDiffFontSize: this.selectedDiffFontSize,
       selectedDiffFontFamily: this.selectedDiffFontFamily,
+      selectedDiffTheme: this.selectedDiffTheme,
       titleBarStyle: this.titleBarStyle,
       showRecentRepositories: this.showRecentRepositories,
       showWorktrees: this.showWorktrees,
@@ -3118,6 +3126,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.selectedDiffFontSize = getNumber(diffFontSizeKey, defaultDiffFontSize)
     this.selectedDiffFontFamily =
       localStorage.getItem(diffFontFamilyKey) || defaultDiffFontFamily
+    this.selectedDiffTheme = parseDiffTheme(localStorage.getItem(diffThemeKey))
 
     themeChangeMonitor.onThemeChanged(theme => {
       this.currentTheme = theme
@@ -10234,6 +10243,21 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     this.selectedDiffFontFamily = diffFontFamily
     localStorage.setItem(diffFontFamilyKey, diffFontFamily)
+    this.emitUpdate()
+
+    return Promise.resolve()
+  }
+
+  /**
+   * Set the application-wide diff color theme
+   */
+  public _setSelectedDiffTheme(diffTheme: DiffTheme) {
+    if (this.selectedDiffTheme === diffTheme) {
+      return Promise.resolve()
+    }
+
+    this.selectedDiffTheme = diffTheme
+    localStorage.setItem(diffThemeKey, diffTheme)
     this.emitUpdate()
 
     return Promise.resolve()

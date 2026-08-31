@@ -113,6 +113,7 @@ import { UncommittedChangesStrategy } from '../../models/uncommitted-changes-str
 import { BranchSortOrder } from '../../models/branch-sort-order'
 import { ShowBranchNameInRepoListSetting } from '../../models/show-branch-name-in-repo-list'
 import { DiffFontFamily } from '../../models/diff-font'
+import { DiffTheme } from '../../models/diff-theme'
 import { CopyPathNormalization } from '../../models/copy-path-normalization'
 import { IStashEntry } from '../../models/stash-entry'
 import { WorkflowPreferences } from '../../models/workflow-preferences'
@@ -3073,6 +3074,13 @@ export class Dispatcher {
    */
   public setSelectedDiffFontFamily(diffFontFamily: DiffFontFamily) {
     return this.appStore._setSelectedDiffFontFamily(diffFontFamily)
+  }
+
+  /**
+   * Set the application-wide diff color theme
+   */
+  public setSelectedDiffTheme(diffTheme: DiffTheme) {
+    return this.appStore._setSelectedDiffTheme(diffTheme)
   }
   /*
    * Set the title bar style for the application

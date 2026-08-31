@@ -265,11 +265,19 @@ export class DiffMinimap extends React.PureComponent<IDiffMinimapProps> {
     }
 
     this.lastThemeClassName = this.getThemeClassName()
-    this.themeObserver = new MutationObserver(this.onBodyClassChanged)
+    this.themeObserver = new MutationObserver(this.onThemeClassChanged)
     this.themeObserver.observe(document.body, {
       attributes: true,
       attributeFilter: ['class'],
     })
+
+    const appChrome = document.getElementById('desktop-app-chrome')
+    if (appChrome !== null) {
+      this.themeObserver.observe(appChrome, {
+        attributes: true,
+        attributeFilter: ['class'],
+      })
+    }
   }
 
   private disconnectResizeObserver() {
@@ -302,7 +310,7 @@ export class DiffMinimap extends React.PureComponent<IDiffMinimapProps> {
     }
   }
 
-  private onBodyClassChanged = () => {
+  private onThemeClassChanged = () => {
     const nextThemeClassName = this.getThemeClassName()
     if (nextThemeClassName === this.lastThemeClassName) {
       return
@@ -314,10 +322,15 @@ export class DiffMinimap extends React.PureComponent<IDiffMinimapProps> {
   }
 
   private getThemeClassName() {
-    const themeClass = [...document.body.classList].find(c =>
+    const appChrome = document.getElementById('desktop-app-chrome')
+    const applicationTheme = [...document.body.classList].find(c =>
       c.startsWith('theme-')
     )
-    return themeClass ?? ''
+    const diffTheme = [...(appChrome?.classList ?? [])].find(c =>
+      c.startsWith('diff-theme-')
+    )
+
+    return `${applicationTheme ?? ''} ${diffTheme ?? ''}`
   }
 
   private scheduleRedraw() {
@@ -1608,7 +1621,7 @@ export class DiffMinimap extends React.PureComponent<IDiffMinimapProps> {
     const read = (name: string, fallback: string) =>
       styles.getPropertyValue(name).trim() || fallback
     return {
-      background: read('--box-alt-background-color', '#f6f8fa'),
+      background: read('--diff-minimap-background-color', '#f6f8fa'),
       border: read('--diff-border-color', '#d0d7de'),
       context: read('--diff-text-color', '#24292f'),
       added: read('--diff-add-inner-background-color', '#2da44e'),
