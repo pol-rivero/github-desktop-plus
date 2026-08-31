@@ -41,15 +41,21 @@ document ranges, so there is no drop-in replacement for CodeMirror 5
 
 ## Dependency plan
 
-Only language and highlighting packages belong in the worker. The editor,
-state, commands, autocomplete, and view packages are not needed directly.
+Only parser definitions and highlighting packages belong in the worker. The
+editor, state, commands, autocomplete, and view packages are not needed at
+runtime.
 
 Use maintained Lezer language packages for JavaScript/TypeScript/JSX, JSON,
-HTML, CSS/SCSS/LESS, Vue, Markdown, YAML, XML, C/C++, Java, Go, SQL, PHP,
-Python, and Rust. Use `@codemirror/legacy-modes` through `StreamLanguage` for
-the remaining modes that it officially ports from CodeMirror 5. Use the
-Lezer-based `codemirror-lang-elixir` and `codemirror-lang-zig` integrations for
-Elixir and Zig.
+HTML, CSS/SCSS, Vue, Markdown, YAML, XML, C/C++, Java, Go, PHP, Python, Rust,
+and Elixir. Use the parser definitions from `@codemirror/legacy-modes` for the
+remaining modes that it officially ports from CodeMirror 5.
+
+Do not construct CodeMirror `Language` or `StreamLanguage` objects. The public
+`@codemirror/language` entry point statically imports editor state, view, and
+`style-mod`; using it made the first prototype's worker payload 1.42 MB and
+included `EditorView`. A small worker-only stream runner consumes the same
+public `StreamParser` shape without an editor and keeps parser state across
+lines. Lezer parsers are consumed directly.
 
 Remove these dependencies:
 
@@ -59,9 +65,8 @@ Remove these dependencies:
 - `codemirror-mode-luau`
 - `codemirror-mode-zig`
 
-Add direct dependencies for the CodeMirror language infrastructure, Lezer
-highlighting, each modern language package used by Desktop Plus, the official
-legacy-mode bridge, and the two third-party Lezer integrations. Direct
+Add direct dependencies for Lezer highlighting, each Lezer parser used by
+Desktop Plus, `lezer-elixir`, and the official legacy-mode definitions. Direct
 dependencies make webpack's static dynamic-import graph explicit and avoid
 bundling every language known to `@codemirror/language-data`.
 
@@ -69,25 +74,24 @@ bundling every language known to `@codemirror/language-data`.
 
 ### Modern Lezer parsers
 
-- C, C++, CSS, Go, HTML, Java, JavaScript, JSON, JSX, LESS, Markdown, PHP,
-  Python, Rust, SCSS, SQL, TSX, TypeScript, Vue, XML, and YAML.
+- C, C++, CSS, Elixir, Go, HTML, Java, JavaScript, JSON, JSX, Markdown, PHP,
+  Python, Rust, SCSS, TSX, TypeScript, Vue, XML, and YAML.
 - Existing aliases such as Astro-to-HTML, MDX-to-Markdown, and project files
   to XML stay explicit.
 
 ### Official CM6 legacy stream parsers
 
 - ASCII Armor, C#, Clojure, CMake, CoffeeScript, Crystal, Cypher, Dart, diff,
-  Dockerfile, F#, Fortran, Haxe, Julia, Kotlin, Lua, Objective-C, OCaml, Oz,
-  Pascal, Perl, Pig, PowerShell, Properties/INI, Protobuf, Pug, Puppet, Q, R,
-  RPM, Ruby, Scala, Scheme, shell, Sieve, Smalltalk, SPARQL, Stylus, Swift,
-  sTeX, TOML, and Visual Basic.
+  Dockerfile, F#, Fortran, Haxe, Julia, Kotlin, LESS, Lua, Objective-C, OCaml,
+  Oz, Pascal, Perl, Pig, PowerShell, Properties/INI, Protobuf, Pug, Puppet, Q,
+  R, RPM, Ruby, Scala, Scheme, shell, Sieve, Smalltalk, SPARQL, SQL, Stylus,
+  Swift, sTeX, TOML, and Visual Basic.
 
-### Dedicated CM6 integrations
+### Local stream integrations
 
-- Elixir and Zig use third-party Lezer language packages.
-- Luau uses a small local `StreamParser` port of the currently bundled
-  MIT-licensed Luau mode. This preserves Luau-specific types and globals
-  without retaining CodeMirror 5.
+- Luau and Zig use small local `StreamParser` ports of the currently bundled
+  MIT-licensed modes. This preserves their language-specific behavior without
+  retaining CodeMirror 5.
 
 ### Audited compatibility fallbacks
 
@@ -118,6 +122,11 @@ For each highlighted absolute range:
 4. Drop segments for lines outside the requested filter.
 5. Append the definition's stable `m-*` compatibility class when requested.
 
+For official and local stream parsers, run each supplied line in order using
+the public `StreamParser` contract and a worker-local `StringStream`. Keep the
+mutable state even when a line is outside the response filter, and emit the
+legacy token names directly into `ITokens`.
+
 ## PHP compatibility
 
 The current `@lezer/php` parser handles the original Laravel class-attribute
@@ -134,9 +143,11 @@ also be reported to `lezer/php`; it is not a reason to keep CodeMirror 5.
 ## Build changes
 
 - Remove the CodeMirror 5 webpack aliases and ambient declarations.
-- Update async chunk naming for scoped `@codemirror/lang-*`, official legacy
-  modes, and third-party language packages.
+- Update async chunk naming for Lezer parsers and official legacy modes.
 - Keep shared CM6/Lezer infrastructure in a common async chunk.
+- Skip checking dependency declarations in the worker-only TypeScript project;
+  legacy-mode declarations reference DOM types even though their JavaScript
+  parser definitions do not import the editor runtime.
 - Verify that no `@codemirror/view` code enters `highlighter.js` or its chunks.
 
 ## Verification matrix
@@ -159,10 +170,31 @@ Before considering the migration complete:
 8. Launch the cherry-picked standalone build and visually inspect PHP,
    TypeScript, HTML/Vue, shell, and at least one legacy mode in real diffs.
 
+## Measured implementation results
+
+- All 105 tracked fixtures in `desktop/highlighter-tests` were recognized:
+  14,052 tokens, zero warnings, and zero failures in 267 ms.
+- The clean production highlighter contains no `EditorView`,
+  `@codemirror/view`, `@codemirror/state`, or `style-mod` code.
+- The production worker entry is 53,607 bytes. All 60 worker and lazy parser
+  files total 1,058,497 bytes, compared with 409,296 bytes across 62 files for
+  the packaged CodeMirror 5 build. The larger total is the cost of full Lezer
+  grammars; languages remain lazy-loaded.
+- Synthetic warm parse times remained well below the five-second worker
+  timeout:
+
+| Language   | 4 KiB | 64 KiB | 1 MiB  |
+| ---------- | ----: | -----: | -----: |
+| PHP        | 23 ms |  54 ms | 281 ms |
+| TypeScript |  6 ms |  35 ms | 413 ms |
+| HTML       |  7 ms |  41 ms | 577 ms |
+| Shell      |  2 ms |   9 ms |  53 ms |
+| Luau       |  3 ms |  28 ms | 259 ms |
+
 ## Branch and commit structure
 
 1. Keep this audit/design as the first commit on the CM6 feature branch.
-2. Commit dependency/build changes separately from the worker implementation.
+2. Keep dependency, build, and worker changes in one atomic, buildable commit.
 3. Commit tests and documentation with the behavior they verify.
 4. Keep the Catppuccin diff theme on its existing independent branch.
 5. Create the local trial branch from current Desktop Plus `main`, cherry-pick
