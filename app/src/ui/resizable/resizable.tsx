@@ -90,6 +90,12 @@ export class Resizable extends React.Component<
     e.preventDefault()
   }
 
+  public componentWillUnmount() {
+    // The component can be unmounted mid-drag (the repository list foldout,
+    // for instance, is torn down as soon as it's closed).
+    this.unsubscribeFromGlobalEvents()
+  }
+
   private unsubscribeFromGlobalEvents() {
     document.removeEventListener('mousemove', this.handleDragMove)
     document.removeEventListener('mouseup', this.handleDragStop)

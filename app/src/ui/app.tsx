@@ -46,6 +46,7 @@ import { CloningRepository } from '../models/cloning-repository'
 import { TitleBar, ZoomInfo, FullScreenInfo } from './window'
 
 import { RepositoriesList, getKnownGroupNames } from './repositories-list'
+import { Resizable } from './resizable'
 import { RepositoryView } from './repository'
 import { RenameBranch } from './rename-branch'
 import {
@@ -3692,6 +3693,36 @@ export class App extends React.Component<IAppProps, IAppState> {
     )
   }
 
+  /**
+   * The repository list foldout covers the sidebar along with its resize
+   * handle, so it needs a handle of its own for that same sidebar width.
+   */
+  private renderResizableRepositoryList = (): JSX.Element => {
+    const { sidebarWidth } = this.state
+
+    return (
+      <Resizable
+        id="repository-list-resizable"
+        width={sidebarWidth.value}
+        maximumWidth={sidebarWidth.max}
+        minimumWidth={sidebarWidth.min}
+        onResize={this.onRepositoryListResize}
+        onReset={this.onRepositoryListSizeReset}
+        description="Repository list"
+      >
+        {this.renderRepositoryList()}
+      </Resizable>
+    )
+  }
+
+  private onRepositoryListResize = (width: number) => {
+    this.props.dispatcher.setSidebarWidth(width)
+  }
+
+  private onRepositoryListSizeReset = () => {
+    this.props.dispatcher.resetSidebarWidth()
+  }
+
   private viewOnGitHub = (
     repository: Repository | CloningRepository | null
   ) => {
@@ -3882,7 +3913,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         foldoutStyle={foldoutStyle}
         onContextMenu={this.onRepositoryToolbarButtonContextMenu}
         onDropdownStateChanged={this.onRepositoryDropdownStateChanged}
-        dropdownContentRenderer={this.renderRepositoryList}
+        dropdownContentRenderer={this.renderResizableRepositoryList}
         dropdownState={currentState}
         enableFocusTrap={enableFocusTrap}
       />

@@ -1,5 +1,13 @@
 @import '../mixins';
 
+/**
+ * The repository list foldout overlays the sidebar (and therefore its resize
+ * handle), so it carries its own handle for the same sidebar width.
+ */
+#repository-list-resizable {
+  height: 100%;
+}
+
 .repository-list {
   height: 100%;
   display: flex;
