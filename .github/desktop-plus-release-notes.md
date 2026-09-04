@@ -1,15 +1,28 @@
-Desktop Plus v3.6.4
+Desktop Plus v3.6.5
 
-Upstream: [GitHub Desktop 3.6.4 release notes](https://github.com/desktop/desktop/releases/tag/release-3.6.4)
+Upstream: [GitHub Desktop 3.6.5 release notes](https://github.com/desktop/desktop/releases/tag/release-3.6.5)
+
+## Changes and improvements:
+
+- [#240] Sections in the repository list are now collapsible, just click the section header to collapse or expand it.
+
+- [#241] *Automatic groups* in the repository list now also include a **"Pull all"** button.  
+  It behaves the same as in *custom groups*: clicking it will pull all repositories in the group.
+
+- Added an "Edit group" option to the groups context menu in the repository list.  
+  To quickly rename a group or modify which repositories are included in it, right-click the group name and select "Edit group".
+
+- [#242] Added a `--new-window` flag to the `desktop-plus-cli` command line interface. Thanks @pierre-dekode!  
+  This flag can be used with any of the existing commands, and it will always create a new window instead of reusing an existing one. See [the CLI documentation](https://github.com/desktop-plus/desktop-plus/blob/main/docs/cli.md) for more information.
+
+- [#245] In the *Stashed changes* view, you can now choose to "**Apply**" the changes (`git stash apply`) instead of the old "**Restore**" behavior which also removes the stash (`git stash pop`).  
+  Click on the dropdown arrow next to the "Restore" button to select your preferred behavior.
+
+- [#248] You can now resize the sidebar while the repository list is open.
+
+- [#233] The app now supports git remotes that use SSH aliases instead of full hostnames, by resolving the alias using the local SSH configuration.  
+  This is a best-effort implementation which may not work in all cases, I recommend using HTTPS if you have a complex setup.
 
 ## Fixes:
 
-- Fixed parsing of SSH remotes for repositories that belong to GitLab subgroups. For example: `git@gitlab.com:my-org/subgroup/my-repo.git`.  
-  Please note that SSH remote parsing remains a best-effort implementation and may not work on [some edge cases](https://github.com/desktop-plus/desktop-plus/issues/233). I recommend cloning repositories inside the app, which will use HTTPS instead of SSH.
-
-- Fixed an inconsistent User-Agent sent by the app when making API requests.
-
-- Replaced some fork-specific patches with proper upstream fixes. You should not notice any difference in behavior, but if you find any regressions please [open an issue](https://github.com/desktop-plus/desktop-plus/issues/new/choose). Functionality that could be affected by these changes includes:
-  - Running Git Hooks that read from `stdin`.
-  - Returning to the main worktree after the currently selected worktree has been deleted outside of the app.
-  - Linux: Git operations using HTTPS now use `libcurl` instead of `libcurl-gnutls`.
+- [#207] **Linux:** Updated to a newer Electron version to fix a bug that caused the app to have 2 separate entries in the KDE system monitor.
