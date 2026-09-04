@@ -1,5 +1,4 @@
 import { Disposable } from 'event-kit'
-import { clipboard } from 'electron'
 
 import {
   IAPIOrganization,
@@ -103,6 +102,7 @@ import {
   executeMenuItem,
   moveToApplicationsFolder,
   isWindowFocused,
+  writeClipboardText,
 } from '../main-process-proxy'
 import {
   CommitStatusStore,
@@ -4663,13 +4663,13 @@ export class Dispatcher {
   }
 
   public copyPathsToClipboard(paths: ReadonlyArray<string>) {
-    clipboard.writeText(
+    const text =
       paths
         .map(p =>
           convertToCopyPath(p, this.appStore.getState().copyPathNormalization)
         )
         .join(EOL)
-    )
+    writeClipboardText(text)
   }
 
   public setBranchSortOrder(branchSortOrder: BranchSortOrder) {
