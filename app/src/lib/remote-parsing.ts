@@ -162,6 +162,40 @@ export function remoteUrlToWebUrl(remoteUrl: string): string | null {
   }
 }
 
+/** The host and repository path of a remote reachable over SSH. */
+export interface IParsedSSHRemote {
+  /** The host as written in the remote, which may be an SSH config alias. */
+  readonly host: string
+
+  /** The path of the repository on the host, without a leading slash. */
+  readonly path: string
+}
+
+/**
+ * Split a remote that names a host reachable over SSH (scp-like or an
+ * `ssh://` URL) into its host and repository path, or null if it names no such
+ * host. The SSH port, if any, is dropped: it says nothing about the port the
+ * instance serves its web UI and API on.
+ */
+export function parseSSHRemote(url: string): IParsedSSHRemote | null {
+  const scpLike = scpLikeRemoteRegex.exec(url)
+  if (scpLike !== null) {
+    return { host: scpLike[1], path: scpLike[2] }
+  }
+
+  const parsed = tryParseUrl(url)
+  switch (parsed?.protocol) {
+    case 'ssh:':
+    case 'git+ssh:':
+      return {
+        host: parsed.hostname,
+        path: parsed.pathname.replace(/^\/+/, ''),
+      }
+    default:
+      return null
+  }
+}
+
 export function asHost(remote: IGitRemoteURL): string {
   return remote.port === null
     ? remote.hostname

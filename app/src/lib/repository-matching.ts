@@ -10,6 +10,7 @@ import {
   parseRepositoryIdentifier,
 } from './remote-parsing'
 import { caseInsensitiveEquals } from './compare'
+import { getResolvedSSHRemoteUrl } from './ssh/resolve-ssh-host'
 import { GitHubRepository } from '../models/github-repository'
 
 export interface IMatchedGitHubRepository {
@@ -129,8 +130,22 @@ export function urlMatchesRemote(url: string | null, remote: IRemote): boolean {
     return false
   }
 
+  // A remote written against an SSH config alias only matches through the
+  // host the alias resolves to, which is known once the repository has been
+  // matched with its account.
+  return (
+    urlsMatchAsRemotes(url, remote.url) ||
+    urlsMatchAsRemotes(url, getResolvedSSHRemoteUrl(remote.url))
+  )
+}
+
+function urlsMatchAsRemotes(
+  url: string,
+  remoteUrlString: string | null
+): boolean {
   const cloneUrl = parseRemote(url)
-  const remoteUrl = parseRemote(remote.url)
+  const remoteUrl =
+    remoteUrlString === null ? null : parseRemote(remoteUrlString)
 
   if (remoteUrl == null || cloneUrl == null) {
     return false

@@ -1,6 +1,10 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert'
-import { parseRemote, remoteUrlToWebUrl } from '../../src/lib/remote-parsing'
+import {
+  parseRemote,
+  parseSSHRemote,
+  remoteUrlToWebUrl,
+} from '../../src/lib/remote-parsing'
 
 describe('URL remote parsing', () => {
   it('parses HTTPS URLs with a trailing git suffix', () => {
@@ -319,6 +323,7 @@ describe('URL remote parsing', () => {
     assert.equal(parseRemote('/home/hubot/repo'), null)
     assert.equal(parseRemote('../repo'), null)
     assert.equal(parseRemote('C:\\Users\\hubot\\repo'), null)
+    assert.equal(parseRemote('C:/Users/hubot/repo'), null)
     assert.equal(parseRemote('file:///home/hubot/repo'), null)
   })
 })
@@ -427,5 +432,25 @@ describe('remoteUrlToWebUrl', () => {
   it('returns null for empty remotes', () => {
     assert.equal(remoteUrlToWebUrl(''), null)
     assert.equal(remoteUrlToWebUrl('   '), null)
+  })
+})
+
+describe('parseSSHRemote', () => {
+  it('parses a user-less scp-like remote naming an alias', () => {
+    assert.deepStrictEqual(
+      parseSSHRemote('companyname-server-git:group/repo.git'),
+      { host: 'companyname-server-git', path: 'group/repo.git' }
+    )
+  })
+
+  it('parses an ssh URL, dropping the port', () => {
+    assert.deepStrictEqual(parseSSHRemote('ssh://alias:2222/group/repo.git'), {
+      host: 'alias',
+      path: 'group/repo.git',
+    })
+  })
+
+  it('returns null for an https URL', () => {
+    assert.equal(parseSSHRemote('https://github.com/hubot/repo.git'), null)
   })
 })

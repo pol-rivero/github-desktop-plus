@@ -434,6 +434,7 @@ import {
 } from '../../models/multi-commit-operation'
 import { reorder } from '../git/reorder'
 import { UseWindowsOpenSSHKey } from '../ssh/ssh'
+import { resolveSSHRemoteAlias } from '../ssh/resolve-ssh-host'
 import { isConflictsFlow } from '../multi-commit-operation'
 import { clamp } from '../clamp'
 import { EndpointToken } from '../endpoint-token'
@@ -5790,9 +5791,21 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     const remote = gitStore.defaultRemote
-    return remote !== null
-      ? matchGitHubRepository(this.accounts, remote.url, repository.login)
-      : null
+    if (remote === null) {
+      return null
+    }
+
+    // Match the remote as written first: under setups like `Host github.com`
+    // -> `HostName ssh.github.com` the resolved host serves no web UI, so the
+    // SSH config is only consulted when nothing matched.
+    return (
+      matchGitHubRepository(this.accounts, remote.url, repository.login) ??
+      matchGitHubRepository(
+        this.accounts,
+        await resolveSSHRemoteAlias(remote.url),
+        repository.login
+      )
+    )
   }
 
   /** This shouldn't be called directly. See `Dispatcher`. */
