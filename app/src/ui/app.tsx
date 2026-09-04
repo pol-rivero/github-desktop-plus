@@ -1,28 +1,33 @@
-import * as React from 'react'
 import * as Path from 'path'
+import * as React from 'react'
 
-import { TransitionGroup, CSSTransition } from 'react-transition-group'
+import { CSSTransition, TransitionGroup } from 'react-transition-group'
+import { shell } from '../lib/app-shell'
 import {
+  CommitOptions,
+  FoldoutType,
+  HistoryTabMode,
   IAppState,
   RepositorySectionTab,
-  FoldoutType,
   SelectionType,
-  HistoryTabMode,
-  CommitOptions,
 } from '../lib/app-state'
-import { Dispatcher } from './dispatcher'
+import { assertNever } from '../lib/fatal-error'
+import { getOS, isOSNoLongerSupportedByElectron } from '../lib/get-os'
+import { matchExistingRepository } from '../lib/repository-matching'
 import { AppStore, GitHubUserStore, IssuesStore } from '../lib/stores'
 import { DisabledCopilotModel } from '../lib/stores/copilot-store'
-import { assertNever } from '../lib/fatal-error'
-import { shell } from '../lib/app-shell'
-import { updateStore, UpdateStatus } from './lib/update-store'
-import { RetryAction } from '../models/retry-actions'
-import { FetchType } from '../models/fetch'
-import { shouldRenderApplicationMenu } from './lib/features'
-import { matchExistingRepository } from '../lib/repository-matching'
-import { getVersion, getName } from './lib/app-proxy'
-import { getOS, isOSNoLongerSupportedByElectron } from '../lib/get-os'
 import { MenuEvent, isTestMenuEvent } from '../main-process/menu'
+import { Account, isDotComAccount } from '../models/account'
+import { findItemByAccessKey, itemIsSelectable } from '../models/app-menu'
+import { Branch } from '../models/branch'
+import { CloneRepositoryTab } from '../models/clone-repository-tab'
+import { CloningRepository } from '../models/cloning-repository'
+import {
+  getDiffFontFamilyCssValue,
+  getDiffLineHeight,
+} from '../models/diff-font'
+import { FetchType } from '../models/fetch'
+import { PreferencesTab } from '../models/preferences'
 import {
   Repository,
   getGitHubHtmlUrl,
@@ -31,225 +36,220 @@ import {
   getUpdateBranchStrategy,
   isRepositoryWithGitHubRepository,
 } from '../models/repository'
-import { Branch } from '../models/branch'
-import {
-  getDiffFontFamilyCssValue,
-  getDiffLineHeight,
-} from '../models/diff-font'
-import { PreferencesTab } from '../models/preferences'
-import { findItemByAccessKey, itemIsSelectable } from '../models/app-menu'
-import { Account, isDotComAccount } from '../models/account'
+import { RetryAction } from '../models/retry-actions'
 import { TipState } from '../models/tip'
-import { CloneRepositoryTab } from '../models/clone-repository-tab'
-import { CloningRepository } from '../models/cloning-repository'
+import { Dispatcher } from './dispatcher'
+import { getName, getVersion } from './lib/app-proxy'
+import { shouldRenderApplicationMenu } from './lib/features'
+import { UpdateStatus, updateStore } from './lib/update-store'
 
-import { TitleBar, ZoomInfo, FullScreenInfo } from './window'
+import { FullScreenInfo, TitleBar, ZoomInfo } from './window'
 
-import { RepositoriesList, getKnownGroupNames } from './repositories-list'
-import { Resizable } from './resizable'
-import { RepositoryView } from './repository'
-import { RenameBranch } from './rename-branch'
-import {
-  CantDeleteCurrentBranch,
-  CantDeleteCurrentBranchUncommittedChanges,
-  DeleteBranch,
-  DeleteUnusedLocalBranches,
-  DeleteRemoteBranch,
-} from './delete-branch'
-import { CantDeleteMainBranch } from './delete-branch/cant-delete-main-branch'
-import { CloningRepositoryView } from './cloning-repository'
-import {
-  Toolbar,
-  ToolbarDropdown,
-  DropdownState,
-  PushPullButton,
-  BranchDropdown,
-  WorktreeDropdown,
-  RevertProgress,
-} from './toolbar'
-import { iconForRepository, OcticonSymbol } from './octicons'
-import * as octicons from './octicons/octicons.generated'
-import {
-  showCertificateTrustDialog,
-  sendReady,
-  isInApplicationFolder,
-  selectAllWindowContents,
-  installWindowsCLI,
-  uninstallWindowsCLI,
-  openRepositoryInNewWindow,
-  setWindowTitle,
-  setWindowSelectedRepository,
-} from './main-process-proxy'
-import { DiscardChanges } from './discard-changes'
-import { Welcome } from './welcome'
-import { AppMenuBar } from './app-menu'
-import { UpdateAvailable, renderBanner } from './banners'
-import { Preferences } from './preferences'
-import { ConfirmRestart } from './preferences/confirm-restart'
-import { CopilotSettingsDialog } from './preferences/copilot-settings-dialog'
-import { CopilotCustomProvidersDialog } from './preferences/copilot-custom-providers-dialog'
-import { EditCopilotBYOKProviderDialog } from './copilot/edit-byok-provider-dialog'
-import { EditCopilotBYOKModelDialog } from './copilot/edit-byok-model-dialog'
-import { ConfirmDeleteCopilotBYOKProviderDialog } from './copilot/confirm-delete-byok-provider-dialog'
+import classNames from 'classnames'
+import { webUtils } from 'electron'
+import memoizeOne from 'memoize-one'
+import { IAPICreatePushProtectionBypassResponse } from '../lib/api'
+import { findContributionTargetDefaultBranch } from '../lib/branch'
+import { clamp } from '../lib/clamp'
+import { createCommitURL } from '../lib/commit-url'
 import type { IBYOKProvider } from '../lib/copilot/byok'
 import { getConflictResolutionModelDisplay } from '../lib/copilot/conflict-resolution-model'
-import { OpenWithExternalEditor } from './open-with-external-editor/open-with-external-editor'
-import { RepositorySettings } from './repository-settings'
-import { AppError } from './app-error'
-import { MissingRepository } from './missing-repository'
-import { AddExistingRepository, CreateRepository } from './add-repository'
-import { CloneRepository } from './clone-repository'
-import { CreateBranch } from './create-branch'
-import { SignIn } from './sign-in'
-import { InstallGit } from './install-git'
-import { EditorError } from './editor'
-import { About } from './about'
-import { Publish } from './publish-repository'
-import { Acknowledgements } from './acknowledgements'
-import { UntrustedCertificate } from './untrusted-certificate'
-import { NoRepositoriesView } from './no-repositories'
-import { ConfirmRemoveRepository } from './remove-repository'
-import { TermsAndConditions } from './terms-and-conditions'
-import { PushBranchCommits } from './branches'
-import { CLIInstalled } from './cli-installed'
-import { GenericGitAuthentication } from './generic-git-auth'
-import { ShellError } from './shell'
-import { InitializeLFS, AttributeMismatch } from './lfs'
-import { UpstreamAlreadyExists } from './upstream-already-exists'
-import { ReleaseNotes } from './release-notes'
-import { DeletePullRequest } from './delete-branch/delete-pull-request-dialog'
-import { CommitConflictsWarning } from './merge-conflicts'
-import { AppTheme } from './app-theme'
-import { ApplicationTheme } from './lib/application-theme'
-import { RepositoryStateCache } from '../lib/stores/repository-state-cache'
-import { PopupType, Popup } from '../models/popup'
-import { OversizedFiles } from './changes/oversized-files-warning'
-import { PushNeedsPullWarning } from './push-needs-pull'
-import { getCurrentBranchForcePushState } from '../lib/rebase'
-import { Banner, BannerType } from '../models/banner'
-import { StashAndSwitchBranch } from './stash-changes/stash-and-switch-branch-dialog'
-import { ConfirmDiscardStashDialog } from './stashing/confirm-discard-stash'
-import { RenameStashDialog } from './stashing/rename-stash-dialog'
-import { ConfirmCheckoutCommitDialog } from './checkout/confirm-checkout-commit'
-import { ConfirmDeletePushedTagDialog } from './tag/confirm-delete-pushed-tag'
-import { CreateTutorialRepositoryDialog } from './no-repositories/create-tutorial-repository-dialog'
-import { ConfirmExitTutorial } from './tutorial'
-import { TutorialStep, isValidTutorialStep } from '../models/tutorial-step'
-import { WorkflowPushRejectedDialog } from './workflow-push-rejected/workflow-push-rejected'
-import { SAMLReauthRequiredDialog } from './saml-reauth-required/saml-reauth-required'
-import { CreateForkDialog } from './forks/create-fork-dialog'
-import { findContributionTargetDefaultBranch } from '../lib/branch'
-import { UpdateBranchStrategy } from '../lib/update-branch-strategy'
-import {
-  GitHubRepository,
-  hasWritePermission,
-} from '../models/github-repository'
-import { CreateTag } from './create-tag'
-import { DeleteTag } from './delete-tag'
-import { ChooseForkSettings } from './choose-fork-settings'
-import { DiscardSelection } from './discard-changes/discard-selection-dialog'
-import { LocalChangesOverwrittenDialog } from './local-changes-overwritten/local-changes-overwritten-dialog'
-import memoizeOne from 'memoize-one'
-import { AheadBehindStore } from '../lib/stores/ahead-behind-store'
-import {
-  getAccountForCommitMessageGeneration,
-  getAccountForCopilotConflictResolution,
-  getAccountForRepository,
-} from '../lib/get-account-for-repository'
-import { CommitOneLine } from '../models/commit'
-import { CommitDragElement } from './drag-elements/commit-drag-element'
-import classNames from 'classnames'
-import { MoveToApplicationsFolder } from './move-to-applications-folder'
-import { ChangeRepositoryAlias } from './change-repository-alias/change-repository-alias-dialog'
-import { CreateRepositoryGroup } from './create-repository-group/create-repository-group-dialog'
-import { DeleteRepositoryGroup } from './delete-repository-group/delete-repository-group-dialog'
-import { ThankYou } from './thank-you'
-import {
-  getUserContributions,
-  hasUserAlreadyBeenCheckedOrThanked,
-  updateLastThankYou,
-} from '../lib/thank-you'
-import { ReleaseNote } from '../models/release-notes'
-import { CommitMessageDialog } from './commit-message/commit-message-dialog'
-import { buildAutocompletionProviders } from './autocompletion'
-import { DragType, DropTargetSelector } from '../models/drag-drop'
-import { dragAndDropManager } from '../lib/drag-and-drop-manager'
-import { MultiCommitOperation } from './multi-commit-operation/multi-commit-operation'
-import { WarnLocalChangesBeforeUndo } from './undo/warn-local-changes-before-undo'
-import { WarnUndoPushedCommit } from './undo/warn-undo-pushed-commit'
-import { WarningBeforeReset } from './reset/warning-before-reset'
-import { WarnResetToPushedCommit } from './reset/warn-reset-to-pushed-commit'
-import { InvalidatedToken } from './invalidated-token/invalidated-token'
-import { MultiCommitOperationKind } from '../models/multi-commit-operation'
-import { AddSSHHost } from './ssh/add-ssh-host'
-import { SSHKeyPassphrase } from './ssh/ssh-key-passphrase'
-import { getMultiCommitOperationChooseBranchStep } from '../lib/multi-commit-operation'
-import { ConfirmForcePush } from './rebase/confirm-force-push'
-import { PullRequestChecksFailed } from './notifications/pull-request-checks-failed'
-import { CICheckRunRerunDialog } from './check-runs/ci-check-run-rerun-dialog'
-import { WarnForcePushDialog } from './multi-commit-operation/dialog/warn-force-push-dialog'
-import { clamp } from '../lib/clamp'
-import { generateRepositoryListContextMenu } from './repositories-list/repository-list-item-context-menu'
-import * as ipcRenderer from '../lib/ipc-renderer'
-import { DiscardChangesRetryDialog } from './discard-changes/discard-changes-retry-dialog'
-import { PullRequestReview } from './notifications/pull-request-review'
-import { getCommitsBetweenCommits, getRepositoryType } from '../lib/git'
-import { SSHUserPassword } from './ssh/ssh-user-password'
-import { showContextualMenu } from '../lib/menu-item'
-import { UnreachableCommitsDialog } from './history/unreachable-commits-dialog'
-import { OpenPullRequestDialog } from './open-pull-request/open-pull-request-dialog'
-import { sendNonFatalException } from '../lib/helpers/non-fatal-exception'
 import { ICustomIntegration } from '../lib/custom-integration'
-import { createCommitURL } from '../lib/commit-url'
-import { InstallingUpdate } from './installing-update/installing-update'
-import { DialogStackContext } from './dialog'
-import { TestNotifications } from './test-notifications/test-notifications'
-import { NotificationsDebugStore } from '../lib/stores/notifications-debug-store'
-import { PullRequestComment } from './notifications/pull-request-comment'
-import { UnknownAuthors } from './unknown-authors/unknown-authors-dialog'
-import { UnsupportedOSBannerDismissedAtKey } from './banners/os-version-no-longer-supported-banner'
-import { offsetFromNow } from '../lib/offset-from'
-import { getNumber } from '../lib/local-storage'
-import { IconPreviewDialog } from './octicons/icon-preview-dialog'
-import { isCertificateErrorSuppressedFor } from '../lib/suppress-certificate-error'
-import { webUtils } from 'electron'
-import { showTestUI } from './lib/test-ui-components/test-ui-components'
-import { ConfirmCommitFilteredChanges } from './changes/confirm-commit-filtered-changes-dialog'
-import { AboutTestDialog } from './about/about-test-dialog'
-import { TestCLIActionDialog } from './cli-action/test-cli-action-dialog'
-import { TestCopilotSnapshotCardDialog } from './preferences/test-copilot-snapshot-card-dialog'
+import { dragAndDropManager } from '../lib/drag-and-drop-manager'
 import {
   enableCopilotSdkCommitMessageGeneration,
   enableWorktreeSupport,
 } from '../lib/feature-flag'
 import {
+  getAccountForCommitMessageGeneration,
+  getAccountForCopilotConflictResolution,
+  getAccountForRepository,
+} from '../lib/get-account-for-repository'
+import { getCommitsBetweenCommits, getRepositoryType } from '../lib/git'
+import { sendNonFatalException } from '../lib/helpers/non-fatal-exception'
+import * as ipcRenderer from '../lib/ipc-renderer'
+import { getNumber } from '../lib/local-storage'
+import { showContextualMenu } from '../lib/menu-item'
+import { getMultiCommitOperationChooseBranchStep } from '../lib/multi-commit-operation'
+import { offsetFromNow } from '../lib/offset-from'
+import { getCurrentBranchForcePushState } from '../lib/rebase'
+import { AheadBehindStore } from '../lib/stores/ahead-behind-store'
+import {
   getCopilotAccountCacheKey,
   type CopilotFeature,
 } from '../lib/stores/copilot-store'
+import { NotificationsDebugStore } from '../lib/stores/notifications-debug-store'
+import { RepositoryStateCache } from '../lib/stores/repository-state-cache'
+import { isCertificateErrorSuppressedFor } from '../lib/suppress-certificate-error'
 import {
-  ISecretScanResult,
-  PushProtectionErrorDialog,
-} from './secret-scanning/push-protection-error-dialog'
-import { GenerateCommitMessageOverrideWarning } from './generate-commit-message/generate-commit-message-override-warning'
+  getUserContributions,
+  hasUserAlreadyBeenCheckedOrThanked,
+  updateLastThankYou,
+} from '../lib/thank-you'
+import { UpdateBranchStrategy } from '../lib/update-branch-strategy'
+import { Banner, BannerType } from '../models/banner'
+import { CommitOneLine } from '../models/commit'
+import { DragType, DropTargetSelector } from '../models/drag-drop'
+import { getEditorOverrideLabel } from '../models/editor-override'
+import {
+  GitHubRepository,
+  hasWritePermission,
+} from '../models/github-repository'
+import { MultiCommitOperationKind } from '../models/multi-commit-operation'
+import { Popup, PopupType } from '../models/popup'
+import { ReleaseNote } from '../models/release-notes'
+import { TutorialStep, isValidTutorialStep } from '../models/tutorial-step'
+import { WorktreeEntry } from '../models/worktree'
+import { About } from './about'
+import { AboutTestDialog } from './about/about-test-dialog'
+import { Acknowledgements } from './acknowledgements'
+import { AddExistingRepository, CreateRepository } from './add-repository'
+import { AppError } from './app-error'
+import { AppMenuBar } from './app-menu'
+import { AppTheme } from './app-theme'
+import { buildAutocompletionProviders } from './autocompletion'
+import { UpdateAvailable, renderBanner } from './banners'
+import { UnsupportedOSBannerDismissedAtKey } from './banners/os-version-no-longer-supported-banner'
+import { PushBranchCommits } from './branches'
+import { ChangeRepositoryAlias } from './change-repository-alias/change-repository-alias-dialog'
+import { ConfirmCommitFilteredChanges } from './changes/confirm-commit-filtered-changes-dialog'
+import { OversizedFiles } from './changes/oversized-files-warning'
+import { CICheckRunRerunDialog } from './check-runs/ci-check-run-rerun-dialog'
+import { ConfirmCheckoutCommitDialog } from './checkout/confirm-checkout-commit'
+import { ChooseForkSettings } from './choose-fork-settings'
+import { TestCLIActionDialog } from './cli-action/test-cli-action-dialog'
+import { CLIInstalled } from './cli-installed'
+import { CloneRepository } from './clone-repository'
+import { CloningRepositoryView } from './cloning-repository'
+import { CommitMessageDialog } from './commit-message/commit-message-dialog'
+import { CommitProgress } from './commit-progress/commit-progress'
+import { ConfirmDeleteCopilotBYOKProviderDialog } from './copilot/confirm-delete-byok-provider-dialog'
 import { CopilotDisclaimer } from './copilot/copilot-disclaimer'
+import { EditCopilotBYOKModelDialog } from './copilot/edit-byok-model-dialog'
+import { EditCopilotBYOKProviderDialog } from './copilot/edit-byok-provider-dialog'
+import { CreateBranch } from './create-branch'
+import { CreateRepositoryGroup } from './create-repository-group/create-repository-group-dialog'
+import { CreateTag } from './create-tag'
+import {
+  CantDeleteCurrentBranch,
+  CantDeleteCurrentBranchUncommittedChanges,
+  DeleteBranch,
+  DeleteRemoteBranch,
+  DeleteUnusedLocalBranches,
+} from './delete-branch'
+import { CantDeleteMainBranch } from './delete-branch/cant-delete-main-branch'
+import { DeletePullRequest } from './delete-branch/delete-pull-request-dialog'
+import { DeleteRepositoryGroup } from './delete-repository-group/delete-repository-group-dialog'
+import { DeleteTag } from './delete-tag'
+import { DialogStackContext } from './dialog'
+import { DiscardChanges } from './discard-changes'
+import { DiscardChangesRetryDialog } from './discard-changes/discard-changes-retry-dialog'
+import { DiscardSelection } from './discard-changes/discard-selection-dialog'
+import { CommitDragElement } from './drag-elements/commit-drag-element'
+import { EditorError } from './editor'
+import { CreateForkDialog } from './forks/create-fork-dialog'
+import { GenerateCommitMessageOverrideWarning } from './generate-commit-message/generate-commit-message-override-warning'
+import { GenericGitAuthentication } from './generic-git-auth'
+import { UnreachableCommitsDialog } from './history/unreachable-commits-dialog'
+import { HookFailed } from './hook-failed/hook-failed'
+import { InstallGit } from './install-git'
+import { InstallingUpdate } from './installing-update/installing-update'
+import { InvalidatedToken } from './invalidated-token/invalidated-token'
+import { AttributeMismatch, InitializeLFS } from './lfs'
+import { ApplicationTheme } from './lib/application-theme'
+import { showTestUI } from './lib/test-ui-components/test-ui-components'
+import { LocalChangesOverwrittenDialog } from './local-changes-overwritten/local-changes-overwritten-dialog'
+import {
+  installWindowsCLI,
+  isInApplicationFolder,
+  openRepositoryInNewWindow,
+  selectAllWindowContents,
+  sendReady,
+  setWindowSelectedRepository,
+  setWindowTitle,
+  showCertificateTrustDialog,
+  uninstallWindowsCLI,
+} from './main-process-proxy'
+import { AddRemoteDialog } from './manage-remotes/add-remote-dialog'
+import { ManageRemotesDialog } from './manage-remotes/manage-remotes-dialog'
+import { CommitConflictsWarning } from './merge-conflicts'
+import { MissingRepository } from './missing-repository'
+import { MoveToApplicationsFolder } from './move-to-applications-folder'
 import { CopilotConflictResolutionAlwaysNudge } from './multi-commit-operation/dialog/copilot-conflict-resolution-always-nudge'
-import { IAPICreatePushProtectionBypassResponse } from '../lib/api'
+import { WarnForcePushDialog } from './multi-commit-operation/dialog/warn-force-push-dialog'
+import { MultiCommitOperation } from './multi-commit-operation/multi-commit-operation'
+import { NoRepositoriesView } from './no-repositories'
+import { CreateTutorialRepositoryDialog } from './no-repositories/create-tutorial-repository-dialog'
+import { PullRequestChecksFailed } from './notifications/pull-request-checks-failed'
+import { PullRequestComment } from './notifications/pull-request-comment'
+import { PullRequestReview } from './notifications/pull-request-review'
+import { OcticonSymbol, iconForRepository } from './octicons'
+import { IconPreviewDialog } from './octicons/icon-preview-dialog'
+import * as octicons from './octicons/octicons.generated'
+import { OpenPullRequestDialog } from './open-pull-request/open-pull-request-dialog'
+import { OpenWithExternalEditor } from './open-with-external-editor/open-with-external-editor'
+import { Preferences } from './preferences'
+import { ConfirmRestart } from './preferences/confirm-restart'
+import { CopilotCustomProvidersDialog } from './preferences/copilot-custom-providers-dialog'
+import { CopilotSettingsDialog } from './preferences/copilot-settings-dialog'
+import { TestCopilotSnapshotCardDialog } from './preferences/test-copilot-snapshot-card-dialog'
+import { Publish } from './publish-repository'
+import { PullBranchDeletedDialog } from './pull-branch-deleted/pull-branch-deleted-dialog'
+import { PushNeedsPullWarning } from './push-needs-pull'
+import { ConfirmForcePush } from './rebase/confirm-force-push'
+import { ReleaseNotes } from './release-notes'
+import { ConfirmRemoveRepository } from './remove-repository'
+import { RenameBranch } from './rename-branch'
+import { RepositoriesList, getKnownGroupNames } from './repositories-list'
+import { generateRepositoryListContextMenu } from './repositories-list/repository-list-item-context-menu'
+import { RepositoryView } from './repository'
+import { RepositorySettings } from './repository-settings'
+import { WarnResetToPushedCommit } from './reset/warn-reset-to-pushed-commit'
+import { WarningBeforeReset } from './reset/warning-before-reset'
+import { Resizable } from './resizable'
+import { SAMLReauthRequiredDialog } from './saml-reauth-required/saml-reauth-required'
 import {
   BypassPushProtectionDialog,
   BypassReason,
   BypassReasonType,
 } from './secret-scanning/bypass-push-protection-dialog'
-import { HookFailed } from './hook-failed/hook-failed'
-import { CommitProgress } from './commit-progress/commit-progress'
+import {
+  ISecretScanResult,
+  PushProtectionErrorDialog,
+} from './secret-scanning/push-protection-error-dialog'
+import { ShellError } from './shell'
+import { SignIn } from './sign-in'
+import { AddSSHHost } from './ssh/add-ssh-host'
+import { SSHKeyPassphrase } from './ssh/ssh-key-passphrase'
+import { SSHUserPassword } from './ssh/ssh-user-password'
+import { StashAndSwitchBranch } from './stash-changes/stash-and-switch-branch-dialog'
+import { ConfirmDiscardStashDialog } from './stashing/confirm-discard-stash'
+import { RenameStashDialog } from './stashing/rename-stash-dialog'
+import { ConfirmDeletePushedTagDialog } from './tag/confirm-delete-pushed-tag'
+import { TermsAndConditions } from './terms-and-conditions'
+import { TestNotifications } from './test-notifications/test-notifications'
+import { ThankYou } from './thank-you'
+import {
+  BranchDropdown,
+  DropdownState,
+  PushPullButton,
+  RevertProgress,
+  Toolbar,
+  ToolbarDropdown,
+  WorktreeDropdown,
+} from './toolbar'
+import { ConfirmExitTutorial } from './tutorial'
+import { WarnLocalChangesBeforeUndo } from './undo/warn-local-changes-before-undo'
+import { WarnUndoPushedCommit } from './undo/warn-undo-pushed-commit'
+import { UnknownAuthors } from './unknown-authors/unknown-authors-dialog'
+import { UntrustedCertificate } from './untrusted-certificate'
+import { UpstreamAlreadyExists } from './upstream-already-exists'
+import { Welcome } from './welcome'
+import { WorkflowPushRejectedDialog } from './workflow-push-rejected/workflow-push-rejected'
 import { AddWorktreeDialog } from './worktrees/add-worktree-dialog'
-import { RenameWorktreeDialog } from './worktrees/rename-worktree-dialog'
 import { DeleteWorktreeDialog } from './worktrees/delete-worktree-dialog'
 import { DeleteWorktreeFailedDialog } from './worktrees/delete-worktree-failed-dialog'
-import { PullBranchDeletedDialog } from './pull-branch-deleted/pull-branch-deleted-dialog'
-import { ManageRemotesDialog } from './manage-remotes/manage-remotes-dialog'
-import { AddRemoteDialog } from './manage-remotes/add-remote-dialog'
-import { getEditorOverrideLabel } from '../models/editor-override'
-import { WorktreeEntry } from '../models/worktree'
+import { RenameWorktreeDialog } from './worktrees/rename-worktree-dialog'
 
 const MinuteInMilliseconds = 1000 * 60
 const HourInMilliseconds = MinuteInMilliseconds * 60

@@ -1,7 +1,8 @@
-import { describe, it } from 'node:test'
 import assert from 'node:assert'
-import { getNextPagePathWithIncreasingPageSize } from '../../src/lib/api'
+import { describe, it } from 'node:test'
 import * as URL from 'url'
+import { API, getNextPagePathWithIncreasingPageSize } from '../../src/lib/api'
+import { CopilotError } from '../../src/lib/copilot-error'
 
 interface IPageInfo {
   per_page: number
@@ -145,6 +146,105 @@ describe('API', () => {
       assertNext({ per_page: 100, page: 8 }, { per_page: 100, page: 8 })
       assertNext({ per_page: 100, page: 9 }, { per_page: 100, page: 9 })
       assertNext({ per_page: 100, page: 10 }, { per_page: 100, page: 10 })
+    })
+  })
+
+  describe('getDiffChangesCommitMessage', () => {
+    it('preserves structured payment required errors for the legacy Copilot API path', async () => {
+      const api = new API(
+        'https://api.github.com',
+        'token',
+        'login',
+        'https://copilot.example.com'
+      )
+
+      Reflect.set(
+        api,
+        'request',
+        async () =>
+          new Response(
+            JSON.stringify({
+              error: {
+                code: 'quota_exceeded',
+                message:
+                  'You have used all available Copilot premium requests.',
+              },
+            }),
+            {
+              status: 402,
+              headers: {
+                'Retry-After': '300',
+              },
+            }
+          )
+      )
+
+      await assert.rejects(
+        () => api.getDiffChangesCommitMessage('diff --git a/file b/file'),
+        error => {
+          assert(error instanceof CopilotError)
+          assert.equal(error.code, 'quota_exceeded')
+          assert.equal(
+            error.message,
+            'You have used all available Copilot premium requests.'
+          )
+          assert.equal(error.retryAfter, '300')
+          return true
+        }
+      )
+    })
+  })
+
+  describe('fetchProtectedBranches', () => {
+    const createAPI = (request: () => Promise<Response>) => {
+      const api = new API('https://api.github.com', 'token', 'login')
+      Reflect.set(api, 'request', request)
+      return api
+    }
+
+    it('returns the protected branches from a successful request', async () => {
+      const branches = [
+        { name: 'main', protected: true },
+        { name: 'release', protected: true },
+      ]
+      const api = createAPI(
+        async () => new Response(JSON.stringify(branches), { status: 200 })
+      )
+
+      assert.deepEqual(
+        await api.fetchProtectedBranches('desktop', 'desktop'),
+        branches
+      )
+    })
+
+    it('returns an empty array when the request succeeds without protected branches', async () => {
+      const api = createAPI(
+        async () => new Response(JSON.stringify([]), { status: 200 })
+      )
+
+      assert.deepEqual(
+        await api.fetchProtectedBranches('desktop', 'desktop'),
+        []
+      )
+    })
+
+    it('returns null when the request fails', async () => {
+      const api = createAPI(async () => {
+        throw new Error('Network request failed')
+      })
+
+      assert.equal(await api.fetchProtectedBranches('desktop', 'desktop'), null)
+    })
+
+    it('returns null when the repository is not found', async () => {
+      const api = createAPI(
+        async () =>
+          new Response(JSON.stringify({ message: 'Not Found' }), {
+            status: 404,
+          })
+      )
+
+      assert.equal(await api.fetchProtectedBranches('desktop', 'desktop'), null)
     })
   })
 })
