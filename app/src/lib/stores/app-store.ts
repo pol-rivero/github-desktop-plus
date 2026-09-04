@@ -489,6 +489,7 @@ import {
 import { resolveWithin } from '../path'
 import { WorktreeEntry } from '../../models/worktree'
 import type { Model } from '@github/copilot-sdk/dist/generated/rpc'
+import { TFilters } from '../../ui/history/commit-graph-sidebar'
 
 const LastSelectedRepositoryIDKey = 'last-selected-repository-id'
 
@@ -2179,7 +2180,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
   public async _loadNextCommitBatch(
     repository: Repository,
     alreadyFiltered: number,
-    queryTextLowercase?: string
+    queryTextLowercase?: string,
+    authorFiltersLowercase?: string[]
   ): Promise<void> {
     const gitStore = this.gitStoreCache.get(repository)
 
@@ -2188,7 +2190,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
     if (queryTextLowercase === undefined) {
       queryTextLowercase = state.compareState.commitSearchQuery.toLowerCase()
     }
-    const isSearching = !!queryTextLowercase
+    const isSearching = Boolean(
+      queryTextLowercase ||
+        (authorFiltersLowercase && authorFiltersLowercase.length > 0)
+    )
 
     const tip = state.branchesState.tip
 
@@ -2215,14 +2220,28 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return
     }
 
-    const newFilteredCommits = newCommits.filter(sha =>
+    const baseFilteredCommits = newCommits.filter(sha =>
       this.commitIsIncluded(gitStore.commitLookup.get(sha), queryTextLowercase)
     )
+
+    const newFilteredCommits =
+      authorFiltersLowercase && authorFiltersLowercase.length > 0
+        ? baseFilteredCommits.filter(sha => {
+            const commit = gitStore.commitLookup.get(sha)
+            return authorFiltersLowercase.some(filter =>
+              this.commitIsIncludedByAuthorFilter(commit, filter)
+            )
+          })
+        : baseFilteredCommits
 
     this.repositoryStateCache.updateCompareState(repository, () => ({
       allHistoryCommitSHAs: commits.concat(newCommits),
       filteredHistoryCommitSHAs:
         state.compareState.filteredHistoryCommitSHAs.concat(newFilteredCommits),
+      prevFilteredHistoryCommitSHAs:
+        state.compareState.filteredHistoryCommitSHAs.concat(
+          baseFilteredCommits
+        ),
     }))
 
     const numFilteredCommits = alreadyFiltered + newFilteredCommits.length
@@ -2233,7 +2252,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return this._loadNextCommitBatch(
         repository,
         numFilteredCommits,
-        queryTextLowercase
+        queryTextLowercase,
+        authorFiltersLowercase
       )
     }
     return
@@ -2443,6 +2463,30 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
   }
 
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public async _commitGraph_loadAuthorFilterOptions(
+    repository: Repository
+  ): Promise<void> {
+    const gitStore = this.gitStoreCache.get(repository)
+    const authors = await gitStore.commitGraph_loadAuthorFilterOptions()
+
+    if (authors === null) {
+      return
+    }
+
+    const state = this.repositoryStateCache.get(repository)
+
+    if (state.compareState.commitGraphAuthorFilterOptions === authors) {
+      return
+    }
+
+    this.repositoryStateCache.updateCompareState(repository, () => ({
+      commitGraphAuthorFilterOptions: authors,
+    }))
+
+    this.emitUpdate()
+  }
+
   private commitIsIncluded(
     commit: Commit | undefined,
     filterTextLowerCase: string
@@ -2461,14 +2505,34 @@ export class AppStore extends TypedBaseStore<IAppState> {
     )
   }
 
+  private commitIsIncludedByAuthorFilter(
+    commit: Commit | undefined,
+    filterTextLowerCase: string
+  ): boolean {
+    if (!commit) {
+      return false
+    }
+    return (
+      !filterTextLowerCase ||
+      commit.author.email.toLowerCase() === filterTextLowerCase
+    )
+  }
+
   public async _updateCommitSearchQuery(
     repository: Repository,
-    query: string
+    query: string,
+    filters?: TFilters
   ): Promise<void> {
     const state = this.repositoryStateCache.get(repository)
     const compareState = state.compareState
-    const isIncrementalSearch = query.startsWith(compareState.commitSearchQuery)
+    const activeAuthorEmailsSet = filters?.author
+    const activeAuthorEmailsLowercase = activeAuthorEmailsSet
+      ? Array.from(activeAuthorEmailsSet).map(item => item.toLowerCase())
+      : []
 
+    const isIncrementalSearch = query
+      ? query.startsWith(compareState.commitSearchQuery)
+      : false
     this.repositoryStateCache.updateCompareState(repository, () => ({
       commitSearchQuery: query,
     }))
@@ -2478,23 +2542,38 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     const candidateCommitSHAs = isIncrementalSearch
-      ? compareState.filteredHistoryCommitSHAs
+      ? compareState.prevFilteredHistoryCommitSHAs
       : compareState.allHistoryCommitSHAs
+
     const queryTextLowercase = query.toLowerCase()
-    const filteredCommitSHAs = queryTextLowercase
+
+    const baseFilteredCommitSHAs = queryTextLowercase
       ? candidateCommitSHAs.filter(sha =>
           this.commitIsIncluded(state.commitLookup.get(sha), queryTextLowercase)
         )
       : candidateCommitSHAs
+
+    const newFilteredCommitSHAs =
+      activeAuthorEmailsLowercase.length > 0
+        ? baseFilteredCommitSHAs.filter(sha => {
+            const commit = state.commitLookup.get(sha)
+            return activeAuthorEmailsLowercase.some(filter =>
+              this.commitIsIncludedByAuthorFilter(commit, filter)
+            )
+          })
+        : baseFilteredCommitSHAs
+
     this.repositoryStateCache.updateCompareState(repository, () => ({
-      filteredHistoryCommitSHAs: filteredCommitSHAs,
+      filteredHistoryCommitSHAs: newFilteredCommitSHAs,
+      prevFilteredHistoryCommitSHAs: baseFilteredCommitSHAs,
     }))
     this.emitUpdate()
-    if (filteredCommitSHAs.length < MinimumFilteredCommitsToLoad) {
+    if (newFilteredCommitSHAs.length < MinimumFilteredCommitsToLoad) {
       this.currentCommitFilterPromise = this._loadNextCommitBatch(
         repository,
-        filteredCommitSHAs.length,
-        queryTextLowercase
+        newFilteredCommitSHAs.length,
+        queryTextLowercase,
+        activeAuthorEmailsLowercase
       )
       await this.currentCommitFilterPromise
       this.currentCommitFilterPromise = null
@@ -4750,12 +4829,20 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return assertNever(section, `Unknown section: ${section}`)
     }
 
+    // Keep the author filter options fresh once they've been loaded
+    const authorFilterOptionsRefresh =
+      this.repositoryStateCache.get(repository).compareState
+        .commitGraphAuthorFilterOptions !== null
+        ? this._commitGraph_loadAuthorFilterOptions(repository)
+        : Promise.resolve()
+
     await Promise.all([
       gitStore.updateLastFetched(),
       gitStore.loadStashEntries(),
       this._refreshAuthor(repository),
       this._refreshWorktrees(repository),
       refreshSectionPromise,
+      authorFilterOptionsRefresh,
     ])
 
     await gitStore.refreshTags()
