@@ -4663,12 +4663,11 @@ export class Dispatcher {
   }
 
   public copyPathsToClipboard(paths: ReadonlyArray<string>) {
-    const text =
-      paths
-        .map(p =>
-          convertToCopyPath(p, this.appStore.getState().copyPathNormalization)
-        )
-        .join(EOL)
+    const text = paths
+      .map(p =>
+        convertToCopyPath(p, this.appStore.getState().copyPathNormalization)
+      )
+      .join(EOL)
     writeClipboardText(text)
   }
 
